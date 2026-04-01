@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  /* Light mode tokens */
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --surface-secondary: #f3f4f6;
+  --surface-elevated: #ffffff;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --accent-primary: #37322F;
+  --accent-gold: #C4985A;
+  --accent-green: #6B8F71;
+  --accent-red: #B85450;
+  --accent-purple: #8B7E74;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0A0A0B;
+    --surface: #141416;
+    --surface-secondary: #1a1a1d;
+    --surface-elevated: #1C1C1F;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.15);
+    --text-primary: #FFFFFF;
+    --text-secondary: #A1A1AA;
+    --text-tertiary: #71717A;
+    --accent-primary: #C8BEB4;
+    --accent-gold: #D4A96A;
+    --accent-green: #7FA886;
+    --accent-red: #C86460;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
