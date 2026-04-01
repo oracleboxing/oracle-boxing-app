@@ -8,7 +8,7 @@ export default function HomePage() {
     <div>
       <PageHeader
         title="Oracle Boxing"
-        subtitle="Good morning, boxer 👊"
+        subtitle="GOOD MORNING, BOXER 👊"
       />
 
       <div className="px-4 space-y-4 mt-2">
