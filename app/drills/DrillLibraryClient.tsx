@@ -1,25 +1,17 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import type { Drill, DrillCategory, DrillDifficulty, GradeLevel, Json } from '@/lib/supabase/types'
 
-type LibraryStatusFilter = 'all' | 'active' | 'inactive' | 'curated' | 'needs-review'
+type DrillStatusFilter = 'all' | 'active' | 'inactive'
+type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness'
 
-type DrillInsight = {
-  stepsCount: number
-  focusPointsCount: number
-  mistakesCount: number
-  rawLinkCount: number
-  completenessScore: number
-  completenessLabel: string
-}
-
-const STATUS_FILTER_LABELS: Record<LibraryStatusFilter, string> = {
-  all: 'All library rows',
-  active: 'Active only',
-  inactive: 'Inactive only',
-  curated: 'Curated only',
-  'needs-review': 'Needs review',
+const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
+  library: 'Library order',
+  newest: 'Newest first',
+  grade: 'Grade order',
+  completeness: 'Most complete',
 }
 
 function formatGradeLevel(value: GradeLevel | null) {
@@ -36,11 +28,11 @@ function formatDifficulty(value: DrillDifficulty) {
   return value.replace(/\b\w/g, (match) => match.toUpperCase())
 }
 
-function countJsonItems(value: Json | null) {
+function countJsonItems(value: Json) {
   return Array.isArray(value) ? value.length : 0
 }
 
-function jsonToStringList(value: Json | null) {
+function jsonToStringList(value: Json) {
   if (!Array.isArray(value)) return []
   return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
 }
@@ -55,65 +47,37 @@ function formatDateTime(value: string) {
   }).format(date)
 }
 
-function buildDrillInsight(drill: Drill): DrillInsight {
-  const stepsCount = countJsonItems(drill.steps_json)
-  const focusPointsCount = countJsonItems(drill.focus_points_json)
-  const mistakesCount = countJsonItems(drill.common_mistakes_json)
-  const rawLinkCount = drill.raw_candidate_ids?.length ?? 0
-  const completenessScore = [
+function getCompletenessScore(drill: Drill) {
+  return [
     Boolean(drill.summary),
     Boolean(drill.description),
-    stepsCount > 0,
-    focusPointsCount > 0,
-    mistakesCount > 0,
+    countJsonItems(drill.steps_json) > 0,
+    countJsonItems(drill.focus_points_json) > 0,
+    countJsonItems(drill.common_mistakes_json) > 0,
     Boolean(drill.what_it_trains),
     Boolean(drill.when_to_assign),
     Boolean(drill.coach_demo_quote),
+    Boolean(drill.demo_video_url),
+    Boolean(drill.animation_key),
   ].filter(Boolean).length
-
-  const completenessLabel =
-    completenessScore >= 7 ? 'Rich detail' : completenessScore >= 4 ? 'Usable detail' : 'Thin detail'
-
-  return {
-    stepsCount,
-    focusPointsCount,
-    mistakesCount,
-    rawLinkCount,
-    completenessScore,
-    completenessLabel,
-  }
 }
 
-function getSearchHaystack(drill: Drill) {
-  return [
-    drill.title,
-    drill.slug,
-    drill.summary,
-    drill.description,
-    drill.what_it_trains,
-    drill.when_to_assign,
-    drill.category,
-    drill.difficulty,
-    drill.grade_level,
-    ...(drill.skill_tags ?? []),
-    ...(drill.format_tags ?? []),
-    ...(drill.tags ?? []),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
+function getCompletenessLabel(score: number) {
+  if (score >= 8) return 'Ready'
+  if (score >= 5) return 'Usable'
+  return 'Thin'
 }
 
-function getDrillTone(drill: Drill) {
-  if (drill.is_active && drill.is_curated) {
-    return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
-  }
+function getCompletenessTone(score: number) {
+  if (score >= 8) return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+  if (score >= 5) return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300'
+  return 'border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300'
+}
 
-  if (!drill.is_active) {
-    return 'border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300'
-  }
-
-  return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300'
+function getStatusTone(isActive: boolean) {
+  return isActive
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+    : 'border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300'
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {
@@ -127,65 +91,74 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 
 export function DrillLibraryClient({ drills }: { drills: Drill[] }) {
   const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<LibraryStatusFilter>('active')
-  const [categoryFilter, setCategoryFilter] = useState<'all' | string>('all')
-  const [difficultyFilter, setDifficultyFilter] = useState<'all' | string>('all')
-  const [gradeFilter, setGradeFilter] = useState<'all' | string>('all')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | DrillCategory>('all')
+  const [gradeFilter, setGradeFilter] = useState<'all' | GradeLevel | 'unassigned'>('all')
+  const [difficultyFilter, setDifficultyFilter] = useState<'all' | DrillDifficulty>('all')
+  const [statusFilter, setStatusFilter] = useState<DrillStatusFilter>('active')
+  const [curatedOnly, setCuratedOnly] = useState(true)
+  const [sortMode, setSortMode] = useState<DrillSortMode>('library')
   const [selectedDrillId, setSelectedDrillId] = useState<string | null>(drills[0]?.id ?? null)
 
-  const drillInsights = useMemo(() => {
-    const insights = new Map<string, DrillInsight>()
-
-    for (const drill of drills) {
-      insights.set(drill.id, buildDrillInsight(drill))
-    }
-
-    return insights
-  }, [drills])
-
-  const availableCategories = useMemo(
-    () =>
-      Array.from(
-        new Set(drills.map((drill) => drill.category).filter((category): category is DrillCategory => Boolean(category)))
-      ).sort(),
+  const categories = useMemo(
+    () => Array.from(new Set(drills.map((drill) => drill.category).filter(Boolean))) as DrillCategory[],
     [drills]
   )
 
-  const availableDifficulties = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          drills.map((drill) => drill.difficulty).filter((difficulty): difficulty is DrillDifficulty => Boolean(difficulty))
-        )
-      ).sort(),
-    [drills]
-  )
-
-  const availableGrades = useMemo(
-    () => Array.from(new Set(drills.map((drill) => drill.grade_level ?? 'unassigned'))).sort(),
+  const gradeLevels = useMemo(
+    () => Array.from(new Set(drills.map((drill) => drill.grade_level ?? 'unassigned'))),
     [drills]
   )
 
   const filteredDrills = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
-    return drills.filter((drill) => {
-      if (statusFilter === 'active' && !drill.is_active) return false
-      if (statusFilter === 'inactive' && drill.is_active) return false
-      if (statusFilter === 'curated' && !drill.is_curated) return false
-      if (statusFilter === 'needs-review' && drill.is_curated) return false
-
+    const next = drills.filter((drill) => {
       if (categoryFilter !== 'all' && drill.category !== categoryFilter) return false
       if (difficultyFilter !== 'all' && drill.difficulty !== difficultyFilter) return false
+      if (statusFilter === 'active' && !drill.is_active) return false
+      if (statusFilter === 'inactive' && drill.is_active) return false
+      if (curatedOnly && !drill.is_curated) return false
 
-      const drillGrade = drill.grade_level ?? 'unassigned'
-      if (gradeFilter !== 'all' && drillGrade !== gradeFilter) return false
+      if (gradeFilter !== 'all') {
+        const value = drill.grade_level ?? 'unassigned'
+        if (value !== gradeFilter) return false
+      }
 
-      if (normalizedQuery && !getSearchHaystack(drill).includes(normalizedQuery)) return false
+      if (!normalizedQuery) return true
 
-      return true
+      const haystack = [
+        drill.title,
+        drill.summary,
+        drill.description,
+        drill.what_it_trains,
+        drill.when_to_assign,
+        drill.category,
+        drill.grade_level,
+        ...drill.skill_tags,
+        ...drill.format_tags,
+        ...drill.tags,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+      return haystack.includes(normalizedQuery)
     })
-  }, [drills, query, statusFilter, categoryFilter, difficultyFilter, gradeFilter])
+
+    next.sort((a, b) => {
+      const completenessDiff = getCompletenessScore(b) - getCompletenessScore(a)
+      const updatedDiff = new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      const gradeDiff = (a.grade_level ?? 'zzz').localeCompare(b.grade_level ?? 'zzz')
+
+      if (sortMode === 'newest') return updatedDiff || a.title.localeCompare(b.title)
+      if (sortMode === 'grade') return gradeDiff || a.title.localeCompare(b.title)
+      if (sortMode === 'completeness') return completenessDiff || a.title.localeCompare(b.title)
+
+      return Number(b.is_active) - Number(a.is_active) || Number(b.is_curated) - Number(a.is_curated) || gradeDiff || a.title.localeCompare(b.title)
+    })
+
+    return next
+  }, [categoryFilter, curatedOnly, difficultyFilter, drills, gradeFilter, query, sortMode, statusFilter])
 
   useEffect(() => {
     if (filteredDrills.length === 0) {
@@ -198,310 +171,301 @@ export function DrillLibraryClient({ drills }: { drills: Drill[] }) {
     }
   }, [filteredDrills, selectedDrillId])
 
-  const selectedDrill = filteredDrills.find((drill) => drill.id === selectedDrillId) ?? filteredDrills[0] ?? null
+  const selectedDrill = filteredDrills.find((drill) => drill.id === selectedDrillId) ?? null
 
   const summary = useMemo(() => {
     const activeCount = drills.filter((drill) => drill.is_active).length
     const curatedCount = drills.filter((drill) => drill.is_curated).length
-    const gradeAssignedCount = drills.filter((drill) => drill.grade_level).length
-    const categoryCount = availableCategories.length
+    const withGradeCount = drills.filter((drill) => drill.grade_level).length
+    const readyCount = drills.filter((drill) => getCompletenessScore(drill) >= 8).length
 
-    return {
-      totalCount: drills.length,
-      activeCount,
-      curatedCount,
-      gradeAssignedCount,
-      categoryCount,
-    }
-  }, [drills, availableCategories.length])
+    return { activeCount, curatedCount, withGradeCount, readyCount }
+  }, [drills])
 
   if (drills.length === 0) {
     return (
       <EmptyState
         title="No curated drills yet"
-        body="The drills table is reachable, but it is still empty. Once canonical drills are promoted into drills, they will show up here instead of in the raw review queue."
+        body="The drills table is reachable, but it does not have any curated library rows yet. That is fine for now. The next real job is turning reviewed source candidates into canonical drills."
       />
     )
   }
 
   return (
-    <section className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Curated library rows" value={summary.totalCount} hint="All rows in drills" />
-        <SummaryCard label="Active drills" value={summary.activeCount} hint="Ready for app use" />
-        <SummaryCard label="Marked curated" value={summary.curatedCount} hint="Canonical-quality rows" />
-        <SummaryCard label="Categories in use" value={summary.categoryCount} hint={`${summary.gradeAssignedCount} rows have a grade`} />
-      </div>
+    <div className="space-y-6">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" />
+        <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" />
+        <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" />
+        <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" />
+      </section>
 
-      <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Browse curated drills</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Search the clean library layer without mixing in raw candidate noise.
-            </p>
-          </div>
-
-          <div className="grid w-full gap-3 md:grid-cols-2 xl:w-auto xl:grid-cols-5">
+      <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_repeat(5,minmax(0,1fr))]">
+          <label className="block">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Search</span>
             <input
-              type="text"
-              placeholder="Search title, tags, summary..."
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]"
+              placeholder="Search title, summary, tags, grade"
+              className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--accent-primary)]"
             />
+          </label>
 
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as LibraryStatusFilter)}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
-            >
-              {Object.entries(STATUS_FILTER_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
-            >
-              <option value="all">All categories</option>
-              {availableCategories.map((category) => (
-                <option key={category} value={category}>
-                  {formatCategory(category)}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={difficultyFilter}
-              onChange={(event) => setDifficultyFilter(event.target.value)}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
-            >
-              <option value="all">All difficulties</option>
-              {availableDifficulties.map((difficulty) => (
-                <option key={difficulty} value={difficulty}>
-                  {formatDifficulty(difficulty)}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={gradeFilter}
-              onChange={(event) => setGradeFilter(event.target.value)}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
-            >
-              <option value="all">All grades</option>
-              {availableGrades.map((grade) => (
-                <option key={grade} value={grade}>
-                  {formatGradeLevel(grade === 'unassigned' ? null : (grade as GradeLevel))}
-                </option>
-              ))}
-            </select>
-          </div>
+          <FilterSelect
+            label="Category"
+            value={categoryFilter}
+            onChange={(value) => setCategoryFilter(value as 'all' | DrillCategory)}
+            options={[{ value: 'all', label: 'All categories' }, ...categories.map((value) => ({ value, label: formatCategory(value) }))]}
+          />
+          <FilterSelect
+            label="Grade"
+            value={gradeFilter}
+            onChange={(value) => setGradeFilter(value as 'all' | GradeLevel | 'unassigned')}
+            options={[{ value: 'all', label: 'All grades' }, ...gradeLevels.map((value) => ({ value, label: value === 'unassigned' ? 'Unassigned' : formatGradeLevel(value as GradeLevel) }))]}
+          />
+          <FilterSelect
+            label="Difficulty"
+            value={difficultyFilter}
+            onChange={(value) => setDifficultyFilter(value as 'all' | DrillDifficulty)}
+            options={[{ value: 'all', label: 'All levels' }, { value: 'beginner', label: 'Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'advanced', label: 'Advanced' }]}
+          />
+          <FilterSelect
+            label="Status"
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value as DrillStatusFilter)}
+            options={[{ value: 'active', label: 'Active only' }, { value: 'all', label: 'All statuses' }, { value: 'inactive', label: 'Inactive only' }]}
+          />
+          <FilterSelect
+            label="Sort"
+            value={sortMode}
+            onChange={(value) => setSortMode(value as DrillSortMode)}
+            options={Object.entries(SORT_MODE_LABELS).map(([value, label]) => ({ value: value as DrillSortMode, label }))}
+          />
         </div>
-      </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <label className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+            <input type="checkbox" checked={curatedOnly} onChange={(event) => setCuratedOnly(event.target.checked)} className="h-4 w-4 rounded border-[var(--border)]" />
+            Curated only
+          </label>
+          <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
+            {filteredDrills.length} visible
+          </span>
+          <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
+            {summary.withGradeCount} with grade tags
+          </span>
+        </div>
+      </section>
 
       {filteredDrills.length === 0 ? (
-        <EmptyState title="No matching drills" body="Nothing in the curated drills table matches the current search and filter combination." />
+        <EmptyState
+          title="No drills match this filter"
+          body="Try widening the grade or status filters. If curated-only is on, you may simply not have promoted enough rows yet."
+        />
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
-          <div className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)]">
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">{filteredDrills.length} matching drills</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Curated library index</p>
-              </div>
-            </div>
-
-            <div className="divide-y divide-[var(--border)]">
-              {filteredDrills.map((drill) => {
-                const insight = drillInsights.get(drill.id)
-                const isSelected = selectedDrill?.id === drill.id
-
-                return (
-                  <button
-                    key={drill.id}
-                    type="button"
-                    onClick={() => setSelectedDrillId(drill.id)}
-                    className={`w-full px-5 py-4 text-left transition-colors ${
-                      isSelected ? 'bg-[var(--surface-secondary)]' : 'hover:bg-[var(--surface)]'
-                    }`}
-                  >
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-base font-semibold text-[var(--text-primary)]">{drill.title}</h3>
-                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDrillTone(drill)}`}>
-                            {drill.is_active ? (drill.is_curated ? 'Active curated' : 'Active draft') : 'Inactive'}
-                          </span>
-                        </div>
-                        <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--text-secondary)]">{drill.summary}</p>
-                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--text-tertiary)]">
-                          <span>{formatCategory(drill.category)}</span>
-                          <span>•</span>
-                          <span>{formatDifficulty(drill.difficulty)}</span>
-                          <span>•</span>
-                          <span>{formatGradeLevel(drill.grade_level)}</span>
-                          <span>•</span>
-                          <span>{insight?.completenessLabel ?? 'Detail unknown'}</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-x-5 gap-y-1 text-xs text-[var(--text-secondary)] lg:min-w-44">
-                        <Stat label="Steps" value={insight?.stepsCount ?? 0} compact />
-                        <Stat label="Focus" value={insight?.focusPointsCount ?? 0} compact />
-                        <Stat label="Mistakes" value={insight?.mistakesCount ?? 0} compact />
-                        <Stat label="Sources" value={insight?.rawLinkCount ?? 0} compact />
-                      </div>
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+          <div className="space-y-3">
+            {filteredDrills.map((drill) => {
+              const isSelected = selectedDrillId === drill.id
+              const completenessScore = getCompletenessScore(drill)
+              return (
+                <button
+                  key={drill.id}
+                  type="button"
+                  onClick={() => setSelectedDrillId(drill.id)}
+                  className={`w-full rounded-3xl border p-5 text-left transition ${
+                    isSelected
+                      ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                      : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-primary)]'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-semibold text-[var(--text-primary)]">{drill.title}</p>
+                      <p className="mt-1 text-sm text-[var(--text-secondary)]">{drill.summary}</p>
                     </div>
-                  </button>
-                )
-              })}
-            </div>
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getStatusTone(drill.is_active)}`}>
+                      {drill.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Chip>{formatCategory(drill.category)}</Chip>
+                    <Chip>{formatDifficulty(drill.difficulty)}</Chip>
+                    <Chip>{formatGradeLevel(drill.grade_level)}</Chip>
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCompletenessTone(completenessScore)}`}>
+                      {getCompletenessLabel(completenessScore)}
+                    </span>
+                    {drill.is_curated ? <Chip>Canonical</Chip> : <Chip>Needs curation</Chip>}
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <MiniStat label="Steps" value={String(countJsonItems(drill.steps_json))} />
+                    <MiniStat label="Focus points" value={String(countJsonItems(drill.focus_points_json))} />
+                    <MiniStat label="Mistakes" value={String(countJsonItems(drill.common_mistakes_json))} />
+                  </div>
+                </button>
+              )
+            })}
           </div>
 
-          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
-            {selectedDrill ? <DrillDetail drill={selectedDrill} insight={drillInsights.get(selectedDrill.id) ?? buildDrillInsight(selectedDrill)} /> : null}
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 xl:sticky xl:top-6 xl:self-start">
+            {selectedDrill ? <DrillDetail drill={selectedDrill} /> : <EmptyState title="Choose a drill" body="Select a drill from the library list to inspect its content quality and app readiness." />}
           </div>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function SummaryCard({ label, value, hint }: { label: string; value: number; hint: string }) {
-  return (
-    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
-      <p className="text-sm font-medium text-[var(--text-secondary)]">{label}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text-primary)]">{value}</p>
-      <p className="mt-2 text-sm text-[var(--text-tertiary)]">{hint}</p>
-    </div>
-  )
-}
-
-function Stat({ label, value, compact = false }: { label: string; value: number; compact?: boolean }) {
-  return (
-    <div className={compact ? '' : 'rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3'}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">{value}</p>
-    </div>
-  )
-}
-
-function DetailSection({ title, items, emptyText }: { title: string; items: string[]; emptyText: string }) {
-  return (
-    <div>
-      <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{title}</h3>
-      {items.length > 0 ? (
-        <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
-          {items.map((item, index) => (
-            <li key={`${title}-${index}`} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-              {item}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm text-[var(--text-secondary)]">{emptyText}</p>
+        </section>
       )}
     </div>
   )
 }
 
-function TagRow({ title, tags }: { title: string; tags: string[] }) {
-  if (tags.length === 0) {
-    return null
-  }
-
-  return (
-    <div>
-      <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{title}</h3>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {tags.map((tag) => (
-          <span
-            key={`${title}-${tag}`}
-            className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function DrillDetail({ drill, insight }: { drill: Drill; insight: DrillInsight }) {
+function DrillDetail({ drill }: { drill: Drill }) {
   const steps = jsonToStringList(drill.steps_json)
   const focusPoints = jsonToStringList(drill.focus_points_json)
-  const commonMistakes = jsonToStringList(drill.common_mistakes_json)
+  const mistakes = jsonToStringList(drill.common_mistakes_json)
+  const completenessScore = getCompletenessScore(drill)
 
   return (
     <div className="space-y-6">
       <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDrillTone(drill)}`}>
-            {drill.is_active ? (drill.is_curated ? 'Active curated' : 'Active draft') : 'Inactive'}
-          </span>
-          <span className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-            {formatCategory(drill.category)}
-          </span>
-          <span className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-            {formatDifficulty(drill.difficulty)}
-          </span>
-          <span className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-            {formatGradeLevel(drill.grade_level)}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">Library detail</p>
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">{drill.title}</h2>
+          </div>
+          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCompletenessTone(completenessScore)}`}>
+            {getCompletenessLabel(completenessScore)} {completenessScore}/10
           </span>
         </div>
-
-        <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[var(--text-primary)]">{drill.title}</h2>
-        <p className="mt-3 text-base leading-7 text-[var(--text-secondary)]">{drill.summary}</p>
-        {drill.description ? <p className="mt-4 text-sm leading-7 text-[var(--text-secondary)]">{drill.description}</p> : null}
+        <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{drill.summary}</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Steps" value={insight.stepsCount} />
-        <Stat label="Focus points" value={insight.focusPointsCount} />
-        <Stat label="Common mistakes" value={insight.mistakesCount} />
-        <Stat label="Source links" value={insight.rawLinkCount} />
+      <div className="flex flex-wrap gap-2">
+        <Chip>{formatCategory(drill.category)}</Chip>
+        <Chip>{formatDifficulty(drill.difficulty)}</Chip>
+        <Chip>{formatGradeLevel(drill.grade_level)}</Chip>
+        <Chip>{drill.is_curated ? 'Curated' : 'Not yet curated'}</Chip>
+        <Chip>{drill.is_active ? 'Active' : 'Inactive'}</Chip>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <MetaCard label="Slug" value={drill.slug} />
-        <MetaCard label="Detail quality" value={`${insight.completenessLabel} (${insight.completenessScore}/8)`} />
-        <MetaCard label="What it trains" value={drill.what_it_trains || 'Not written yet'} />
-        <MetaCard label="When to assign" value={drill.when_to_assign || 'Not written yet'} />
-        <MetaCard label="Source file" value={drill.source_file || 'No source file linked'} />
-        <MetaCard label="Source type" value={drill.source_type || 'No source type linked'} />
+      <DetailBlock title="Description" body={drill.description || 'No fuller description yet.'} />
+      <DetailBlock title="What it trains" body={drill.what_it_trains || 'Not written yet.'} />
+      <DetailBlock title="When to assign" body={drill.when_to_assign || 'No assignment guidance yet.'} />
+      <DetailBlock title="Coach demo quote" body={drill.coach_demo_quote || 'No coach quote saved yet.'} />
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <ListBlock title="Steps" items={steps} emptyLabel="No steps yet" />
+        <ListBlock title="Focus points" items={focusPoints} emptyLabel="No focus points yet" />
+        <ListBlock title="Common mistakes" items={mistakes} emptyLabel="No mistakes yet" />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <MetaCard label="Source type" value={drill.source_type || 'Unknown'} />
+        <MetaCard label="Source file" value={drill.source_file || 'Unknown'} />
+        <MetaCard label="Raw candidates linked" value={String(drill.raw_candidate_ids.length)} />
         <MetaCard label="Updated" value={formatDateTime(drill.updated_at)} />
-        <MetaCard label="Created" value={formatDateTime(drill.created_at)} />
       </div>
 
-      {drill.coach_demo_quote ? (
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Coach demo quote</h3>
-          <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">“{drill.coach_demo_quote}”</p>
+      <div className="space-y-3">
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Tags</p>
+        <div className="flex flex-wrap gap-2">
+          {[...drill.skill_tags, ...drill.format_tags, ...drill.tags].length > 0 ? (
+            [...drill.skill_tags, ...drill.format_tags, ...drill.tags].map((tag) => <Chip key={tag}>{tag}</Chip>)
+          ) : (
+            <p className="text-sm text-[var(--text-secondary)]">No tags on this row yet.</p>
+          )}
         </div>
-      ) : null}
+      </div>
+    </div>
+  )
+}
 
-      <TagRow title="Skill tags" tags={drill.skill_tags ?? []} />
-      <TagRow title="Format tags" tags={drill.format_tags ?? []} />
-      <TagRow title="Other tags" tags={drill.tags ?? []} />
+function SummaryCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{label}</p>
+      <p className="mt-3 text-3xl font-semibold text-[var(--text-primary)]">{value}</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{hint}</p>
+    </div>
+  )
+}
 
-      <DetailSection title="Steps" items={steps} emptyText="No steps have been written for this drill yet." />
-      <DetailSection title="Focus points" items={focusPoints} emptyText="No focus points have been written for this drill yet." />
-      <DetailSection title="Common mistakes" items={commonMistakes} emptyText="No common mistakes have been written for this drill yet." />
+function FilterSelect<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string
+  value: T
+  onChange: (value: T) => void
+  options: Array<{ value: T; label: string }>
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as T)}
+        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--accent-primary)]"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{label}</p>
+      <p className="mt-2 text-lg font-semibold text-[var(--text-primary)]">{value}</p>
+    </div>
+  )
+}
+
+function DetailBlock({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{title}</p>
+      <p className="text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
+    </div>
+  )
+}
+
+function ListBlock({ title, items, emptyLabel }: { title: string; items: string[]; emptyLabel: string }) {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{title}</p>
+      {items.length > 0 ? (
+        <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`} className="flex gap-2">
+              <span className="text-[var(--accent-primary)]">•</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-[var(--text-secondary)]">{emptyLabel}</p>
+      )}
     </div>
   )
 }
 
 function MetaCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">{label}</p>
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{label}</p>
       <p className="mt-2 text-sm leading-6 text-[var(--text-primary)]">{value}</p>
     </div>
   )
+}
+
+function Chip({ children }: { children: ReactNode }) {
+  return <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">{children}</span>
 }
