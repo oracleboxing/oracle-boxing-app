@@ -320,6 +320,10 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
     return value && value in SORT_MODE_LABELS ? (value as DrillSortMode) : 'library'
   })
   const [selectedDrillId, setSelectedDrillId] = useState<string | null>(() => searchParams.get('selected') ?? drills[0]?.id ?? null)
+  const reviewReturnHref = useMemo(() => {
+    const current = searchParams.toString()
+    return current ? `${pathname}?${current}` : pathname
+  }, [pathname, searchParams])
 
   const categories = useMemo(
     () => Array.from(new Set(drills.map((drill) => drill.category).filter(Boolean))) as DrillCategory[],
@@ -759,6 +763,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
               <DrillDetail
                 drill={selectedDrill}
                 linkedCandidates={linkedCandidates.filter((candidate) => selectedDrill.raw_candidate_ids.includes(candidate.id))}
+                reviewReturnHref={reviewReturnHref}
               />
             ) : (
               <EmptyState title="Choose a drill" body="Select a drill from the library list to inspect its content quality and app readiness." />
@@ -770,7 +775,15 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
   )
 }
 
-function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidates: LinkedCandidate[] }) {
+function DrillDetail({
+  drill,
+  linkedCandidates,
+  reviewReturnHref,
+}: {
+  drill: Drill
+  linkedCandidates: LinkedCandidate[]
+  reviewReturnHref: string
+}) {
   const steps = jsonToStringList(drill.steps_json)
   const focusPoints = jsonToStringList(drill.focus_points_json)
   const mistakes = jsonToStringList(drill.common_mistakes_json)
@@ -885,7 +898,7 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
           <div className="flex flex-wrap gap-2">
             {firstPendingCandidate ? (
               <Link
-                href={`/review?selected=${firstPendingCandidate.id}&ids=${linkedCandidates.map((candidate) => candidate.id).join(',')}`}
+                href={`/review?selected=${firstPendingCandidate.id}&ids=${linkedCandidates.map((candidate) => candidate.id).join(',')}&from=${encodeURIComponent(reviewReturnHref)}`}
                 className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Open first pending row
@@ -893,14 +906,14 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
             ) : null}
             {linkedCandidates.length > 0 ? (
               <Link
-                href={`/review?selected=${linkedCandidates[0].id}&ids=${linkedCandidates.map((candidate) => candidate.id).join(',')}`}
+                href={`/review?selected=${linkedCandidates[0].id}&ids=${linkedCandidates.map((candidate) => candidate.id).join(',')}&from=${encodeURIComponent(reviewReturnHref)}`}
                 className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Open linked review set
               </Link>
             ) : null}
             <Link
-              href="/review"
+              href={`/review?from=${encodeURIComponent(reviewReturnHref)}`}
               className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
               Open review queue
@@ -940,7 +953,7 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
                       {getReviewStatusLabel(candidate.review_status)}
                     </span>
                     <Link
-                      href={`/review?selected=${candidate.id}&ids=${linkedCandidates.map((linkedCandidate) => linkedCandidate.id).join(',')}`}
+                      href={`/review?selected=${candidate.id}&ids=${linkedCandidates.map((linkedCandidate) => linkedCandidate.id).join(',')}&from=${encodeURIComponent(reviewReturnHref)}`}
                       className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                     >
                       Open in review

@@ -454,6 +454,11 @@ export function ReviewQueueClient({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const selectedCandidateFromUrl = searchParams.get('selected')
+  const returnToLibraryHref = useMemo(() => {
+    const value = searchParams.get('from')
+    if (!value || !value.startsWith('/drills')) return null
+    return value
+  }, [searchParams])
   const scopedCandidateIds = useMemo(() => {
     const rawIds = searchParams.get('ids')
     if (!rawIds) return null
@@ -1282,6 +1287,16 @@ export function ReviewQueueClient({
                         </div>
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">{getShortSummary(selectedCandidate)}</p>
                         <p className="mt-3 text-xs leading-5 text-[var(--text-tertiary)]">{insight.triageSummary}</p>
+                        {returnToLibraryHref ? (
+                          <div className="mt-4">
+                            <Link
+                              href={returnToLibraryHref}
+                              className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            >
+                              Back to current library view
+                            </Link>
+                          </div>
+                        ) : null}
                       </div>
 
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -1370,7 +1385,7 @@ export function ReviewQueueClient({
                                     </p>
                                   </div>
                                   <Link
-                                    href={`/drills?selected=${drill.id}`}
+                                    href={returnToLibraryHref ? `${returnToLibraryHref}${returnToLibraryHref.includes('?') ? '&' : '?'}selected=${drill.id}` : `/drills?selected=${drill.id}`}
                                     className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                                   >
                                     Open in library
