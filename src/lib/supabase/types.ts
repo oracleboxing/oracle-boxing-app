@@ -6,73 +6,134 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type DrillCategory = 'stance' | 'punching' | 'footwork' | 'defence' | 'combination' | 'warmup'
+export type DrillDifficulty = 'beginner' | 'intermediate' | 'advanced'
+export type GradeLevel = 'grade_1' | 'grade_2' | 'grade_3'
+export type ReviewStatus = 'pending' | 'approved' | 'rejected' | 'merged'
+export type SourceType = 'boxing_clinic' | 'one_on_one' | 'graduation' | 'other'
+
 export interface Database {
   public: {
     Tables: {
       raw_drill_candidates: {
         Row: {
           id: string
-          raw_title: string | null
-          cleaned_title: string | null
-          slug_candidate: string | null
+          raw_title: string
+          cleaned_title: string
+          slug_candidate: string
           dedupe_key: string | null
           summary: string | null
           description: string | null
-          category: string | null
-          difficulty: string | null
-          grade_level: string | null
-          format_tags: string[] | null
-          skill_tags: string[] | null
-          tags: string[] | null
-          steps_json: Json | null
-          focus_points_json: Json | null
-          common_mistakes_json: Json | null
+          category: DrillCategory
+          difficulty: DrillDifficulty
+          grade_level: GradeLevel | null
+          format_tags: string[]
+          skill_tags: string[]
+          tags: string[]
+          steps_json: Json
+          focus_points_json: Json
+          common_mistakes_json: Json
           what_it_trains: string | null
           when_to_assign: string | null
           coach_demo_quote: string | null
           estimated_duration_seconds: number | null
-          source_type: string | null
+          source_type: SourceType
           source_file: string | null
-          review_status: string | null
+          review_status: ReviewStatus
           review_notes: string | null
           canonical_drill_id: string | null
+          imported_at: string
           created_at: string
+          updated_at: string
         }
-        Insert: Partial<Database['public']['Tables']['raw_drill_candidates']['Row']>
-        Update: Partial<Database['public']['Tables']['raw_drill_candidates']['Row']>
+        Insert: {
+          id?: string
+          raw_title: string
+          cleaned_title: string
+          slug_candidate: string
+          dedupe_key?: string | null
+          summary?: string | null
+          description?: string | null
+          category: DrillCategory
+          difficulty: DrillDifficulty
+          grade_level?: GradeLevel | null
+          format_tags?: string[]
+          skill_tags?: string[]
+          tags?: string[]
+          steps_json?: Json
+          focus_points_json?: Json
+          common_mistakes_json?: Json
+          what_it_trains?: string | null
+          when_to_assign?: string | null
+          coach_demo_quote?: string | null
+          estimated_duration_seconds?: number | null
+          source_type: SourceType
+          source_file?: string | null
+          review_status?: ReviewStatus
+          review_notes?: string | null
+          canonical_drill_id?: string | null
+          imported_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['raw_drill_candidates']['Insert']>
       }
       drills: {
         Row: {
           id: string
-          name: string
+          title: string
           slug: string
+          summary: string
           description: string | null
-          category: string | null
-          grade: string | null
-          difficulty: number | null
-          cues: string[] | null
-          common_mistakes: string[] | null
-          video_url: string | null
-          duration_default: number | null
-          rep_based: boolean | null
-          tags: string[] | null
+          category: DrillCategory | null
+          difficulty: DrillDifficulty
+          grade_level: GradeLevel | null
+          format_tags: string[]
+          skill_tags: string[]
+          tags: string[]
+          steps_json: Json
+          focus_points_json: Json
+          common_mistakes_json: Json
+          what_it_trains: string | null
+          when_to_assign: string | null
+          coach_demo_quote: string | null
+          demo_video_url: string | null
+          animation_key: string | null
+          source_type: SourceType | null
+          source_file: string | null
+          raw_candidate_ids: string[]
+          is_active: boolean
+          is_curated: boolean
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
-          name: string
+          title: string
           slug: string
+          summary: string
           description?: string | null
-          category?: string | null
-          grade?: string | null
-          difficulty?: number | null
-          cues?: string[] | null
-          common_mistakes?: string[] | null
-          video_url?: string | null
-          duration_default?: number | null
-          rep_based?: boolean | null
-          tags?: string[] | null
+          category?: DrillCategory | null
+          difficulty?: DrillDifficulty
+          grade_level?: GradeLevel | null
+          format_tags?: string[]
+          skill_tags?: string[]
+          tags?: string[]
+          steps_json?: Json
+          focus_points_json?: Json
+          common_mistakes_json?: Json
+          what_it_trains?: string | null
+          when_to_assign?: string | null
+          coach_demo_quote?: string | null
+          demo_video_url?: string | null
+          animation_key?: string | null
+          source_type?: SourceType | null
+          source_file?: string | null
+          raw_candidate_ids?: string[]
+          is_active?: boolean
+          is_curated?: boolean
           created_at?: string
+          updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['drills']['Insert']>
       }

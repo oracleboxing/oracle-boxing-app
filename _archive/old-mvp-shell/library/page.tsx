@@ -1,7 +1,7 @@
-import { PageHeader } from '@/src/components/layout/PageHeader'
-import { Card } from '@/src/components/ui/Card'
-import { Badge } from '@/src/components/ui/Badge'
-import { Skeleton } from '@/src/components/ui/Skeleton'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 export default function LibraryPage() {
   return (

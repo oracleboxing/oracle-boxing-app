@@ -1,6 +1,6 @@
-import { PageHeader } from '@/src/components/layout/PageHeader'
-import { Card } from '@/src/components/ui/Card'
-import { Button } from '@/src/components/ui/Button'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 
 export default function TimerPage() {
   return (

@@ -1,8 +1,8 @@
-import { PageHeader } from '@/src/components/layout/PageHeader'
-import { Card } from '@/src/components/ui/Card'
-import { Badge } from '@/src/components/ui/Badge'
-import { Button } from '@/src/components/ui/Button'
-import { Progress } from '@/src/components/ui/Progress'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Progress } from '@/components/ui/Progress'
 
 export default function ProfilePage() {
   return (

@@ -1,196 +1,179 @@
-# Architecture Guide 🏗️
+# Architecture Guide
 
-**A deep explanation of how this app is built and how all the pieces fit together.**
+This rebuild is now intentionally simpler than the old app direction.
 
----
+The goal is to build the Oracle Boxing app on top of:
+- clean drills
+- clean workouts
+- clean data structure
 
-## Overview
-
-This is a **Next.js** web app. Next.js is a framework that lets you build websites and web apps using React (a popular way of building user interfaces). It handles things like routing (what URL shows what page), server-side rendering, and bundling all the code together.
-
----
-
-## Folder Structure
-
-```
-oracle-boxing-app/
-│
-├── app/                        ← Pages and routing
-│   ├── layout.tsx              ← The "frame" around every page (nav, shell)
-│   ├── globals.css             ← Global styles and CSS variables
-│   ├── page.tsx                ← The home page (/)
-│   ├── library/
-│   │   ├── page.tsx            ← Drill library page (/library)
-│   │   └── [slug]/
-│   │       └── page.tsx        ← Individual drill page (/library/jab)
-│   ├── timer/
-│   │   └── page.tsx            ← Round timer (/timer)
-│   ├── workouts/
-│   │   ├── page.tsx            ← Browse workouts (/workouts)
-│   │   ├── [id]/
-│   │   │   └── page.tsx        ← Workout detail (/workouts/abc123)
-│   │   └── builder/
-│   │       └── page.tsx        ← Custom workout builder (/workouts/builder)
-│   ├── progress/
-│   │   └── page.tsx            ← Progress stats (/progress)
-│   ├── feed/
-│   │   └── page.tsx            ← Community feed (/feed)
-│   └── profile/
-│       └── page.tsx            ← User profile (/profile)
-│
-├── src/
-│   ├── components/
-│   │   ├── ui/                 ← Reusable building blocks
-│   │   │   ├── Button.tsx
-│   │   │   ├── Card.tsx
-│   │   │   ├── Badge.tsx
-│   │   │   ├── PillTabs.tsx
-│   │   │   ├── Progress.tsx
-│   │   │   └── Skeleton.tsx
-│   │   └── layout/             ← App-level layout components
-│   │       ├── BottomNav.tsx   ← The tab bar at the bottom
-│   │       └── PageHeader.tsx  ← The title bar at the top of each page
-│   └── lib/
-│       └── supabase/           ← Database connection helpers
-│           ├── client.ts       ← Browser-side database client
-│           ├── server.ts       ← Server-side database client
-│           └── types.ts        ← TypeScript types matching the database schema
-│
-├── supabase/
-│   └── migrations/
-│       └── 001_initial_schema.sql  ← Database setup script
-│
-├── public/
-│   └── manifest.json           ← PWA manifest (makes the app installable)
-│
-└── docs/                       ← You are here
-```
+Not on old MVP clutter.
 
 ---
 
-## How Routing Works
+## Current architectural priority
 
-In Next.js App Router, **folders = URLs**. The structure of the `app/` folder directly maps to the URLs of your app:
+The correct order is:
+1. raw drill intake
+2. drill curation
+3. canonical drill library
+4. workout composition
+5. wider training architecture
 
-| Folder | URL |
-|--------|-----|
-| `app/page.tsx` | `/` (home) |
-| `app/library/page.tsx` | `/library` |
-| `app/library/[slug]/page.tsx` | `/library/jab`, `/library/cross`, etc. |
-| `app/workouts/[id]/page.tsx` | `/workouts/abc123`, `/workouts/xyz789`, etc. |
-
-The `[slug]` and `[id]` folders are **dynamic routes** — the brackets mean "this part of the URL can be anything." The value gets passed into the page so you can load the right content.
+That means the foundation right now is the drill layer.
 
 ---
 
-## How the Layout Works
+## Rebuild shape
 
-`app/layout.tsx` is special — it wraps **every page** in the app. This is where:
-- The bottom navigation bar lives
-- The "phone shell" wrapper (max 430px wide, centred on desktop) is applied
-- Global fonts and styles are applied
+### App routes that matter right now
+- `/` = rebuild workspace landing page
+- `/schema` = visual schema mock
 
-Think of it like a picture frame. Every page is a picture, and `layout.tsx` is the frame around all of them.
-
----
-
-## How the Database Works (Supabase)
-
-**Supabase** is the database service. It stores all the app's data — drills, workouts, user profiles, etc.
-
-There are two ways to connect to it:
-
-### Browser Client (`src/lib/supabase/client.ts`)
-Used on the **client side** (code that runs in the user's browser). Used for reading public data and user-specific data after they're logged in.
-
-### Server Client (`src/lib/supabase/server.ts`)
-Used on the **server side** (code that runs on the server before the page is sent to the browser). More secure — used for sensitive operations.
-
-### Types (`src/lib/supabase/types.ts`)
-TypeScript types that match the database tables exactly. This means if you try to access a column that doesn't exist, TypeScript will warn you before the code even runs. Catches bugs early.
+The repo is currently being used more as a structured rebuild surface than a finished product shell.
 
 ---
 
-## How Components Work
+## Content architecture
 
-Components are reusable building blocks. Instead of writing the same button styles 50 times, you write a `Button` component once and use it everywhere.
+### Raw source layer
+Source table:
+- `raw_drill_candidates`
 
-### UI Components (`src/components/ui/`)
+Purpose:
+- preserve extracted drills from transcripts and grade videos
+- hold duplicate families
+- provide a review queue
+- stop raw AI extraction from polluting the real app library
 
-| Component | What it does |
-|-----------|-------------|
-| `Button` | A clickable button with 4 styles: primary, secondary, ghost, destructive |
-| `Card` | A rounded container with optional hover effects |
-| `Badge` | A small label (for grades, XP, tags) |
-| `PillTabs` | Horizontal scrollable filter tabs |
-| `Progress` | A progress bar (for XP, completion) |
-| `Skeleton` | A grey pulsing placeholder shown while data loads |
+### Curated drill layer
+Source table:
+- `drills`
 
-### How to use a component
+Purpose:
+- hold reusable canonical drills
+- provide stable app-facing content
+- act as the only drill source the real library UI should depend on
 
-```tsx
-import { Button, Card, Badge } from '@/src/components/ui'
+### Workout layer
+Planned tables:
+- `workouts`
+- `workout_items`
+- `workout_item_drills`
 
-export default function MyPage() {
-  return (
-    <Card hoverable>
-      <Badge variant="gold">G1</Badge>
-      <Button variant="primary">Start Workout</Button>
-    </Card>
-  )
-}
-```
-
----
-
-## How Styling Works
-
-This app uses **Tailwind CSS v4** — a system where you style things by adding class names directly to your HTML/JSX.
-
-Instead of writing:
-```css
-.button { background: #37322F; color: white; border-radius: 12px; }
-```
-
-You write:
-```tsx
-<button className="bg-[#37322F] text-white rounded-xl">Click me</button>
-```
-
-### Design Tokens (CSS Variables)
-
-Colours and spacing are defined as **CSS variables** in `globals.css`. This makes it easy to support both light and dark mode — the variable automatically switches value based on the user's system preference.
-
-Instead of hardcoding `#111827`, you use `var(--text-primary)` — and it automatically becomes white in dark mode.
+Purpose:
+- compose sessions from curated drills
+- support multiple drills inside a single workout block
+- preserve ordering at both block level and drill level
 
 ---
 
-## How Data Flows (When It's Wired Up)
+## Why the two-layer drill model matters
 
-```
-User opens /library
-    ↓
-app/library/page.tsx runs on the server
-    ↓
-Calls createClient() from src/lib/supabase/server.ts
-    ↓
-Queries the 'drills' table in Supabase
-    ↓
-Renders the list of drills as Card components
-    ↓
-Page HTML is sent to the user's browser
-```
+Because extracted content is messy.
 
-Currently all pages are **static placeholders** — no data fetching yet. The structure is ready; connecting the data is the next step.
+The raw layer contains:
+- duplicates
+- naming drift
+- category drift
+- partial overlap
+- candidate rows that are useful as source material but not yet suitable as app content
 
----
+So the architecture deliberately separates:
+- intake
+- curation
+- final app content
 
-## The PWA (Progressive Web App)
-
-The `public/manifest.json` file and the manifest link in `layout.tsx` tell browsers that this app can be "installed" on a phone, appearing like a native app with its own icon.
-
-When Sha-Lyn's phone visits the app and taps "Add to Home Screen," it uses this manifest to create an icon, name, and splash screen.
+That decision is not bureaucracy.
+It is what stops the app from becoming a duplicate graveyard.
 
 ---
 
-*Questions about any of this? Ask Jordan.*
+## Current categories
+
+Current working drill categories:
+- `stance`
+- `punching`
+- `footwork`
+- `defence`
+- `combination`
+- `warmup`
+
+Keep this tight unless a real product reason appears.
+
+---
+
+## Current grade content path
+
+Grade 1 and Grade 2 videos are being processed from Google Drive into:
+- local transcripts
+- extracted drill JSON
+- grade-tagged drill candidates
+
+Those grade videos are useful because they are cleaner instructional sources than chaotic live coaching transcripts.
+
+---
+
+## Collaboration model
+
+### Jordan
+- sets product direction
+- makes final content judgments
+- defines what counts as a real drill
+
+### Sha-Lyn
+- helps review raw candidates
+- helps shape curated drill content
+- can build UI against the documented schema
+
+### Agent
+- extracts content
+- documents the model
+- proposes canonical merges
+- helps wire the review workflow
+
+---
+
+## What should be built in the app next
+
+### First useful internal UI
+A simple review surface for pending raw drill candidates.
+
+That UI should let someone:
+- pull pending candidates
+- inspect steps / focus points / mistakes
+- approve
+- reject
+- merge into canonical drills later
+
+### First useful product UI
+A simple drill library that reads from:
+- `drills`
+
+Not `raw_drill_candidates`.
+
+---
+
+## What comes after drills
+
+Once the drill layer is stable enough, then expand into:
+- S&C exercises
+- running exercises
+- themes
+- templates
+
+That is a later architecture phase.
+The first one is boxing drill content and workout composition.
+
+---
+
+## Blunt take
+
+If the drill layer is shaky, every other training layer gets shaky on top of it.
+
+So the architecture right now should stay boring and disciplined:
+- curate drills
+- build workouts
+- then expand
+
+That is how this avoids turning back into a mess.

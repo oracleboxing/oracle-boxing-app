@@ -1,6 +1,6 @@
-import { PageHeader } from '@/src/components/layout/PageHeader'
-import { Card } from '@/src/components/ui/Card'
-import { Badge } from '@/src/components/ui/Badge'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
 
 const placeholderPosts = [
   {
