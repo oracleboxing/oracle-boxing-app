@@ -10,13 +10,14 @@ type DrillStatusFilter = 'all' | 'active' | 'inactive'
 type DrillReviewHealthFilter = 'all' | 'pending' | 'reviewed' | 'unlinked'
 type DrillCompletenessFilter = 'all' | 'ready' | 'usable' | 'thin'
 type DrillDemoReadinessFilter = 'all' | 'ready' | 'needs_either' | 'needs_video' | 'needs_quote'
-type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness' | 'proof_gaps'
+type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness' | 'least_complete' | 'proof_gaps'
 
 const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
   library: 'Library order',
   newest: 'Newest first',
   grade: 'Grade order',
   completeness: 'Most complete',
+  least_complete: 'Least complete',
   proof_gaps: 'Needs proof first',
 }
 
@@ -321,6 +322,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
       if (sortMode === 'newest') return updatedDiff || a.title.localeCompare(b.title)
       if (sortMode === 'grade') return gradeDiff || a.title.localeCompare(b.title)
       if (sortMode === 'completeness') return completenessDiff || a.title.localeCompare(b.title)
+      if (sortMode === 'least_complete') return -completenessDiff || a.title.localeCompare(b.title)
       if (sortMode === 'proof_gaps') return proofGapDiff || completenessDiff || a.title.localeCompare(b.title)
 
       return Number(b.is_active) - Number(a.is_active) || Number(b.is_curated) - Number(a.is_curated) || gradeDiff || a.title.localeCompare(b.title)
@@ -644,6 +646,7 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        <MetaCard label="Database ID" value={drill.id} />
         <MetaCard label="Source type" value={drill.source_type || 'Unknown'} />
         <MetaCard label="Source file" value={drill.source_file || 'Unknown'} />
         <MetaCard label="Raw candidates linked" value={String(drill.raw_candidate_ids.length)} />
