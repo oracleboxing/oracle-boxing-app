@@ -124,6 +124,53 @@ function getDecisionLabel(decision: FamilyDecision) {
   }
 }
 
+function getCandidateReadinessGaps(candidate: RawDrillCandidate, insight: CandidateInsight) {
+  const gaps: string[] = []
+
+  if (!candidate.summary && !candidate.what_it_trains && !candidate.description) {
+    gaps.push('Needs a usable summary or training note')
+  }
+
+  if (insight.stepsCount === 0) {
+    gaps.push('No steps extracted yet')
+  }
+
+  if (insight.focusPointsCount === 0) {
+    gaps.push('No focus points extracted yet')
+  }
+
+  if (!candidate.grade_level) {
+    gaps.push('Missing grade tag')
+  }
+
+  if (!candidate.category) {
+    gaps.push('Missing category')
+  }
+
+  return gaps
+}
+
+function getReviewerNextMove(candidate: RawDrillCandidate, insight: CandidateInsight) {
+  const decision = getCandidateDecisionHint(candidate, insight)
+  const gaps = getCandidateReadinessGaps(candidate, insight)
+
+  if (decision === 'keep') {
+    return gaps.length === 0
+      ? 'Strong candidate, use this as the canonical starting point.'
+      : `Likely canonical seed, but patch ${gaps[0].toLowerCase()} first.`
+  }
+
+  if (decision === 'merge') {
+    return candidate.canonical_drill_id
+      ? 'Already points at a canonical drill, review as supporting merge material.'
+      : 'Compare against the best family row or likely library match, then fold over only the useful bits.'
+  }
+
+  return gaps.length === 0
+    ? 'Probably reject, unless a reviewer spots unique coaching value in the wording.'
+    : `Probably reject. Main issue: ${gaps[0].toLowerCase()}.`
+}
+
 function getStatusTone(status: ReviewStatus) {
   switch (status) {
     case 'pending':
@@ -1119,6 +1166,22 @@ export function ReviewQueueClient({
                           value={`${insight.familySize} row${insight.familySize === 1 ? '' : 's'}`}
                           subdued={selectedCandidate.dedupe_key || 'No dedupe key yet'}
                         />
+                      </div>
+
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Reviewer next move</p>
+                        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{getReviewerNextMove(selectedCandidate, insight)}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {getCandidateReadinessGaps(selectedCandidate, insight).length === 0 ? (
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                              No obvious readiness gaps
+                            </span>
+                          ) : (
+                            getCandidateReadinessGaps(selectedCandidate, insight).map((gap) => (
+                              <span key={gap} className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">{gap}</span>
+                            ))
+                          )}
+                        </div>
                       </div>
 
                       <DetailList title="Steps" items={jsonToStringList(selectedCandidate.steps_json)} emptyLabel="No steps extracted yet." />
