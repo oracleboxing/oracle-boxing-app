@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
+import type { Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
 const REVIEW_STATUSES: ReviewStatus[] = ['pending', 'approved', 'merged', 'rejected']
 const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
@@ -43,6 +43,16 @@ type CandidateInsight = {
   triageSummary: string
 }
 
+type FamilyDecision = 'keep' | 'merge' | 'reject'
+
+type DrillMatch = Pick<
+  Drill,
+  'id' | 'title' | 'category' | 'difficulty' | 'grade_level' | 'summary' | 'skill_tags' | 'tags' | 'raw_candidate_ids' | 'is_active' | 'is_curated'
+> & {
+  matchScore: number
+  matchReasons: string[]
+}
+
 function formatGradeLevel(value: string | null) {
   if (!value) return 'Unassigned'
   return value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase())
@@ -79,6 +89,39 @@ function getDisplayTitle(candidate: RawDrillCandidate) {
 
 function getShortSummary(candidate: RawDrillCandidate) {
   return candidate.summary || candidate.what_it_trains || candidate.description || 'No summary yet.'
+}
+
+function getCandidateDecisionHint(candidate: RawDrillCandidate, insight: CandidateInsight): FamilyDecision {
+  if (candidate.review_status === 'rejected') return 'reject'
+  if (candidate.review_status === 'merged') return 'merge'
+  if (candidate.review_status === 'approved') return 'keep'
+  if (candidate.canonical_drill_id) return 'merge'
+  if (insight.familySize >= 2 && insight.completenessScore >= 4 && insight.triageScore >= 4) return 'keep'
+  if (insight.familySize >= 2 && insight.completenessScore <= 2) return 'reject'
+  if (insight.familySize >= 2) return 'merge'
+  return insight.completenessScore >= 4 ? 'keep' : 'reject'
+}
+
+function getDecisionTone(decision: FamilyDecision) {
+  switch (decision) {
+    case 'keep':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+    case 'merge':
+      return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300'
+    case 'reject':
+      return 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300'
+  }
+}
+
+function getDecisionLabel(decision: FamilyDecision) {
+  switch (decision) {
+    case 'keep':
+      return 'Keep as canonical seed'
+    case 'merge':
+      return 'Merge into family winner'
+    case 'reject':
+      return 'Reject as duplicate/noisy'
+  }
 }
 
 function getStatusTone(status: ReviewStatus) {
@@ -130,6 +173,87 @@ function getGradeSortValue(value: string | null) {
       return 3
     default:
       return 99
+  }
+}
+
+function normaliseTokens(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length > 1)
+}
+
+function getOverlapCount(left: string[], right: string[]) {
+  const rightSet = new Set(right)
+  return left.filter((token) => rightSet.has(token)).length
+}
+
+function scoreDrillMatch(
+  candidate: RawDrillCandidate,
+  drill: Pick<
+    Drill,
+    'id' | 'title' | 'category' | 'difficulty' | 'grade_level' | 'summary' | 'skill_tags' | 'tags' | 'raw_candidate_ids' | 'is_active' | 'is_curated'
+  >
+): DrillMatch | null {
+  let matchScore = 0
+  const matchReasons: string[] = []
+
+  if (candidate.canonical_drill_id && candidate.canonical_drill_id === drill.id) {
+    matchScore += 10
+    matchReasons.push('already linked as canonical')
+  }
+
+  if (drill.raw_candidate_ids.includes(candidate.id)) {
+    matchScore += 8
+    matchReasons.push('already references this raw candidate')
+  }
+
+  if (candidate.grade_level && candidate.grade_level === drill.grade_level) {
+    matchScore += 2
+    matchReasons.push(`same ${formatGradeLevel(candidate.grade_level)} tag`)
+  }
+
+  if (candidate.category && candidate.category === drill.category) {
+    matchScore += 2
+    matchReasons.push('same category')
+  }
+
+  if (candidate.difficulty === drill.difficulty) {
+    matchScore += 1
+    matchReasons.push('same difficulty')
+  }
+
+  const candidateTitleTokens = normaliseTokens(`${candidate.cleaned_title || ''} ${candidate.raw_title || ''}`)
+  const drillTitleTokens = normaliseTokens(drill.title)
+  const titleOverlap = getOverlapCount(candidateTitleTokens, drillTitleTokens)
+
+  if (titleOverlap >= 2) {
+    matchScore += 4
+    matchReasons.push(`title overlap (${titleOverlap})`)
+  } else if (titleOverlap === 1) {
+    matchScore += 1
+    matchReasons.push('light title overlap')
+  }
+
+  const candidateTagTokens = Array.from(new Set([...(candidate.skill_tags ?? []), ...(candidate.tags ?? [])].map((item) => item.toLowerCase())))
+  const drillTagTokens = Array.from(new Set([...(drill.skill_tags ?? []), ...(drill.tags ?? [])].map((item) => item.toLowerCase())))
+  const tagOverlap = getOverlapCount(candidateTagTokens, drillTagTokens)
+
+  if (tagOverlap >= 2) {
+    matchScore += 3
+    matchReasons.push(`tag overlap (${tagOverlap})`)
+  } else if (tagOverlap === 1) {
+    matchScore += 1
+    matchReasons.push('shared tag')
+  }
+
+  if (matchScore <= 0) return null
+
+  return {
+    ...drill,
+    matchScore,
+    matchReasons,
   }
 }
 
@@ -267,7 +391,16 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   )
 }
 
-export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidate[] }) {
+export function ReviewQueueClient({
+  candidates,
+  drills,
+}: {
+  candidates: RawDrillCandidate[]
+  drills: Pick<
+    Drill,
+    'id' | 'title' | 'category' | 'difficulty' | 'grade_level' | 'summary' | 'skill_tags' | 'tags' | 'raw_candidate_ids' | 'is_active' | 'is_curated'
+  >[]
+}) {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | ReviewStatus>('pending')
   const [gradeFilter, setGradeFilter] = useState<'all' | string>('all')
@@ -275,6 +408,18 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
   const [sortMode, setSortMode] = useState<SortMode>('triage')
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(candidates[0]?.id ?? null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+
+  function copyHandoff(action: ReviewStatus, ids: string[], label?: string) {
+    const payload = {
+      action,
+      timestamp: new Date().toISOString(),
+      ids,
+    }
+    navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
+    setCopyFeedback(label || `Copied ${ids.length} to ${action}`)
+    setTimeout(() => setCopyFeedback(null), 3000)
+  }
 
   const familySizeByKey = useMemo(() => {
     const counts = new Map<string, number>()
@@ -461,9 +606,75 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
 
   const selectedCandidate = sortedCandidates.find((candidate) => candidate.id === selectedCandidateId) ?? sortedCandidates[0] ?? null
 
+  const matchedDrills = useMemo(() => {
+    if (!selectedCandidate) return []
+
+    return drills
+      .map((drill) => scoreDrillMatch(selectedCandidate, drill))
+      .filter((match): match is DrillMatch => Boolean(match))
+      .sort((left, right) => right.matchScore - left.matchScore || Number(right.is_curated) - Number(left.is_curated) || left.title.localeCompare(right.title))
+      .slice(0, 5)
+  }, [drills, selectedCandidate])
+
   const selectedFamilyCandidates = selectedCandidate?.dedupe_key
     ? sortedCandidates.filter((candidate) => candidate.dedupe_key === selectedCandidate.dedupe_key)
     : []
+
+  const selectedFamilyWorkspace = useMemo(() => {
+    if (!selectedCandidate || !selectedCandidate.dedupe_key || selectedFamilyCandidates.length === 0) {
+      return null
+    }
+
+    const ranked = [...selectedFamilyCandidates]
+      .map((candidate) => ({
+        candidate,
+        insight: candidateInsights.get(candidate.id),
+      }))
+      .filter((item): item is { candidate: RawDrillCandidate; insight: CandidateInsight } => Boolean(item.insight))
+      .sort((left, right) => {
+        return (
+          right.insight.triageScore - left.insight.triageScore ||
+          right.insight.completenessScore - left.insight.completenessScore ||
+          STATUS_SORT_ORDER[left.candidate.review_status] - STATUS_SORT_ORDER[right.candidate.review_status] ||
+          getDisplayTitle(left.candidate).localeCompare(getDisplayTitle(right.candidate))
+        )
+      })
+
+    if (ranked.length === 0) return null
+
+    const keepCandidate =
+      ranked.find(({ candidate, insight }) => getCandidateDecisionHint(candidate, insight) === 'keep')?.candidate ?? ranked[0].candidate
+
+    const decisionCounts = ranked.reduce<Record<FamilyDecision, number>>(
+      (acc, { candidate, insight }) => {
+        acc[getCandidateDecisionHint(candidate, insight)] += 1
+        return acc
+      },
+      { keep: 0, merge: 0, reject: 0 }
+    )
+
+    const pendingCount = ranked.filter(({ candidate }) => candidate.review_status === 'pending').length
+
+    const handoffLines = [
+      `Family: ${selectedCandidate.dedupe_key}`,
+      `Suggested canonical seed: ${getDisplayTitle(keepCandidate)}`,
+      `Visible family rows: ${ranked.length} (${pendingCount} pending)`,
+      `Suggested split: keep ${decisionCounts.keep}, merge ${decisionCounts.merge}, reject ${decisionCounts.reject}`,
+      '',
+      'Review steps:',
+      `1. Start with ${getDisplayTitle(keepCandidate)} as the cleanest base shape.`,
+      '2. Fold overlapping rows into that canonical drill if they add useful detail.',
+      '3. Reject noisy duplicates that do not add anything reusable.',
+    ]
+
+    return {
+      ranked,
+      keepCandidate,
+      decisionCounts,
+      pendingCount,
+      handoffText: handoffLines.join('\n'),
+    }
+  }, [candidateInsights, selectedCandidate, selectedFamilyCandidates])
 
   const bulkSelectionCounts = visibleSelectedIds.reduce<Record<ReviewStatus, number>>(
     (acc, id) => {
@@ -494,6 +705,12 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
 
   return (
     <>
+      {copyFeedback && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 shadow-lg">
+          <p className="text-sm font-medium text-[var(--text-primary)]">{copyFeedback}</p>
+        </div>
+      )}
+
       <section className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -694,12 +911,14 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
         <div className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Bulk review scaffold</h2>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Real mutations are not wired yet. The schema says writes should go through a service role, and this app currently only has the public read client.
+            Write actions happen via the service role. Select rows here, copy the handoff JSON, and pass it to the agent.
           </p>
           <div className="mt-5 space-y-3">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Selected visible rows</p>
-              <p className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{visibleSelectedIds.length}</p>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Selected visible rows</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{visibleSelectedIds.length}</p>
+              </div>
               <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                 Pending {bulkSelectionCounts.pending} • Approved {bulkSelectionCounts.approved} • Merged {bulkSelectionCounts.merged} • Rejected {bulkSelectionCounts.rejected}
               </p>
@@ -713,15 +932,20 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
               {allVisiblePendingSelected ? 'Clear visible pending selection' : 'Select all visible pending'}
             </button>
 
-            {['Approve selected', 'Reject selected', 'Merge selected'].map((label) => (
+            {[
+              { label: 'Approve selected', status: 'approved' as ReviewStatus },
+              { label: 'Reject selected', status: 'rejected' as ReviewStatus },
+              { label: 'Merge selected', status: 'merged' as ReviewStatus }
+            ].map(({ label, status }) => (
               <button
                 key={label}
                 type="button"
-                disabled
-                className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] opacity-70"
+                disabled={visibleSelectedIds.length === 0}
+                onClick={() => copyHandoff(status, visibleSelectedIds, `Copied handoff (${visibleSelectedIds.length})`)}
+                className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
               >
                 <span>{label}</span>
-                <span className="text-xs text-[var(--text-tertiary)]">Awaiting safe write path</span>
+                <span className="text-xs text-[var(--text-tertiary)]">Copy JSON</span>
               </button>
             ))}
           </div>
@@ -800,16 +1024,22 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
                       </div>
 
                       <div className="grid gap-2 sm:grid-cols-3 xl:w-[360px] xl:grid-cols-1">
-                        {['Approve', 'Reject', 'Merge'].map((label) => (
+                        {[
+                          { label: 'Approve', status: 'approved' as ReviewStatus },
+                          { label: 'Reject', status: 'rejected' as ReviewStatus },
+                          { label: 'Merge', status: 'merged' as ReviewStatus }
+                        ].map(({ label, status }) => (
                           <button
                             key={label}
                             type="button"
-                            disabled
-                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-sm font-medium text-[var(--text-primary)] opacity-70"
-                            title="Placeholder only, no mutation is wired yet"
+                            onClick={() => {
+                              copyHandoff(status, [candidate.id], `Copied ${label}`)
+                            }}
+                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            title="Copy single handoff JSON"
                           >
                             {label}
-                            <span className="ml-2 text-xs text-[var(--text-tertiary)]">Soon</span>
+                            <span className="ml-2 text-xs text-[var(--text-tertiary)]">Copy</span>
                           </button>
                         ))}
                       </div>
@@ -912,6 +1142,47 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
                       </div>
 
                       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Likely canonical targets</p>
+                        <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                          Merge prep only. These are likely matches from the curated drills table, so reviewers can compare before any safe write path exists.
+                        </p>
+
+                        {matchedDrills.length === 0 ? (
+                          <p className="mt-4 text-sm text-[var(--text-secondary)]">No likely drill matches surfaced yet from the current library.</p>
+                        ) : (
+                          <div className="mt-4 space-y-3">
+                            {matchedDrills.map((drill) => (
+                              <div key={drill.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-sm font-semibold text-[var(--text-primary)]">{drill.title}</p>
+                                  <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
+                                    Match {drill.matchScore}
+                                  </span>
+                                  {drill.is_curated ? (
+                                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                                      Curated
+                                    </span>
+                                  ) : null}
+                                  {!drill.is_active ? (
+                                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300">
+                                      Inactive
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                                  {drill.matchReasons.slice(0, 3).join(' • ')}
+                                </p>
+                                <p className="mt-2 text-sm text-[var(--text-secondary)]">{drill.summary || 'No library summary yet.'}</p>
+                                <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                                  {formatGradeLevel(drill.grade_level)} • {drill.category || 'Uncategorised'} • {drill.difficulty}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Family context</p>
@@ -950,6 +1221,75 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
                           </div>
                         ) : null}
                       </div>
+
+                      {selectedFamilyWorkspace ? (
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Family review workspace</p>
+                              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                                Read-only guidance for cleaning one duplicate cluster without pretending the mutation buttons work yet.
+                              </p>
+                            </div>
+                            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                              {selectedFamilyWorkspace.ranked.length} rows
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                            <InfoBlock label="Suggested keep" value={String(selectedFamilyWorkspace.decisionCounts.keep)} subdued={getDisplayTitle(selectedFamilyWorkspace.keepCandidate)} />
+                            <InfoBlock label="Suggested merge" value={String(selectedFamilyWorkspace.decisionCounts.merge)} subdued="Useful supporting duplicates" />
+                            <InfoBlock label="Suggested reject" value={String(selectedFamilyWorkspace.decisionCounts.reject)} subdued="Thin or noisy overlap" />
+                          </div>
+
+                          <div className="mt-4 space-y-3">
+                            {selectedFamilyWorkspace.ranked.map(({ candidate, insight }) => {
+                              const decision = getCandidateDecisionHint(candidate, insight)
+
+                              return (
+                                <button
+                                  key={candidate.id}
+                                  type="button"
+                                  onClick={() => setSelectedCandidateId(candidate.id)}
+                                  className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
+                                    candidate.id === selectedCandidate.id
+                                      ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)]'
+                                      : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
+                                  }`}
+                                >
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-sm font-semibold text-[var(--text-primary)]">{getDisplayTitle(candidate)}</p>
+                                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDecisionTone(decision)}`}>
+                                          {getDecisionLabel(decision)}
+                                        </span>
+                                      </div>
+                                      <p className="mt-2 text-xs leading-5 text-[var(--text-tertiary)]">{getShortSummary(candidate)}</p>
+                                    </div>
+                                    <div className="text-right text-xs text-[var(--text-tertiary)]">
+                                      <p>{insight.completenessScore}/6 completeness</p>
+                                      <p className="mt-1">{insight.stepsCount} steps • {insight.focusPointsCount} focus</p>
+                                    </div>
+                                  </div>
+                                </button>
+                              )
+                            })}
+                          </div>
+
+                          <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] px-4 py-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Reviewer handoff scaffold</p>
+                            <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                              Copy-ready notes for Jordan or Sha-Lyn when turning this family into a real curation pass.
+                            </p>
+                            <textarea
+                              readOnly
+                              value={selectedFamilyWorkspace.handoffText}
+                              className="mt-3 min-h-[180px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm leading-6 text-[var(--text-primary)] outline-none"
+                            />
+                          </div>
+                        </div>
+                      ) : null}
                     </>
                   )
                 })()}

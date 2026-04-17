@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import type { RawDrillCandidate } from '@/lib/supabase/types'
+import type { Drill, RawDrillCandidate } from '@/lib/supabase/types'
 import { ReviewQueueClient } from './ReviewQueueClient'
 
 export const dynamic = 'force-dynamic'
@@ -53,13 +53,38 @@ export default async function ReviewPage() {
     )
   }
 
+  const { data: drillsData, error: drillsError } = await supabase
+    .from('drills')
+    .select('id, title, category, difficulty, grade_level, summary, skill_tags, tags, raw_candidate_ids, is_active, is_curated')
+    .order('is_active', { ascending: false })
+    .order('is_curated', { ascending: false })
+    .order('title', { ascending: true })
+
+  if (drillsError) {
+    return (
+      <div className="min-h-screen px-8 py-10">
+        <div className="mx-auto max-w-7xl">
+          <Header />
+          <EmptyState
+            title="Review queue unavailable"
+            body={drillsError.message || 'The app could not read drills for comparison context. Check table access, RLS, and local Supabase configuration.'}
+          />
+        </div>
+      </div>
+    )
+  }
+
   const candidates = (data ?? []) as RawDrillCandidate[]
+  const drills = (drillsData ?? []) as Pick<
+    Drill,
+    'id' | 'title' | 'category' | 'difficulty' | 'grade_level' | 'summary' | 'skill_tags' | 'tags' | 'raw_candidate_ids' | 'is_active' | 'is_curated'
+  >[]
 
   return (
     <div className="min-h-screen px-8 py-10">
       <div className="mx-auto max-w-7xl">
         <Header />
-        <ReviewQueueClient candidates={candidates} />
+        <ReviewQueueClient candidates={candidates} drills={drills} />
       </div>
     </div>
   )
