@@ -10,13 +10,14 @@ type DrillStatusFilter = 'all' | 'active' | 'inactive'
 type DrillReviewHealthFilter = 'all' | 'pending' | 'reviewed' | 'unlinked'
 type DrillCompletenessFilter = 'all' | 'ready' | 'usable' | 'thin'
 type DrillDemoReadinessFilter = 'all' | 'ready' | 'needs_either' | 'needs_video' | 'needs_quote'
-type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness'
+type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness' | 'proof_gaps'
 
 const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
   library: 'Library order',
   newest: 'Newest first',
   grade: 'Grade order',
   completeness: 'Most complete',
+  proof_gaps: 'Needs proof first',
 }
 
 const REVIEW_HEALTH_FILTER_LABELS: Record<DrillReviewHealthFilter, string> = {
@@ -313,10 +314,14 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
       const completenessDiff = getCompletenessScore(b) - getCompletenessScore(a)
       const updatedDiff = new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       const gradeDiff = (a.grade_level ?? 'zzz').localeCompare(b.grade_level ?? 'zzz')
+      const proofGapScoreA = Number(!a.demo_video_url) + Number(!a.coach_demo_quote)
+      const proofGapScoreB = Number(!b.demo_video_url) + Number(!b.coach_demo_quote)
+      const proofGapDiff = proofGapScoreB - proofGapScoreA
 
       if (sortMode === 'newest') return updatedDiff || a.title.localeCompare(b.title)
       if (sortMode === 'grade') return gradeDiff || a.title.localeCompare(b.title)
       if (sortMode === 'completeness') return completenessDiff || a.title.localeCompare(b.title)
+      if (sortMode === 'proof_gaps') return proofGapDiff || completenessDiff || a.title.localeCompare(b.title)
 
       return Number(b.is_active) - Number(a.is_active) || Number(b.is_curated) - Number(a.is_curated) || gradeDiff || a.title.localeCompare(b.title)
     })
@@ -356,8 +361,10 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
     }).length
     const thinCount = drills.filter((drill) => getCompletenessScore(drill) < 5).length
     const demoReadyCount = drills.filter((drill) => Boolean(drill.demo_video_url) && Boolean(drill.coach_demo_quote)).length
+    const needsProofCount = drills.filter((drill) => !drill.demo_video_url || !drill.coach_demo_quote).length
+    const unlinkedCount = drills.filter((drill) => drill.raw_candidate_ids.length === 0).length
 
-    return { activeCount, curatedCount, withGradeCount, readyCount, withPendingRawReviewCount, thinCount, demoReadyCount }
+    return { activeCount, curatedCount, withGradeCount, readyCount, withPendingRawReviewCount, thinCount, demoReadyCount, needsProofCount, unlinkedCount }
   }, [drills, linkedCandidates])
 
   if (drills.length === 0) {
@@ -371,14 +378,16 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-7">
+      <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-9">
         <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" />
         <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" />
         <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" />
         <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" />
         <SummaryCard label="Demo ready" value={String(summary.demoReadyCount)} hint="Has demo video and coach quote, so frontend work is less guessy" />
+        <SummaryCard label="Needs proof" value={String(summary.needsProofCount)} hint="Still missing a demo video, a coach quote, or both" />
         <SummaryCard label="Thin drills" value={String(summary.thinCount)} hint="Canonical rows still missing core teaching detail" />
         <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Drills still linked to at least one pending raw review row" />
+        <SummaryCard label="No raw links" value={String(summary.unlinkedCount)} hint="Canonical rows with no raw candidate traceability yet" />
       </section>
 
       <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
