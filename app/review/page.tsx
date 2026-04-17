@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
+import { ReviewListClient } from './ReviewListClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -199,92 +200,7 @@ export default async function ReviewPage() {
           </div>
         </section>
 
-        <section>
-          <div className="mb-4 flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Pending raw drill candidates</h2>
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                Desktop-first scan of the raw intake layer, ordered for curation rather than final library use.
-              </p>
-            </div>
-          </div>
-
-          {pendingCandidates.length === 0 ? (
-            <EmptyState title="No pending candidates" body="Nothing in raw_drill_candidates is currently marked pending in this environment." />
-          ) : (
-            <div className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)]">
-              <div className="grid grid-cols-[2.2fr_1.1fr_0.9fr_1fr_1fr_1fr_2fr] gap-4 border-b border-[var(--border)] px-5 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
-                <div>Candidate</div>
-                <div>Category</div>
-                <div>Difficulty</div>
-                <div>Grade</div>
-                <div>Status</div>
-                <div>Structure</div>
-                <div>Source</div>
-              </div>
-
-              <div className="divide-y divide-[var(--border)]">
-                {pendingCandidates.map((candidate) => {
-                  const stepsCount = countJsonItems(candidate.steps_json)
-                  const focusPointsCount = countJsonItems(candidate.focus_points_json)
-                  const mistakesCount = countJsonItems(candidate.common_mistakes_json)
-
-                  return (
-                    <article key={candidate.id} className="grid grid-cols-[2.2fr_1.1fr_0.9fr_1fr_1fr_1fr_2fr] gap-4 px-5 py-5">
-                      <div>
-                        <div className="flex items-start gap-3">
-                          <div>
-                            <h3 className="text-base font-semibold text-[var(--text-primary)]">{getDisplayTitle(candidate)}</h3>
-                            <p className="mt-1 text-sm text-[var(--text-secondary)]">Raw title: {candidate.raw_title || 'Missing raw title'}</p>
-                          </div>
-                        </div>
-                        <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--text-secondary)]">{getShortSummary(candidate)}</p>
-                        {candidate.when_to_assign && (
-                          <p className="mt-2 text-xs leading-5 text-[var(--text-tertiary)]">Assign when: {candidate.when_to_assign}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-medium text-[var(--text-primary)]">{candidate.category || 'Uncategorised'}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-medium text-[var(--text-primary)]">{candidate.difficulty || 'Unset'}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-medium text-[var(--text-primary)]">{formatGradeLevel(candidate.grade_level)}</p>
-                      </div>
-
-                      <div>
-                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
-                          {REVIEW_STATUS_LABELS[candidate.review_status]}
-                        </span>
-                      </div>
-
-                      <div>
-                        <div className="space-y-1 text-sm text-[var(--text-secondary)]">
-                          <p>{stepsCount} steps</p>
-                          <p>{focusPointsCount} focus points</p>
-                          <p>{mistakesCount} common mistakes</p>
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="truncate text-sm font-medium text-[var(--text-primary)]" title={getSourceLabel(candidate)}>
-                          {getSourceLabel(candidate)}
-                        </p>
-                        {candidate.source_type && (
-                          <p className="mt-1 text-xs text-[var(--text-tertiary)]">{candidate.source_type}</p>
-                        )}
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </section>
+        <ReviewListClient candidates={candidates} />
       </div>
     </div>
   )
