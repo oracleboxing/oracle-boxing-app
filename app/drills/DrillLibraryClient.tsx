@@ -10,7 +10,8 @@ type DrillStatusFilter = 'all' | 'active' | 'inactive'
 type DrillReviewHealthFilter = 'all' | 'pending' | 'reviewed' | 'unlinked'
 type DrillCompletenessFilter = 'all' | 'ready' | 'usable' | 'thin'
 type DrillDemoReadinessFilter = 'all' | 'ready' | 'needs_either' | 'needs_video' | 'needs_quote'
-type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness' | 'least_complete' | 'proof_gaps'
+type DrillAuditPriorityFilter = 'all' | 'audit_now' | 'watch_next' | 'healthy'
+type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness' | 'least_complete' | 'proof_gaps' | 'audit_priority'
 
 const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
   library: 'Library order',
@@ -19,6 +20,7 @@ const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
   completeness: 'Most complete',
   least_complete: 'Least complete',
   proof_gaps: 'Needs proof first',
+  audit_priority: 'Audit weakest first',
 }
 
 const REVIEW_HEALTH_FILTER_LABELS: Record<DrillReviewHealthFilter, string> = {
@@ -41,6 +43,13 @@ const DEMO_READINESS_FILTER_LABELS: Record<DrillDemoReadinessFilter, string> = {
   needs_either: 'Missing video or quote',
   needs_video: 'Missing video',
   needs_quote: 'Missing quote',
+}
+
+const AUDIT_PRIORITY_FILTER_LABELS: Record<DrillAuditPriorityFilter, string> = {
+  all: 'All audit states',
+  audit_now: 'Audit now',
+  watch_next: 'Watch next',
+  healthy: 'Healthy-ish',
 }
 
 function formatGradeLevel(value: GradeLevel | null) {
@@ -223,6 +232,70 @@ function getReviewStatusLabel(reviewStatus: LinkedCandidate['review_status']) {
   return reviewStatus.charAt(0).toUpperCase() + reviewStatus.slice(1)
 }
 
+function getAuditPriority(drill: Drill, linkedCandidates: LinkedCandidate[]) {
+  const reviewSummary = buildLinkedCandidateReviewSummary(linkedCandidates)
+  const completenessScore = getCompletenessScore(drill)
+  const reasons: string[] = []
+  let score = 0
+
+  if (completenessScore < 5) {
+    score += 3
+    reasons.push('Thin teaching detail')
+  } else if (completenessScore < 8) {
+    score += 1
+    reasons.push('Still missing some teaching detail')
+  }
+
+  if (!drill.demo_video_url && !drill.coach_demo_quote) {
+    score += 2
+    reasons.push('No demo proof yet')
+  } else if (!drill.demo_video_url || !drill.coach_demo_quote) {
+    score += 1
+    reasons.push('Proof is only half there')
+  }
+
+  if (reviewSummary.pending > 0) {
+    score += 2
+    reasons.push(`${reviewSummary.pending} pending raw review`)
+  }
+
+  if (reviewSummary.total === 0) {
+    score += 2
+    reasons.push('No raw traceability')
+  }
+
+  if (!drill.grade_level) {
+    score += 1
+    reasons.push('No grade assigned')
+  }
+
+  if (!drill.is_active) {
+    score += 1
+    reasons.push('Inactive row')
+  }
+
+  const bucket: DrillAuditPriorityFilter = score >= 6 ? 'audit_now' : score >= 3 ? 'watch_next' : 'healthy'
+
+  return {
+    score,
+    bucket,
+    label: bucket === 'audit_now' ? 'Audit now' : bucket === 'watch_next' ? 'Watch next' : 'Healthy-ish',
+    reasons,
+  }
+}
+
+function getAuditPriorityTone(bucket: DrillAuditPriorityFilter) {
+  if (bucket === 'audit_now') {
+    return 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300'
+  }
+
+  if (bucket === 'watch_next') {
+    return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300'
+  }
+
+  return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+}
+
 function getCandidateTitle(candidate: LinkedCandidate) {
   return candidate.cleaned_title || candidate.raw_title || 'Untitled raw candidate'
 }
@@ -238,6 +311,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
   const [reviewHealthFilter, setReviewHealthFilter] = useState<DrillReviewHealthFilter>('all')
   const [completenessFilter, setCompletenessFilter] = useState<DrillCompletenessFilter>('all')
   const [demoReadinessFilter, setDemoReadinessFilter] = useState<DrillDemoReadinessFilter>('all')
+  const [auditPriorityFilter, setAuditPriorityFilter] = useState<DrillAuditPriorityFilter>('all')
   const [curatedOnly, setCuratedOnly] = useState(true)
   const [sortMode, setSortMode] = useState<DrillSortMode>('library')
   const [selectedDrillId, setSelectedDrillId] = useState<string | null>(drills[0]?.id ?? null)
@@ -279,11 +353,14 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
         if (demoReadinessFilter === 'needs_quote' && hasQuote) return false
       }
 
-      const reviewSummary = buildLinkedCandidateReviewSummary(linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id)))
+      const drillCandidates = linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id))
+      const reviewSummary = buildLinkedCandidateReviewSummary(drillCandidates)
+      const auditPriority = getAuditPriority(drill, drillCandidates)
 
       if (reviewHealthFilter === 'pending' && reviewSummary.pending === 0) return false
       if (reviewHealthFilter === 'reviewed' && (reviewSummary.total === 0 || reviewSummary.pending > 0 || reviewSummary.approved + reviewSummary.merged === 0)) return false
       if (reviewHealthFilter === 'unlinked' && reviewSummary.total > 0) return false
+      if (auditPriorityFilter !== 'all' && auditPriority.bucket !== auditPriorityFilter) return false
 
       if (gradeFilter !== 'all') {
         const value = drill.grade_level ?? 'unassigned'
@@ -318,18 +395,22 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
       const proofGapScoreA = Number(!a.demo_video_url) + Number(!a.coach_demo_quote)
       const proofGapScoreB = Number(!b.demo_video_url) + Number(!b.coach_demo_quote)
       const proofGapDiff = proofGapScoreB - proofGapScoreA
+      const auditPriorityA = getAuditPriority(a, linkedCandidates.filter((candidate) => a.raw_candidate_ids.includes(candidate.id)))
+      const auditPriorityB = getAuditPriority(b, linkedCandidates.filter((candidate) => b.raw_candidate_ids.includes(candidate.id)))
+      const auditPriorityDiff = auditPriorityB.score - auditPriorityA.score
 
       if (sortMode === 'newest') return updatedDiff || a.title.localeCompare(b.title)
       if (sortMode === 'grade') return gradeDiff || a.title.localeCompare(b.title)
       if (sortMode === 'completeness') return completenessDiff || a.title.localeCompare(b.title)
       if (sortMode === 'least_complete') return -completenessDiff || a.title.localeCompare(b.title)
       if (sortMode === 'proof_gaps') return proofGapDiff || completenessDiff || a.title.localeCompare(b.title)
+      if (sortMode === 'audit_priority') return auditPriorityDiff || proofGapDiff || -completenessDiff || updatedDiff || a.title.localeCompare(b.title)
 
       return Number(b.is_active) - Number(a.is_active) || Number(b.is_curated) - Number(a.is_curated) || gradeDiff || a.title.localeCompare(b.title)
     })
 
     return next
-  }, [categoryFilter, curatedOnly, difficultyFilter, drills, gradeFilter, linkedCandidates, query, reviewHealthFilter, sortMode, statusFilter, completenessFilter, demoReadinessFilter])
+  }, [auditPriorityFilter, categoryFilter, curatedOnly, difficultyFilter, drills, gradeFilter, linkedCandidates, query, reviewHealthFilter, sortMode, statusFilter, completenessFilter, demoReadinessFilter])
 
   useEffect(() => {
     if (filteredDrills.length === 0) {
@@ -361,12 +442,26 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
       return reviewSummary.pending > 0
     }).length
+    const auditNowCount = drills.filter((drill) => getAuditPriority(drill, linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id))).bucket === 'audit_now').length
+    const watchNextCount = drills.filter((drill) => getAuditPriority(drill, linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id))).bucket === 'watch_next').length
     const thinCount = drills.filter((drill) => getCompletenessScore(drill) < 5).length
     const demoReadyCount = drills.filter((drill) => Boolean(drill.demo_video_url) && Boolean(drill.coach_demo_quote)).length
     const needsProofCount = drills.filter((drill) => !drill.demo_video_url || !drill.coach_demo_quote).length
     const unlinkedCount = drills.filter((drill) => drill.raw_candidate_ids.length === 0).length
 
-    return { activeCount, curatedCount, withGradeCount, readyCount, withPendingRawReviewCount, thinCount, demoReadyCount, needsProofCount, unlinkedCount }
+    return {
+      activeCount,
+      curatedCount,
+      withGradeCount,
+      readyCount,
+      withPendingRawReviewCount,
+      auditNowCount,
+      watchNextCount,
+      thinCount,
+      demoReadyCount,
+      needsProofCount,
+      unlinkedCount,
+    }
   }, [drills, linkedCandidates])
 
   if (drills.length === 0) {
@@ -380,10 +475,12 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-9">
+      <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-11">
         <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" />
         <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" />
         <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" />
+        <SummaryCard label="Audit now" value={String(summary.auditNowCount)} hint="Weak canonical rows that need eyes first" />
+        <SummaryCard label="Watch next" value={String(summary.watchNextCount)} hint="Not broken, but still a bit suspect" />
         <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" />
         <SummaryCard label="Demo ready" value={String(summary.demoReadyCount)} hint="Has demo video and coach quote, so frontend work is less guessy" />
         <SummaryCard label="Needs proof" value={String(summary.needsProofCount)} hint="Still missing a demo video, a coach quote, or both" />
@@ -393,7 +490,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
       </section>
 
       <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_repeat(8,minmax(0,1fr))]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_repeat(9,minmax(0,1fr))]">
           <label className="block">
             <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Search</span>
             <input
@@ -447,6 +544,12 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
             options={Object.entries(DEMO_READINESS_FILTER_LABELS).map(([value, label]) => ({ value: value as DrillDemoReadinessFilter, label }))}
           />
           <FilterSelect
+            label="Audit priority"
+            value={auditPriorityFilter}
+            onChange={(value) => setAuditPriorityFilter(value as DrillAuditPriorityFilter)}
+            options={Object.entries(AUDIT_PRIORITY_FILTER_LABELS).map(([value, label]) => ({ value: value as DrillAuditPriorityFilter, label }))}
+          />
+          <FilterSelect
             label="Sort"
             value={sortMode}
             onChange={(value) => setSortMode(value as DrillSortMode)}
@@ -482,6 +585,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
               const drillCandidates = linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id))
               const reviewSummary = buildLinkedCandidateReviewSummary(drillCandidates)
               const readinessGaps = getDrillReadinessGaps(drill)
+              const auditPriority = getAuditPriority(drill, drillCandidates)
 
               return (
                 <button
@@ -508,6 +612,9 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
                     <Chip>{formatCategory(drill.category)}</Chip>
                     <Chip>{formatDifficulty(drill.difficulty)}</Chip>
                     <Chip>{formatGradeLevel(drill.grade_level)}</Chip>
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getAuditPriorityTone(auditPriority.bucket)}`}>
+                      {auditPriority.label}
+                    </span>
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCompletenessTone(completenessScore)}`}>
                       {getCompletenessLabel(completenessScore)}
                     </span>
@@ -530,6 +637,11 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
+                    {auditPriority.reasons.slice(0, 2).map((reason) => (
+                      <span key={reason} className={`rounded-full border px-3 py-1 text-xs font-semibold ${getAuditPriorityTone(auditPriority.bucket)}`}>
+                        {reason}
+                      </span>
+                    ))}
                     {readinessGaps.length > 0 ? (
                       readinessGaps.slice(0, 3).map((gap) => (
                         <span key={gap} className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
@@ -580,6 +692,7 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
   const reviewSummary = buildLinkedCandidateReviewSummary(linkedCandidates)
   const firstPendingCandidate = linkedCandidates.find((candidate) => candidate.review_status === 'pending')
   const readinessGaps = getDrillReadinessGaps(drill)
+  const auditPriority = getAuditPriority(drill, linkedCandidates)
 
   return (
     <div className="space-y-6">
@@ -589,9 +702,14 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">Library detail</p>
             <h2 className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">{drill.title}</h2>
           </div>
-          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCompletenessTone(completenessScore)}`}>
-            {getCompletenessLabel(completenessScore)} {completenessScore}/10
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getAuditPriorityTone(auditPriority.bucket)}`}>
+              {auditPriority.label}
+            </span>
+            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCompletenessTone(completenessScore)}`}>
+              {getCompletenessLabel(completenessScore)} {completenessScore}/10
+            </span>
+          </div>
         </div>
         <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{drill.summary}</p>
       </div>
@@ -622,27 +740,44 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Readiness gaps</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Audit priority</p>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-              Quick content audit for canonical polish, so thin drills and under-supported demo rows stop hiding in the library.
+              One blunt queue for weak canonical drills, so Jordan or Sha-Lyn can hit the dodgy rows first instead of scanning the whole library like muppets.
             </p>
           </div>
-          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCompletenessTone(completenessScore)}`}>
-            {getCompletenessLabel(completenessScore)}
+          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getAuditPriorityTone(auditPriority.bucket)}`}>
+            {auditPriority.label}
           </span>
         </div>
 
-        {readinessGaps.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {readinessGaps.map((gap) => (
-              <span key={gap} className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
-                {gap}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {auditPriority.reasons.length > 0 ? (
+            auditPriority.reasons.map((reason) => (
+              <span key={reason} className={`rounded-full border px-3 py-1 text-xs font-semibold ${getAuditPriorityTone(auditPriority.bucket)}`}>
+                {reason}
               </span>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-[var(--text-secondary)]">No obvious readiness gaps on this row. Lovely, for once.</p>
-        )}
+            ))
+          ) : (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+              No urgent audit flags
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 border-t border-[var(--border)] pt-4">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Readiness gaps</p>
+          {readinessGaps.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {readinessGaps.map((gap) => (
+                <span key={gap} className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
+                  {gap}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-[var(--text-secondary)]">No obvious readiness gaps on this row. Lovely, for once.</p>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
