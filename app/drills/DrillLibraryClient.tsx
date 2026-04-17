@@ -302,6 +302,12 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
             {filteredDrills.map((drill) => {
               const isSelected = selectedDrillId === drill.id
               const completenessScore = getCompletenessScore(drill)
+              const drillCandidates = linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id))
+              const statusCounts = drillCandidates.reduce((acc, candidate) => {
+                acc[candidate.review_status] = (acc[candidate.review_status] || 0) + 1
+                return acc
+              }, {} as Record<string, number>)
+
               return (
                 <button
                   key={drill.id}
@@ -331,6 +337,11 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
                       {getCompletenessLabel(completenessScore)}
                     </span>
                     {drill.is_curated ? <Chip>Canonical</Chip> : <Chip>Needs curation</Chip>}
+                    {Object.entries(statusCounts).map(([status, count]) => (
+                      <span key={status} className={`rounded-full border px-3 py-1 text-xs font-semibold ${getReviewStatusTone(status as LinkedCandidate['review_status'])}`}>
+                        {count} {getReviewStatusLabel(status as LinkedCandidate['review_status'])} raw
+                      </span>
+                    ))}
                   </div>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
