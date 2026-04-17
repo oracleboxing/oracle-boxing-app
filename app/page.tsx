@@ -24,8 +24,14 @@ export default function HomePage() {
               Open schema mock
             </Link>
             <Link
-              href="/review"
+              href="/drills"
               className="rounded-xl bg-[var(--accent-primary)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            >
+              Open curated drill library
+            </Link>
+            <Link
+              href="/review"
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
               Review Drill Queue
             </Link>
