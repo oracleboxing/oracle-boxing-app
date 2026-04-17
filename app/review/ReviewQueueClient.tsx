@@ -462,13 +462,27 @@ export function ReviewQueueClient({
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
 
   function copyHandoff(action: ReviewStatus, ids: string[], label?: string) {
+    const targetCandidates = candidates.filter((c) => ids.includes(c.id))
     const payload = {
       action,
       timestamp: new Date().toISOString(),
-      ids,
+      count: ids.length,
+      items: targetCandidates.map((c) => ({
+        id: c.id,
+        title: getDisplayTitle(c),
+        dedupe_key: c.dedupe_key,
+        grade: c.grade_level,
+        status_was: c.review_status,
+      })),
     }
     navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
     setCopyFeedback(label || `Copied ${ids.length} to ${action}`)
+    setTimeout(() => setCopyFeedback(null), 3000)
+  }
+
+  function copyFamilyHandoff(text: string) {
+    navigator.clipboard.writeText(text)
+    setCopyFeedback('Copied family review notes')
     setTimeout(() => setCopyFeedback(null), 3000)
   }
 
@@ -714,7 +728,7 @@ export function ReviewQueueClient({
 
     const handoffLines = [
       `Family: ${selectedCandidate.dedupe_key}`,
-      `Suggested canonical seed: ${getDisplayTitle(keepCandidate)}`,
+      `Suggested canonical seed: ${getDisplayTitle(keepCandidate)} (${keepCandidate.id})`,
       `Visible family rows: ${ranked.length} (${pendingCount} pending)`,
       `Suggested split: keep ${decisionCounts.keep}, merge ${decisionCounts.merge}, reject ${decisionCounts.reject}`,
       '',
@@ -722,6 +736,18 @@ export function ReviewQueueClient({
       `1. Start with ${getDisplayTitle(keepCandidate)} as the cleanest base shape.`,
       '2. Fold overlapping rows into that canonical drill if they add useful detail.',
       '3. Reject noisy duplicates that do not add anything reusable.',
+      '',
+      'Suggested bot payload:',
+      JSON.stringify(
+        {
+          target_family: selectedCandidate.dedupe_key,
+          keep_ids: ranked.filter(({ candidate, insight }) => getCandidateDecisionHint(candidate, insight) === 'keep').map(({ candidate }) => candidate.id),
+          merge_ids: ranked.filter(({ candidate, insight }) => getCandidateDecisionHint(candidate, insight) === 'merge').map(({ candidate }) => candidate.id),
+          reject_ids: ranked.filter(({ candidate, insight }) => getCandidateDecisionHint(candidate, insight) === 'reject').map(({ candidate }) => candidate.id),
+        },
+        null,
+        2
+      ),
     ]
 
     return {
@@ -1361,14 +1387,25 @@ export function ReviewQueueClient({
                           </div>
 
                           <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] px-4 py-4">
-                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Reviewer handoff scaffold</p>
-                            <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                              Copy-ready notes for Jordan or Sha-Lyn when turning this family into a real curation pass.
-                            </p>
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Reviewer handoff scaffold</p>
+                                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                                  Copy-ready notes for Jordan or Sha-Lyn when turning this family into a real curation pass.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => copyFamilyHandoff(selectedFamilyWorkspace.handoffText)}
+                                className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                              >
+                                Copy notes
+                              </button>
+                            </div>
                             <textarea
                               readOnly
                               value={selectedFamilyWorkspace.handoffText}
-                              className="mt-3 min-h-[180px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm leading-6 text-[var(--text-primary)] outline-none"
+                              className="mt-4 min-h-[300px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 font-mono text-xs leading-6 text-[var(--text-secondary)] outline-none"
                             />
                           </div>
                         </div>
