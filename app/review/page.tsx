@@ -33,7 +33,7 @@ export default async function ReviewPage() {
   const { data, error } = await supabase
     .from('raw_drill_candidates')
     .select(
-      'id, cleaned_title, raw_title, dedupe_key, category, difficulty, grade_level, review_status, source_type, source_file, summary, description, what_it_trains, when_to_assign, steps_json, focus_points_json, common_mistakes_json, canonical_drill_id, created_at'
+      'id, cleaned_title, raw_title, dedupe_key, category, difficulty, grade_level, review_status, review_notes, source_type, source_file, summary, description, what_it_trains, when_to_assign, coach_demo_quote, estimated_duration_seconds, format_tags, skill_tags, tags, steps_json, focus_points_json, common_mistakes_json, canonical_drill_id, created_at'
     )
     .order('review_status', { ascending: true })
     .order('grade_level', { ascending: true, nullsFirst: false })
