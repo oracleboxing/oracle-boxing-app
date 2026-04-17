@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Drill, DrillCategory, DrillDifficulty, GradeLevel, Json, RawDrillCandidate } from '@/lib/supabase/types'
 
@@ -301,20 +301,25 @@ function getCandidateTitle(candidate: LinkedCandidate) {
 }
 
 export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill[]; linkedCandidates: LinkedCandidate[] }) {
+  const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const selectedDrillFromUrl = searchParams.get('selected')
-  const [query, setQuery] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<'all' | DrillCategory>('all')
-  const [gradeFilter, setGradeFilter] = useState<'all' | GradeLevel | 'unassigned'>('all')
-  const [difficultyFilter, setDifficultyFilter] = useState<'all' | DrillDifficulty>('all')
-  const [statusFilter, setStatusFilter] = useState<DrillStatusFilter>('active')
-  const [reviewHealthFilter, setReviewHealthFilter] = useState<DrillReviewHealthFilter>('all')
-  const [completenessFilter, setCompletenessFilter] = useState<DrillCompletenessFilter>('all')
-  const [demoReadinessFilter, setDemoReadinessFilter] = useState<DrillDemoReadinessFilter>('all')
-  const [auditPriorityFilter, setAuditPriorityFilter] = useState<DrillAuditPriorityFilter>('all')
-  const [curatedOnly, setCuratedOnly] = useState(true)
-  const [sortMode, setSortMode] = useState<DrillSortMode>('library')
-  const [selectedDrillId, setSelectedDrillId] = useState<string | null>(drills[0]?.id ?? null)
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | DrillCategory>(() => (searchParams.get('category') as 'all' | DrillCategory) ?? 'all')
+  const [gradeFilter, setGradeFilter] = useState<'all' | GradeLevel | 'unassigned'>(() => (searchParams.get('grade') as 'all' | GradeLevel | 'unassigned') ?? 'all')
+  const [difficultyFilter, setDifficultyFilter] = useState<'all' | DrillDifficulty>(() => (searchParams.get('difficulty') as 'all' | DrillDifficulty) ?? 'all')
+  const [statusFilter, setStatusFilter] = useState<DrillStatusFilter>(() => (searchParams.get('status') as DrillStatusFilter) ?? 'active')
+  const [reviewHealthFilter, setReviewHealthFilter] = useState<DrillReviewHealthFilter>(() => (searchParams.get('review') as DrillReviewHealthFilter) ?? 'all')
+  const [completenessFilter, setCompletenessFilter] = useState<DrillCompletenessFilter>(() => (searchParams.get('completeness') as DrillCompletenessFilter) ?? 'all')
+  const [demoReadinessFilter, setDemoReadinessFilter] = useState<DrillDemoReadinessFilter>(() => (searchParams.get('demo') as DrillDemoReadinessFilter) ?? 'all')
+  const [auditPriorityFilter, setAuditPriorityFilter] = useState<DrillAuditPriorityFilter>(() => (searchParams.get('audit') as DrillAuditPriorityFilter) ?? 'all')
+  const [curatedOnly, setCuratedOnly] = useState(() => searchParams.get('curated') !== '0')
+  const [sortMode, setSortMode] = useState<DrillSortMode>(() => {
+    const value = searchParams.get('sort')
+    return value && value in SORT_MODE_LABELS ? (value as DrillSortMode) : 'library'
+  })
+  const [selectedDrillId, setSelectedDrillId] = useState<string | null>(() => searchParams.get('selected') ?? drills[0]?.id ?? null)
 
   const categories = useMemo(
     () => Array.from(new Set(drills.map((drill) => drill.category).filter(Boolean))) as DrillCategory[],
@@ -325,6 +330,87 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
     () => Array.from(new Set(drills.map((drill) => drill.grade_level ?? 'unassigned'))),
     [drills]
   )
+
+  useEffect(() => {
+    const nextQuery = searchParams.get('q') ?? ''
+    const nextCategory = (searchParams.get('category') as 'all' | DrillCategory) ?? 'all'
+    const nextGrade = (searchParams.get('grade') as 'all' | GradeLevel | 'unassigned') ?? 'all'
+    const nextDifficulty = (searchParams.get('difficulty') as 'all' | DrillDifficulty) ?? 'all'
+    const nextStatus = (searchParams.get('status') as DrillStatusFilter) ?? 'active'
+    const nextReview = (searchParams.get('review') as DrillReviewHealthFilter) ?? 'all'
+    const nextCompleteness = (searchParams.get('completeness') as DrillCompletenessFilter) ?? 'all'
+    const nextDemo = (searchParams.get('demo') as DrillDemoReadinessFilter) ?? 'all'
+    const nextAudit = (searchParams.get('audit') as DrillAuditPriorityFilter) ?? 'all'
+    const nextCurated = searchParams.get('curated') !== '0'
+    const nextSort = searchParams.get('sort')
+    const nextSelected = searchParams.get('selected')
+
+    setQuery((current) => (current === nextQuery ? current : nextQuery))
+    setCategoryFilter((current) => (current === nextCategory ? current : nextCategory))
+    setGradeFilter((current) => (current === nextGrade ? current : nextGrade))
+    setDifficultyFilter((current) => (current === nextDifficulty ? current : nextDifficulty))
+    setStatusFilter((current) => (current === nextStatus ? current : nextStatus))
+    setReviewHealthFilter((current) => (current === nextReview ? current : nextReview))
+    setCompletenessFilter((current) => (current === nextCompleteness ? current : nextCompleteness))
+    setDemoReadinessFilter((current) => (current === nextDemo ? current : nextDemo))
+    setAuditPriorityFilter((current) => (current === nextAudit ? current : nextAudit))
+    setCuratedOnly((current) => (current === nextCurated ? current : nextCurated))
+    setSortMode((current) => {
+      const resolved = nextSort && nextSort in SORT_MODE_LABELS ? (nextSort as DrillSortMode) : 'library'
+      return current === resolved ? current : resolved
+    })
+    setSelectedDrillId((current) => {
+      const resolved = nextSelected ?? drills[0]?.id ?? null
+      return current === resolved ? current : resolved
+    })
+  }, [drills, searchParams])
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams.toString())
+
+    if (query.trim()) nextParams.set('q', query)
+    else nextParams.delete('q')
+
+    if (categoryFilter !== 'all') nextParams.set('category', categoryFilter)
+    else nextParams.delete('category')
+
+    if (gradeFilter !== 'all') nextParams.set('grade', gradeFilter)
+    else nextParams.delete('grade')
+
+    if (difficultyFilter !== 'all') nextParams.set('difficulty', difficultyFilter)
+    else nextParams.delete('difficulty')
+
+    if (statusFilter !== 'active') nextParams.set('status', statusFilter)
+    else nextParams.delete('status')
+
+    if (reviewHealthFilter !== 'all') nextParams.set('review', reviewHealthFilter)
+    else nextParams.delete('review')
+
+    if (completenessFilter !== 'all') nextParams.set('completeness', completenessFilter)
+    else nextParams.delete('completeness')
+
+    if (demoReadinessFilter !== 'all') nextParams.set('demo', demoReadinessFilter)
+    else nextParams.delete('demo')
+
+    if (auditPriorityFilter !== 'all') nextParams.set('audit', auditPriorityFilter)
+    else nextParams.delete('audit')
+
+    if (!curatedOnly) nextParams.set('curated', '0')
+    else nextParams.delete('curated')
+
+    if (sortMode !== 'library') nextParams.set('sort', sortMode)
+    else nextParams.delete('sort')
+
+    if (selectedDrillId) nextParams.set('selected', selectedDrillId)
+    else nextParams.delete('selected')
+
+    const current = searchParams.toString()
+    const next = nextParams.toString()
+
+    if (next !== current) {
+      router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
+    }
+  }, [auditPriorityFilter, categoryFilter, completenessFilter, curatedOnly, demoReadinessFilter, difficultyFilter, gradeFilter, pathname, query, reviewHealthFilter, router, searchParams, selectedDrillId, sortMode, statusFilter])
 
   const filteredDrills = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()

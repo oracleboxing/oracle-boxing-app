@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import type { Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
 const REVIEW_STATUSES: ReviewStatus[] = ['pending', 'approved', 'merged', 'rejected']
@@ -450,6 +450,8 @@ export function ReviewQueueClient({
     'id' | 'title' | 'category' | 'difficulty' | 'grade_level' | 'summary' | 'skill_tags' | 'tags' | 'raw_candidate_ids' | 'is_active' | 'is_curated'
   >[]
 }) {
+  const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const selectedCandidateFromUrl = searchParams.get('selected')
   const scopedCandidateIds = useMemo(() => {
@@ -464,14 +466,74 @@ export function ReviewQueueClient({
     return ids.length > 0 ? Array.from(new Set(ids)) : null
   }, [searchParams])
   const scopeRequestedCount = scopedCandidateIds?.length ?? 0
-  const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | ReviewStatus>('pending')
-  const [gradeFilter, setGradeFilter] = useState<'all' | string>('all')
-  const [categoryFilter, setCategoryFilter] = useState<'all' | string>('all')
-  const [sortMode, setSortMode] = useState<SortMode>('triage')
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(candidates[0]?.id ?? null)
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
+  const [statusFilter, setStatusFilter] = useState<'all' | ReviewStatus>(() => {
+    const value = searchParams.get('status')
+    return value === 'all' || REVIEW_STATUSES.includes(value as ReviewStatus) ? (value as 'all' | ReviewStatus) || 'pending' : 'pending'
+  })
+  const [gradeFilter, setGradeFilter] = useState<'all' | string>(() => searchParams.get('grade') ?? 'all')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | string>(() => searchParams.get('category') ?? 'all')
+  const [sortMode, setSortMode] = useState<SortMode>(() => {
+    const value = searchParams.get('sort')
+    return value && value in SORT_MODE_LABELS ? (value as SortMode) : 'triage'
+  })
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(() => searchParams.get('selected') ?? candidates[0]?.id ?? null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+
+  useEffect(() => {
+    const nextQuery = searchParams.get('q') ?? ''
+    const nextStatus = searchParams.get('status')
+    const nextGrade = searchParams.get('grade') ?? 'all'
+    const nextCategory = searchParams.get('category') ?? 'all'
+    const nextSort = searchParams.get('sort')
+    const nextSelected = searchParams.get('selected')
+
+    setQuery((current) => (current === nextQuery ? current : nextQuery))
+    setStatusFilter((current) => {
+      const resolved = nextStatus === 'all' || REVIEW_STATUSES.includes(nextStatus as ReviewStatus) ? (nextStatus as 'all' | ReviewStatus) || 'pending' : 'pending'
+      return current === resolved ? current : resolved
+    })
+    setGradeFilter((current) => (current === nextGrade ? current : nextGrade))
+    setCategoryFilter((current) => (current === nextCategory ? current : nextCategory))
+    setSortMode((current) => {
+      const resolved = nextSort && nextSort in SORT_MODE_LABELS ? (nextSort as SortMode) : 'triage'
+      return current === resolved ? current : resolved
+    })
+    setSelectedCandidateId((current) => {
+      const resolved = nextSelected ?? candidates[0]?.id ?? null
+      return current === resolved ? current : resolved
+    })
+  }, [candidates, searchParams])
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams.toString())
+
+    if (query.trim()) nextParams.set('q', query)
+    else nextParams.delete('q')
+
+    if (statusFilter !== 'pending') nextParams.set('status', statusFilter)
+    else nextParams.delete('status')
+
+    if (gradeFilter !== 'all') nextParams.set('grade', gradeFilter)
+    else nextParams.delete('grade')
+
+    if (categoryFilter !== 'all') nextParams.set('category', categoryFilter)
+    else nextParams.delete('category')
+
+    if (sortMode !== 'triage') nextParams.set('sort', sortMode)
+    else nextParams.delete('sort')
+
+    if (selectedCandidateId) nextParams.set('selected', selectedCandidateId)
+    else nextParams.delete('selected')
+
+    const current = searchParams.toString()
+    const next = nextParams.toString()
+
+    if (next !== current) {
+      router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
+    }
+  }, [categoryFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
   function copyHandoff(action: ReviewStatus, ids: string[], label?: string) {
     const targetCandidates = candidates.filter((c) => ids.includes(c.id))
