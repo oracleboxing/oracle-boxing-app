@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
+export const dynamic = 'force-dynamic'
+
 const EMPTY_ENV_MESSAGE =
   'Supabase env vars are missing in this local environment, so the review queue cannot load yet.'
 
@@ -72,7 +74,7 @@ export default async function ReviewPage() {
   const { data, error } = await supabase
     .from('raw_drill_candidates')
     .select(
-      'id, cleaned_title, raw_title, category, difficulty, grade_level, review_status, source_type, source_file, summary, description, what_it_trains, when_to_assign, steps_json, focus_points_json, common_mistakes_json, canonical_drill_id, created_at'
+      'id, cleaned_title, raw_title, dedupe_key, category, difficulty, grade_level, review_status, source_type, source_file, summary, description, what_it_trains, when_to_assign, steps_json, focus_points_json, common_mistakes_json, canonical_drill_id, created_at'
     )
     .order('review_status', { ascending: true })
     .order('grade_level', { ascending: true, nullsFirst: false })
@@ -114,6 +116,12 @@ export default async function ReviewPage() {
     (candidate) => candidate.canonical_drill_id
   ).length
 
+  const duplicateFamilies = new Set(
+    pendingCandidates
+      .map((candidate) => candidate.dedupe_key)
+      .filter((value): value is string => Boolean(value))
+  ).size
+
   return (
     <div className="min-h-screen px-8 py-10">
       <div className="mx-auto max-w-7xl">
@@ -126,6 +134,12 @@ export default async function ReviewPage() {
             <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
               First-pass queue for Sha-Lyn and Jordan. This view only surfaces raw candidates and keeps curated drills separate.
             </p>
+          </div>
+
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+            <p className="text-sm font-medium text-[var(--text-secondary)]">Duplicate families</p>
+            <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{duplicateFamilies}</p>
+            <p className="mt-3 text-xs text-[var(--text-tertiary)]">Distinct pending dedupe keys currently visible in the queue.</p>
           </div>
 
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
