@@ -565,6 +565,13 @@ export function ReviewQueueClient({
     setTimeout(() => setCopyFeedback(null), 3000)
   }
 
+  function copyCurrentView(label: string) {
+    if (typeof window === 'undefined') return
+    navigator.clipboard.writeText(window.location.href)
+    setCopyFeedback(label)
+    window.setTimeout(() => setCopyFeedback(null), 3000)
+  }
+
   const familySizeByKey = useMemo(() => {
     const counts = new Map<string, number>()
 
@@ -958,6 +965,22 @@ export function ReviewQueueClient({
               </select>
             </label>
           </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => copyCurrentView(scopedCandidateIds ? 'Copied scoped review view link' : 'Copied review queue view link')}
+              className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+            >
+              Copy current view
+            </button>
+            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
+              {sortedCandidates.length} visible
+            </span>
+            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
+              {pendingCandidates.length} pending
+            </span>
+          </div>
         </div>
       </section>
 
@@ -1136,12 +1159,21 @@ export function ReviewQueueClient({
                     Showing {sortedCandidates.length} of {scopeRequestedCount} linked raw candidate{scopeRequestedCount === 1 ? '' : 's'} passed in from the drill library.
                   </p>
                 </div>
-                <Link
-                  href="/review"
-                  className="inline-flex rounded-xl border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-950 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100 dark:hover:bg-sky-900/30"
-                >
-                  Clear scope
-                </Link>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => copyCurrentView('Copied scoped review view link')}
+                    className="inline-flex rounded-xl border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-950 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100 dark:hover:bg-sky-900/30"
+                  >
+                    Copy scope link
+                  </button>
+                  <Link
+                    href="/review"
+                    className="inline-flex rounded-xl border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-950 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100 dark:hover:bg-sky-900/30"
+                  >
+                    Clear scope
+                  </Link>
+                </div>
               </div>
             </div>
           ) : null}

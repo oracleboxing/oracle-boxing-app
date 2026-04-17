@@ -305,6 +305,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const selectedDrillFromUrl = searchParams.get('selected')
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const [categoryFilter, setCategoryFilter] = useState<'all' | DrillCategory>(() => (searchParams.get('category') as 'all' | DrillCategory) ?? 'all')
   const [gradeFilter, setGradeFilter] = useState<'all' | GradeLevel | 'unassigned'>(() => (searchParams.get('grade') as 'all' | GradeLevel | 'unassigned') ?? 'all')
@@ -415,6 +416,13 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
     }
   }, [auditPriorityFilter, categoryFilter, completenessFilter, curatedOnly, demoReadinessFilter, difficultyFilter, gradeFilter, pathname, query, reviewHealthFilter, router, searchParams, selectedDrillId, sortMode, statusFilter])
+
+  function copyCurrentView(label: string) {
+    if (typeof window === 'undefined') return
+    navigator.clipboard.writeText(window.location.href)
+    setCopyFeedback(label)
+    window.setTimeout(() => setCopyFeedback(null), 3000)
+  }
 
   const filteredDrills = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -564,7 +572,14 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      {copyFeedback && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 shadow-lg">
+          <p className="text-sm font-medium text-[var(--text-primary)]">{copyFeedback}</p>
+        </div>
+      )}
+
+      <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-11">
         <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" />
         <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" />
@@ -658,6 +673,13 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
           <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
             {summary.withGradeCount} with grade tags
           </span>
+          <button
+            type="button"
+            onClick={() => copyCurrentView('Copied drill library view link')}
+            className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+          >
+            Copy current view
+          </button>
         </div>
       </section>
 
@@ -771,7 +793,8 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
           </div>
         </section>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 
