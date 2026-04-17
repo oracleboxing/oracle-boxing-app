@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import type { Drill } from '@/lib/supabase/types'
+import type { Drill, RawDrillCandidate } from '@/lib/supabase/types'
 import { DrillLibraryClient } from './DrillLibraryClient'
 
 export const dynamic = 'force-dynamic'
@@ -55,12 +55,38 @@ export default async function DrillsPage() {
   }
 
   const drills = (data ?? []) as Drill[]
+  const rawCandidateIds = Array.from(new Set(drills.flatMap((drill) => drill.raw_candidate_ids))).filter(Boolean)
+
+  let linkedCandidates: Pick<RawDrillCandidate, 'id' | 'cleaned_title' | 'raw_title' | 'review_status'>[] = []
+
+  if (rawCandidateIds.length > 0) {
+    const { data: rawCandidateData, error: rawCandidateError } = await supabase
+      .from('raw_drill_candidates')
+      .select('id, cleaned_title, raw_title, review_status')
+      .in('id', rawCandidateIds)
+
+    if (rawCandidateError) {
+      return (
+        <div className="min-h-screen px-8 py-10">
+          <div className="mx-auto max-w-7xl">
+            <Header />
+            <EmptyState
+              title="Curated drill library unavailable"
+              body={rawCandidateError.message || 'The app could not read linked raw drill candidates. Check table access, RLS, and local Supabase configuration.'}
+            />
+          </div>
+        </div>
+      )
+    }
+
+    linkedCandidates = (rawCandidateData ?? []) as Pick<RawDrillCandidate, 'id' | 'cleaned_title' | 'raw_title' | 'review_status'>[]
+  }
 
   return (
     <div className="min-h-screen px-8 py-10">
       <div className="mx-auto max-w-7xl">
         <Header />
-        <DrillLibraryClient drills={drills} />
+        <DrillLibraryClient drills={drills} linkedCandidates={linkedCandidates} />
       </div>
     </div>
   )

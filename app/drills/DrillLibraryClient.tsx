@@ -3,7 +3,8 @@
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import type { Drill, DrillCategory, DrillDifficulty, GradeLevel, Json } from '@/lib/supabase/types'
+import Link from 'next/link'
+import type { Drill, DrillCategory, DrillDifficulty, GradeLevel, Json, RawDrillCandidate } from '@/lib/supabase/types'
 
 type DrillStatusFilter = 'all' | 'active' | 'inactive'
 type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness'
@@ -90,7 +91,31 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   )
 }
 
-export function DrillLibraryClient({ drills }: { drills: Drill[] }) {
+type LinkedCandidate = Pick<RawDrillCandidate, 'id' | 'cleaned_title' | 'raw_title' | 'review_status'>
+
+function getReviewStatusTone(reviewStatus: LinkedCandidate['review_status']) {
+  switch (reviewStatus) {
+    case 'approved':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+    case 'merged':
+      return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300'
+    case 'rejected':
+      return 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300'
+    case 'pending':
+    default:
+      return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300'
+  }
+}
+
+function getReviewStatusLabel(reviewStatus: LinkedCandidate['review_status']) {
+  return reviewStatus.charAt(0).toUpperCase() + reviewStatus.slice(1)
+}
+
+function getCandidateTitle(candidate: LinkedCandidate) {
+  return candidate.cleaned_title || candidate.raw_title || 'Untitled raw candidate'
+}
+
+export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill[]; linkedCandidates: LinkedCandidate[] }) {
   const searchParams = useSearchParams()
   const selectedDrillFromUrl = searchParams.get('selected')
   const [query, setQuery] = useState('')
@@ -319,7 +344,14 @@ export function DrillLibraryClient({ drills }: { drills: Drill[] }) {
           </div>
 
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 xl:sticky xl:top-6 xl:self-start">
-            {selectedDrill ? <DrillDetail drill={selectedDrill} /> : <EmptyState title="Choose a drill" body="Select a drill from the library list to inspect its content quality and app readiness." />}
+            {selectedDrill ? (
+              <DrillDetail
+                drill={selectedDrill}
+                linkedCandidates={linkedCandidates.filter((candidate) => selectedDrill.raw_candidate_ids.includes(candidate.id))}
+              />
+            ) : (
+              <EmptyState title="Choose a drill" body="Select a drill from the library list to inspect its content quality and app readiness." />
+            )}
           </div>
         </section>
       )}
@@ -327,7 +359,7 @@ export function DrillLibraryClient({ drills }: { drills: Drill[] }) {
   )
 }
 
-function DrillDetail({ drill }: { drill: Drill }) {
+function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidates: LinkedCandidate[] }) {
   const steps = jsonToStringList(drill.steps_json)
   const focusPoints = jsonToStringList(drill.focus_points_json)
   const mistakes = jsonToStringList(drill.common_mistakes_json)
@@ -372,6 +404,51 @@ function DrillDetail({ drill }: { drill: Drill }) {
         <MetaCard label="Source file" value={drill.source_file || 'Unknown'} />
         <MetaCard label="Raw candidates linked" value={String(drill.raw_candidate_ids.length)} />
         <MetaCard label="Updated" value={formatDateTime(drill.updated_at)} />
+      </div>
+
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Linked raw candidates</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+              Jump straight back into the review queue for the raw rows feeding this canonical drill.
+            </p>
+          </div>
+          <Link
+            href="/review"
+            className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+          >
+            Open review queue
+          </Link>
+        </div>
+
+        {linkedCandidates.length > 0 ? (
+          <div className="mt-4 space-y-3">
+            {linkedCandidates.map((candidate) => (
+              <div key={candidate.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{getCandidateTitle(candidate)}</p>
+                    <p className="mt-2 break-all text-xs text-[var(--text-tertiary)]">{candidate.id}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getReviewStatusTone(candidate.review_status)}`}>
+                      {getReviewStatusLabel(candidate.review_status)}
+                    </span>
+                    <Link
+                      href={`/review?selected=${candidate.id}`}
+                      className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                    >
+                      Open in review
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-[var(--text-secondary)]">No linked raw candidates are recorded on this drill yet.</p>
+        )}
       </div>
 
       <div className="space-y-3">

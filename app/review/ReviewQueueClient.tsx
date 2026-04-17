@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import type { Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
@@ -449,6 +450,8 @@ export function ReviewQueueClient({
     'id' | 'title' | 'category' | 'difficulty' | 'grade_level' | 'summary' | 'skill_tags' | 'tags' | 'raw_candidate_ids' | 'is_active' | 'is_curated'
   >[]
 }) {
+  const searchParams = useSearchParams()
+  const selectedCandidateFromUrl = searchParams.get('selected')
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | ReviewStatus>('pending')
   const [gradeFilter, setGradeFilter] = useState<'all' | string>('all')
@@ -652,7 +655,13 @@ export function ReviewQueueClient({
     [selectedIds, sortedCandidates]
   )
 
-  const selectedCandidate = sortedCandidates.find((candidate) => candidate.id === selectedCandidateId) ?? sortedCandidates[0] ?? null
+  const selectedCandidate =
+    (selectedCandidateFromUrl
+      ? sortedCandidates.find((candidate) => candidate.id === selectedCandidateFromUrl)
+      : null) ??
+    sortedCandidates.find((candidate) => candidate.id === selectedCandidateId) ??
+    sortedCandidates[0] ??
+    null
 
   const matchedDrills = useMemo(() => {
     if (!selectedCandidate) return []
