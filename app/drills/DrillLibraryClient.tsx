@@ -92,6 +92,20 @@ function getCompletenessTone(score: number) {
   return 'border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300'
 }
 
+function getDrillReadinessGaps(drill: Drill) {
+  const gaps: string[] = []
+
+  if (countJsonItems(drill.steps_json) === 0) gaps.push('No steps')
+  if (countJsonItems(drill.focus_points_json) === 0) gaps.push('No focus points')
+  if (countJsonItems(drill.common_mistakes_json) === 0) gaps.push('No common mistakes')
+  if (!drill.what_it_trains) gaps.push('No training outcome')
+  if (!drill.when_to_assign) gaps.push('No assignment guidance')
+  if (!drill.coach_demo_quote) gaps.push('No coach quote')
+  if (!drill.demo_video_url) gaps.push('No demo video')
+
+  return gaps
+}
+
 function getStatusTone(isActive: boolean) {
   return isActive
     ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
@@ -295,8 +309,9 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
       return reviewSummary.pending > 0
     }).length
+    const thinCount = drills.filter((drill) => getCompletenessScore(drill) < 5).length
 
-    return { activeCount, curatedCount, withGradeCount, readyCount, withPendingRawReviewCount }
+    return { activeCount, curatedCount, withGradeCount, readyCount, withPendingRawReviewCount, thinCount }
   }, [drills, linkedCandidates])
 
   if (drills.length === 0) {
@@ -310,11 +325,12 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" />
         <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" />
         <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" />
         <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" />
+        <SummaryCard label="Thin drills" value={String(summary.thinCount)} hint="Canonical rows still missing core teaching detail" />
         <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Drills still linked to at least one pending raw review row" />
       </section>
 
@@ -401,6 +417,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
               const completenessScore = getCompletenessScore(drill)
               const drillCandidates = linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id))
               const reviewSummary = buildLinkedCandidateReviewSummary(drillCandidates)
+              const readinessGaps = getDrillReadinessGaps(drill)
 
               return (
                 <button
@@ -445,6 +462,21 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
                       : null}
                   </div>
 
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {readinessGaps.length > 0 ? (
+                      readinessGaps.slice(0, 3).map((gap) => (
+                        <span key={gap} className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
+                          {gap}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                        No obvious readiness gaps
+                      </span>
+                    )}
+                    {readinessGaps.length > 3 ? <Chip>+{readinessGaps.length - 3} more gaps</Chip> : null}
+                  </div>
+
                   <p className="mt-4 text-xs leading-5 text-[var(--text-tertiary)]">{getLinkedReviewNextMove(reviewSummary)}</p>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -480,6 +512,7 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
   const completenessScore = getCompletenessScore(drill)
   const reviewSummary = buildLinkedCandidateReviewSummary(linkedCandidates)
   const firstPendingCandidate = linkedCandidates.find((candidate) => candidate.review_status === 'pending')
+  const readinessGaps = getDrillReadinessGaps(drill)
 
   return (
     <div className="space-y-6">
@@ -513,6 +546,32 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
         <ListBlock title="Steps" items={steps} emptyLabel="No steps yet" />
         <ListBlock title="Focus points" items={focusPoints} emptyLabel="No focus points yet" />
         <ListBlock title="Common mistakes" items={mistakes} emptyLabel="No mistakes yet" />
+      </div>
+
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Readiness gaps</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+              Quick content audit for canonical polish, so thin drills stop hiding in the library.
+            </p>
+          </div>
+          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCompletenessTone(completenessScore)}`}>
+            {getCompletenessLabel(completenessScore)}
+          </span>
+        </div>
+
+        {readinessGaps.length > 0 ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {readinessGaps.map((gap) => (
+              <span key={gap} className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
+                {gap}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-[var(--text-secondary)]">No obvious readiness gaps on this row. Lovely, for once.</p>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
