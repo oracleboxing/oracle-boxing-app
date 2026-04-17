@@ -9,6 +9,38 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      raw_drill_candidates: {
+        Row: {
+          id: string
+          raw_title: string | null
+          cleaned_title: string | null
+          slug_candidate: string | null
+          dedupe_key: string | null
+          summary: string | null
+          description: string | null
+          category: string | null
+          difficulty: string | null
+          grade_level: string | null
+          format_tags: string[] | null
+          skill_tags: string[] | null
+          tags: string[] | null
+          steps_json: Json | null
+          focus_points_json: Json | null
+          common_mistakes_json: Json | null
+          what_it_trains: string | null
+          when_to_assign: string | null
+          coach_demo_quote: string | null
+          estimated_duration_seconds: number | null
+          source_type: string | null
+          source_file: string | null
+          review_status: string | null
+          review_notes: string | null
+          canonical_drill_id: string | null
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['raw_drill_candidates']['Row']>
+        Update: Partial<Database['public']['Tables']['raw_drill_candidates']['Row']>
+      }
       drills: {
         Row: {
           id: string
@@ -195,6 +227,7 @@ export interface Database {
 }
 
 // Convenience row types
+export type RawDrillCandidate = Database['public']['Tables']['raw_drill_candidates']['Row']
 export type Drill = Database['public']['Tables']['drills']['Row']
 export type WorkoutTemplate = Database['public']['Tables']['workout_templates']['Row']
 export type UserProfile = Database['public']['Tables']['user_profiles']['Row']
