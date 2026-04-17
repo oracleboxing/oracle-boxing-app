@@ -101,6 +101,31 @@ function getCompletenessTone(score: number) {
   return 'border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300'
 }
 
+function getDemoReadinessLabel(drill: Drill) {
+  const hasVideo = Boolean(drill.demo_video_url)
+  const hasQuote = Boolean(drill.coach_demo_quote)
+
+  if (hasVideo && hasQuote) return 'Frontend-ready proof'
+  if (!hasVideo && !hasQuote) return 'Missing video and quote'
+  if (!hasVideo) return 'Missing demo video'
+  return 'Missing coach quote'
+}
+
+function getDemoReadinessTone(drill: Drill) {
+  const hasVideo = Boolean(drill.demo_video_url)
+  const hasQuote = Boolean(drill.coach_demo_quote)
+
+  if (hasVideo && hasQuote) {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+  }
+
+  if (!hasVideo && !hasQuote) {
+    return 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300'
+  }
+
+  return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300'
+}
+
 function getDrillReadinessGaps(drill: Drill) {
   const gaps: string[] = []
 
@@ -351,7 +376,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
         <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" />
         <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" />
         <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" />
-        <SummaryCard label="Demo ready" value={String(summary.demoReadyCount)} hint="Has demo video & coach quote" />
+        <SummaryCard label="Demo ready" value={String(summary.demoReadyCount)} hint="Has demo video and coach quote, so frontend work is less guessy" />
         <SummaryCard label="Thin drills" value={String(summary.thinCount)} hint="Canonical rows still missing core teaching detail" />
         <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Drills still linked to at least one pending raw review row" />
       </section>
@@ -476,6 +501,9 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
                       {getCompletenessLabel(completenessScore)}
                     </span>
                     {drill.is_curated ? <Chip>Canonical</Chip> : <Chip>Needs curation</Chip>}
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getDemoReadinessTone(drill)}`}>
+                      {getDemoReadinessLabel(drill)}
+                    </span>
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getLinkedReviewHealthTone(reviewSummary)}`}>
                       {getLinkedReviewHealthLabel(reviewSummary)}
                     </span>
@@ -563,6 +591,9 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
         <Chip>{formatGradeLevel(drill.grade_level)}</Chip>
         <Chip>{drill.is_curated ? 'Curated' : 'Not yet curated'}</Chip>
         <Chip>{drill.is_active ? 'Active' : 'Inactive'}</Chip>
+        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getDemoReadinessTone(drill)}`}>
+          {getDemoReadinessLabel(drill)}
+        </span>
       </div>
 
       <DetailBlock title="Description" body={drill.description || 'No fuller description yet.'} />
@@ -582,7 +613,7 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Readiness gaps</p>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-              Quick content audit for canonical polish, so thin drills stop hiding in the library.
+              Quick content audit for canonical polish, so thin drills and under-supported demo rows stop hiding in the library.
             </p>
           </div>
           <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCompletenessTone(completenessScore)}`}>
