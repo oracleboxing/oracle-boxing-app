@@ -11,6 +11,38 @@ const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
   rejected: 'Rejected',
 }
 
+const STATUS_SORT_ORDER: Record<ReviewStatus, number> = {
+  pending: 0,
+  approved: 1,
+  merged: 2,
+  rejected: 3,
+}
+
+type SortMode = 'triage' | 'pending-first' | 'duplicate-pressure' | 'completeness' | 'newest' | 'grade'
+
+const SORT_MODE_LABELS: Record<SortMode, string> = {
+  triage: 'Best next triage',
+  'pending-first': 'Pending first',
+  'duplicate-pressure': 'Duplicate pressure',
+  completeness: 'Most complete',
+  newest: 'Newest first',
+  grade: 'Grade order',
+}
+
+type TriageLevel = 'act-now' | 'worth-a-look' | 'low-signal' | 'already-reviewed'
+
+type CandidateInsight = {
+  familySize: number
+  stepsCount: number
+  focusPointsCount: number
+  mistakesCount: number
+  completenessScore: number
+  completenessLabel: string
+  triageLevel: TriageLevel
+  triageScore: number
+  triageSummary: string
+}
+
 function formatGradeLevel(value: string | null) {
   if (!value) return 'Unassigned'
   return value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase())
@@ -62,6 +94,170 @@ function getStatusTone(status: ReviewStatus) {
   }
 }
 
+function getTriageTone(level: TriageLevel) {
+  switch (level) {
+    case 'act-now':
+      return 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300'
+    case 'worth-a-look':
+      return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300'
+    case 'low-signal':
+      return 'border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300'
+    case 'already-reviewed':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+  }
+}
+
+function getTriageLabel(level: TriageLevel) {
+  switch (level) {
+    case 'act-now':
+      return 'Act now'
+    case 'worth-a-look':
+      return 'Worth a look'
+    case 'low-signal':
+      return 'Low signal'
+    case 'already-reviewed':
+      return 'Already reviewed'
+  }
+}
+
+function getGradeSortValue(value: string | null) {
+  switch (value) {
+    case 'grade_1':
+      return 1
+    case 'grade_2':
+      return 2
+    case 'grade_3':
+      return 3
+    default:
+      return 99
+  }
+}
+
+function getCreatedAtTimestamp(value: string | null) {
+  if (!value) return 0
+  const timestamp = new Date(value).getTime()
+  return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+function buildCandidateInsight(candidate: RawDrillCandidate, familySize: number): CandidateInsight {
+  const stepsCount = countJsonItems(candidate.steps_json)
+  const focusPointsCount = countJsonItems(candidate.focus_points_json)
+  const mistakesCount = countJsonItems(candidate.common_mistakes_json)
+  const hasSummaryLike = Boolean(candidate.summary || candidate.what_it_trains || candidate.description)
+  const completenessScore = [
+    hasSummaryLike,
+    stepsCount > 0,
+    focusPointsCount > 0,
+    mistakesCount > 0,
+    Boolean(candidate.coach_demo_quote),
+    Boolean(candidate.when_to_assign),
+  ].filter(Boolean).length
+
+  const completenessLabel =
+    completenessScore >= 5 ? 'Rich extract' : completenessScore >= 3 ? 'Usable extract' : 'Thin extract'
+
+  if (candidate.review_status !== 'pending') {
+    return {
+      familySize,
+      stepsCount,
+      focusPointsCount,
+      mistakesCount,
+      completenessScore,
+      completenessLabel,
+      triageLevel: 'already-reviewed',
+      triageScore: -100 + completenessScore,
+      triageSummary: `Already ${REVIEW_STATUS_LABELS[candidate.review_status].toLowerCase()}, so it is not the next triage target.`,
+    }
+  }
+
+  let triageScore = 0
+  const strengths: string[] = []
+  const cautions: string[] = []
+
+  if (familySize >= 5) {
+    triageScore += 5
+    strengths.push(`${familySize} rows in this duplicate family`)
+  } else if (familySize >= 3) {
+    triageScore += 3
+    strengths.push(`${familySize} rows share this family`)
+  } else if (familySize === 1) {
+    triageScore -= 1
+    cautions.push('isolated row')
+  }
+
+  if (candidate.canonical_drill_id) {
+    triageScore += 3
+    strengths.push('already linked to a canonical drill')
+  }
+
+  if (completenessScore >= 5) {
+    triageScore += 3
+    strengths.push(`${completenessScore}/6 extraction coverage`)
+  } else if (completenessScore >= 3) {
+    triageScore += 1
+    strengths.push(`${completenessScore}/6 extraction coverage`)
+  } else {
+    triageScore -= 3
+    cautions.push('thin extraction')
+  }
+
+  if (!hasSummaryLike) {
+    triageScore -= 2
+    cautions.push('missing summary')
+  }
+
+  if (!candidate.grade_level) {
+    triageScore -= 1
+    cautions.push('no grade yet')
+  }
+
+  if (familySize >= 3 && completenessScore >= 4) {
+    triageScore += 2
+  }
+
+  if (triageScore >= 7) {
+    return {
+      familySize,
+      stepsCount,
+      focusPointsCount,
+      mistakesCount,
+      completenessScore,
+      completenessLabel,
+      triageLevel: 'act-now',
+      triageScore,
+      triageSummary: `Why now: ${(strengths.length > 0 ? strengths : ['clear duplicate pressure']).slice(0, 2).join(', ')}.`,
+    }
+  }
+
+  if (triageScore >= 3) {
+    const balancedReasons = [strengths[0], cautions[0]].filter(Boolean)
+
+    return {
+      familySize,
+      stepsCount,
+      focusPointsCount,
+      mistakesCount,
+      completenessScore,
+      completenessLabel,
+      triageLevel: 'worth-a-look',
+      triageScore,
+      triageSummary: `Useful next: ${(balancedReasons.length > 0 ? balancedReasons : ['some structure is present']).slice(0, 2).join(', ')}.`,
+    }
+  }
+
+  return {
+    familySize,
+    stepsCount,
+    focusPointsCount,
+    mistakesCount,
+    completenessScore,
+    completenessLabel,
+    triageLevel: 'low-signal',
+    triageScore,
+    triageSummary: `Low signal: ${(cautions.length > 0 ? cautions : ['not much extracted yet']).slice(0, 3).join(', ')}.`,
+  }
+}
+
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-8">
@@ -76,8 +272,31 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
   const [statusFilter, setStatusFilter] = useState<'all' | ReviewStatus>('pending')
   const [gradeFilter, setGradeFilter] = useState<'all' | string>('all')
   const [categoryFilter, setCategoryFilter] = useState<'all' | string>('all')
+  const [sortMode, setSortMode] = useState<SortMode>('triage')
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(candidates[0]?.id ?? null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  const familySizeByKey = useMemo(() => {
+    const counts = new Map<string, number>()
+
+    for (const candidate of candidates) {
+      if (!candidate.dedupe_key) continue
+      counts.set(candidate.dedupe_key, (counts.get(candidate.dedupe_key) ?? 0) + 1)
+    }
+
+    return counts
+  }, [candidates])
+
+  const candidateInsights = useMemo(() => {
+    const insights = new Map<string, CandidateInsight>()
+
+    for (const candidate of candidates) {
+      const familySize = candidate.dedupe_key ? familySizeByKey.get(candidate.dedupe_key) ?? 1 : 1
+      insights.set(candidate.id, buildCandidateInsight(candidate, familySize))
+    }
+
+    return insights
+  }, [candidates, familySizeByKey])
 
   const availableGrades = useMemo(
     () => Array.from(new Set(candidates.map((candidate) => candidate.grade_level ?? 'unassigned'))).sort(),
@@ -124,11 +343,71 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
     })
   }, [candidates, query, statusFilter, gradeFilter, categoryFilter])
 
-  const pendingCandidates = filteredCandidates.filter((candidate) => candidate.review_status === 'pending')
+  const sortedCandidates = useMemo(() => {
+    return [...filteredCandidates].sort((left, right) => {
+      const leftInsight = candidateInsights.get(left.id)
+      const rightInsight = candidateInsights.get(right.id)
+      const leftCreatedAt = getCreatedAtTimestamp(left.created_at)
+      const rightCreatedAt = getCreatedAtTimestamp(right.created_at)
+      const leftTitle = getDisplayTitle(left)
+      const rightTitle = getDisplayTitle(right)
+
+      if (!leftInsight || !rightInsight) {
+        return leftTitle.localeCompare(rightTitle)
+      }
+
+      switch (sortMode) {
+        case 'triage':
+          return (
+            rightInsight.triageScore - leftInsight.triageScore ||
+            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+            rightInsight.familySize - leftInsight.familySize ||
+            rightCreatedAt - leftCreatedAt ||
+            leftTitle.localeCompare(rightTitle)
+          )
+        case 'pending-first':
+          return (
+            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+            rightCreatedAt - leftCreatedAt ||
+            rightInsight.familySize - leftInsight.familySize ||
+            leftTitle.localeCompare(rightTitle)
+          )
+        case 'duplicate-pressure':
+          return (
+            rightInsight.familySize - leftInsight.familySize ||
+            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+            rightInsight.triageScore - leftInsight.triageScore ||
+            leftTitle.localeCompare(rightTitle)
+          )
+        case 'completeness':
+          return (
+            rightInsight.completenessScore - leftInsight.completenessScore ||
+            rightInsight.familySize - leftInsight.familySize ||
+            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+            leftTitle.localeCompare(rightTitle)
+          )
+        case 'newest':
+          return (
+            rightCreatedAt - leftCreatedAt ||
+            rightInsight.triageScore - leftInsight.triageScore ||
+            leftTitle.localeCompare(rightTitle)
+          )
+        case 'grade':
+          return (
+            getGradeSortValue(left.grade_level) - getGradeSortValue(right.grade_level) ||
+            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+            rightInsight.triageScore - leftInsight.triageScore ||
+            leftTitle.localeCompare(rightTitle)
+          )
+      }
+    })
+  }, [filteredCandidates, candidateInsights, sortMode])
+
+  const pendingCandidates = sortedCandidates.filter((candidate) => candidate.review_status === 'pending')
 
   const statusCounts = REVIEW_STATUSES.map((status) => ({
     status,
-    count: filteredCandidates.filter((candidate) => candidate.review_status === status).length,
+    count: sortedCandidates.filter((candidate) => candidate.review_status === status).length,
   }))
 
   const gradeCounts = pendingCandidates.reduce<Record<string, number>>((acc, candidate) => {
@@ -137,16 +416,28 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
     return acc
   }, {})
 
+  const triageCounts = pendingCandidates.reduce<Record<TriageLevel, number>>(
+    (acc, candidate) => {
+      const triageLevel = candidateInsights.get(candidate.id)?.triageLevel ?? 'low-signal'
+      acc[triageLevel] += 1
+      return acc
+    },
+    {
+      'act-now': 0,
+      'worth-a-look': 0,
+      'low-signal': 0,
+      'already-reviewed': 0,
+    }
+  )
+
   const missingSummaryCount = pendingCandidates.filter(
     (candidate) => !candidate.summary && !candidate.what_it_trains && !candidate.description
   ).length
 
-  const candidatesWithCanonicalLink = pendingCandidates.filter((candidate) => candidate.canonical_drill_id).length
-
   const duplicateFamilies = useMemo(() => {
     const families = new Map<string, RawDrillCandidate[]>()
 
-    for (const candidate of filteredCandidates) {
+    for (const candidate of sortedCandidates) {
       if (!candidate.dedupe_key) continue
       const existing = families.get(candidate.dedupe_key) ?? []
       existing.push(candidate)
@@ -161,23 +452,22 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
         sampleTitles: familyCandidates.slice(0, 3).map((candidate) => getDisplayTitle(candidate)),
       }))
       .sort((left, right) => right.count - left.count || left.dedupeKey.localeCompare(right.dedupeKey))
-  }, [filteredCandidates])
+  }, [sortedCandidates])
 
   const visibleSelectedIds = useMemo(
-    () => selectedIds.filter((id) => filteredCandidates.some((candidate) => candidate.id === id)),
-    [selectedIds, filteredCandidates]
+    () => selectedIds.filter((id) => sortedCandidates.some((candidate) => candidate.id === id)),
+    [selectedIds, sortedCandidates]
   )
 
-  const selectedCandidate =
-    filteredCandidates.find((candidate) => candidate.id === selectedCandidateId) ?? filteredCandidates[0] ?? null
+  const selectedCandidate = sortedCandidates.find((candidate) => candidate.id === selectedCandidateId) ?? sortedCandidates[0] ?? null
 
   const selectedFamilyCandidates = selectedCandidate?.dedupe_key
-    ? filteredCandidates.filter((candidate) => candidate.dedupe_key === selectedCandidate.dedupe_key)
+    ? sortedCandidates.filter((candidate) => candidate.dedupe_key === selectedCandidate.dedupe_key)
     : []
 
   const bulkSelectionCounts = visibleSelectedIds.reduce<Record<ReviewStatus, number>>(
     (acc, id) => {
-      const candidate = filteredCandidates.find((item) => item.id === id)
+      const candidate = sortedCandidates.find((item) => item.id === id)
       if (!candidate) return acc
       acc[candidate.review_status] += 1
       return acc
@@ -209,11 +499,11 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
           <div>
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Review controls</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Filter the raw queue before anyone starts approving messy boxing transcript chaos.
+              Default sort surfaces the best next candidates first, instead of making reviewers scroll through transcript soup blindly.
             </p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <label className="text-sm text-[var(--text-secondary)]">
               <span className="mb-1 block">Search</span>
               <input
@@ -271,17 +561,50 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
                 ))}
               </select>
             </label>
+
+            <label className="text-sm text-[var(--text-secondary)]">
+              <span className="mb-1 block">Sort</span>
+              <select
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as SortMode)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+              >
+                {Object.entries(SORT_MODE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
       </section>
 
-      <section className="mb-8 grid gap-4 lg:grid-cols-5">
+      <section className="mb-8 grid gap-4 lg:grid-cols-6">
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5 lg:col-span-2">
           <p className="text-sm font-medium text-[var(--text-secondary)]">Visible pending review</p>
           <p className="mt-2 text-4xl font-bold tracking-tight text-[var(--text-primary)]">{pendingCandidates.length}</p>
           <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
-            Working subset after filters. This stays pointed at raw candidates, not the curated drill library.
+            Working subset after filters, currently sorted by <span className="font-medium text-[var(--text-primary)]">{SORT_MODE_LABELS[sortMode]}</span>.
           </p>
+        </div>
+
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+          <p className="text-sm font-medium text-[var(--text-secondary)]">Act now</p>
+          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['act-now']}</p>
+          <p className="mt-3 text-xs text-[var(--text-tertiary)]">Pending rows with real duplicate pressure and enough structure to review cleanly.</p>
+        </div>
+
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+          <p className="text-sm font-medium text-[var(--text-secondary)]">Worth a look</p>
+          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['worth-a-look']}</p>
+          <p className="mt-3 text-xs text-[var(--text-tertiary)]">Reasonable next passes, but not the most urgent cleanup in the queue.</p>
+        </div>
+
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+          <p className="text-sm font-medium text-[var(--text-secondary)]">Low signal</p>
+          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['low-signal']}</p>
+          <p className="mt-3 text-xs text-[var(--text-tertiary)]">Thin or isolated rows that should wait until better candidates are handled.</p>
         </div>
 
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
@@ -294,18 +617,6 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
           <p className="text-sm font-medium text-[var(--text-secondary)]">Needs summary</p>
           <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{missingSummaryCount}</p>
           <p className="mt-3 text-xs text-[var(--text-tertiary)]">Visible pending rows with no summary, description, or training note.</p>
-        </div>
-
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
-          <p className="text-sm font-medium text-[var(--text-secondary)]">Already linked</p>
-          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{candidatesWithCanonicalLink}</p>
-          <p className="mt-3 text-xs text-[var(--text-tertiary)]">Visible pending rows that already point at a canonical drill.</p>
-        </div>
-
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
-          <p className="text-sm font-medium text-[var(--text-secondary)]">Visible rows</p>
-          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{filteredCandidates.length}</p>
-          <p className="mt-3 text-xs text-[var(--text-tertiary)]">All raw candidates currently surviving the active filters.</p>
         </div>
       </section>
 
@@ -428,16 +739,16 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
             </div>
           </div>
 
-          {filteredCandidates.length === 0 ? (
+          {sortedCandidates.length === 0 ? (
             <EmptyState title="No matching candidates" body="Nothing in raw_drill_candidates matches the current filter combination." />
           ) : (
             <div className="space-y-4">
-              {filteredCandidates.map((candidate) => {
-                const stepsCount = countJsonItems(candidate.steps_json)
-                const focusPointsCount = countJsonItems(candidate.focus_points_json)
-                const mistakesCount = countJsonItems(candidate.common_mistakes_json)
+              {sortedCandidates.map((candidate) => {
+                const insight = candidateInsights.get(candidate.id)
                 const isSelected = selectedCandidate?.id === candidate.id
                 const isBulkSelected = visibleSelectedIds.includes(candidate.id)
+
+                if (!insight) return null
 
                 return (
                   <article
@@ -469,6 +780,9 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
                               <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
                                 {REVIEW_STATUS_LABELS[candidate.review_status]}
                               </span>
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(insight.triageLevel)}`}>
+                                {getTriageLabel(insight.triageLevel)}
+                              </span>
                               {candidate.dedupe_key && (
                                 <span className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
                                   Family: {candidate.dedupe_key}
@@ -477,6 +791,7 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
                             </div>
                             <p className="mt-2 text-sm text-[var(--text-secondary)]">Raw title: {candidate.raw_title || 'Missing raw title'}</p>
                             <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">{getShortSummary(candidate)}</p>
+                            <p className="mt-3 text-xs leading-5 text-[var(--text-tertiary)]">{insight.triageSummary}</p>
                             {candidate.when_to_assign && (
                               <p className="mt-2 text-xs leading-5 text-[var(--text-tertiary)]">Assign when: {candidate.when_to_assign}</p>
                             )}
@@ -500,15 +815,24 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
                       </div>
                     </div>
 
-                    <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
                       <InfoBlock label="Category" value={candidate.category || 'Uncategorised'} />
-                      <InfoBlock label="Difficulty" value={candidate.difficulty || 'Unset'} />
                       <InfoBlock label="Grade" value={formatGradeLevel(candidate.grade_level)} />
                       <InfoBlock label="Source" value={getSourceLabel(candidate)} subdued={candidate.source_type || undefined} />
                       <InfoBlock
+                        label="Completeness"
+                        value={`${insight.completenessScore}/6`}
+                        subdued={insight.completenessLabel}
+                      />
+                      <InfoBlock
+                        label="Duplicate pressure"
+                        value={`${insight.familySize} row${insight.familySize === 1 ? '' : 's'}`}
+                        subdued={candidate.dedupe_key ? candidate.dedupe_key : 'No dedupe key yet'}
+                      />
+                      <InfoBlock
                         label="Structure"
-                        value={`${stepsCount} steps`}
-                        subdued={`${focusPointsCount} focus points • ${mistakesCount} common mistakes`}
+                        value={`${insight.stepsCount} steps`}
+                        subdued={`${insight.focusPointsCount} focus points • ${insight.mistakesCount} common mistakes`}
                       />
                     </div>
                   </article>
@@ -529,84 +853,106 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
               <p className="mt-5 text-sm text-[var(--text-secondary)]">Pick a visible candidate to inspect its detail panel.</p>
             ) : (
               <div className="mt-5 space-y-5">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-xl font-semibold text-[var(--text-primary)]">{getDisplayTitle(selectedCandidate)}</h3>
-                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(selectedCandidate.review_status)}`}>
-                      {REVIEW_STATUS_LABELS[selectedCandidate.review_status]}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-[var(--text-secondary)]">{getShortSummary(selectedCandidate)}</p>
-                </div>
+                {(() => {
+                  const insight = candidateInsights.get(selectedCandidate.id)
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <InfoBlock label="Raw title" value={selectedCandidate.raw_title || 'Missing raw title'} />
-                  <InfoBlock label="Created" value={formatDateTime(selectedCandidate.created_at)} />
-                  <InfoBlock label="Grade" value={formatGradeLevel(selectedCandidate.grade_level)} />
-                  <InfoBlock label="Duration" value={selectedCandidate.estimated_duration_seconds ? `${selectedCandidate.estimated_duration_seconds}s` : 'Unknown'} />
-                  <InfoBlock label="Source file" value={selectedCandidate.source_file || 'Missing'} subdued={selectedCandidate.source_type || undefined} />
-                  <InfoBlock label="Canonical link" value={selectedCandidate.canonical_drill_id || 'Not linked yet'} />
-                </div>
+                  if (!insight) {
+                    return <p className="text-sm text-[var(--text-secondary)]">Candidate detail is unavailable.</p>
+                  }
 
-                <DetailList title="Steps" items={jsonToStringList(selectedCandidate.steps_json)} emptyLabel="No steps extracted yet." />
-                <DetailList title="Focus points" items={jsonToStringList(selectedCandidate.focus_points_json)} emptyLabel="No focus points extracted yet." />
-                <DetailList title="Common mistakes" items={jsonToStringList(selectedCandidate.common_mistakes_json)} emptyLabel="No common mistakes extracted yet." />
-
-                <TagGroup title="Format tags" items={selectedCandidate.format_tags} />
-                <TagGroup title="Skill tags" items={selectedCandidate.skill_tags} />
-                <TagGroup title="Tags" items={selectedCandidate.tags} />
-
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Review notes</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-                    {selectedCandidate.review_notes || 'No review notes yet.'}
-                  </p>
-                  {selectedCandidate.coach_demo_quote ? (
-                    <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
-                      Coach quote: {selectedCandidate.coach_demo_quote}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Family context</p>
-                      <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                        {selectedCandidate.dedupe_key
-                          ? `${selectedFamilyCandidates.length} visible row${selectedFamilyCandidates.length === 1 ? '' : 's'} share this dedupe key.`
-                          : 'No dedupe key on this candidate yet.'}
-                      </p>
-                    </div>
-                    {selectedCandidate.dedupe_key ? (
-                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                        {selectedCandidate.dedupe_key}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {selectedCandidate.dedupe_key ? (
-                    <div className="mt-4 space-y-2">
-                      {selectedFamilyCandidates.slice(0, 6).map((candidate) => (
-                        <button
-                          key={candidate.id}
-                          type="button"
-                          onClick={() => setSelectedCandidateId(candidate.id)}
-                          className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-colors ${
-                            candidate.id === selectedCandidate.id
-                              ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)]'
-                              : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
-                          }`}
-                        >
-                          <span className="min-w-0 pr-3 text-sm font-medium text-[var(--text-primary)]">{getDisplayTitle(candidate)}</span>
-                          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
-                            {REVIEW_STATUS_LABELS[candidate.review_status]}
+                  return (
+                    <>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-xl font-semibold text-[var(--text-primary)]">{getDisplayTitle(selectedCandidate)}</h3>
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(selectedCandidate.review_status)}`}>
+                            {REVIEW_STATUS_LABELS[selectedCandidate.review_status]}
                           </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(insight.triageLevel)}`}>
+                            {getTriageLabel(insight.triageLevel)}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-[var(--text-secondary)]">{getShortSummary(selectedCandidate)}</p>
+                        <p className="mt-3 text-xs leading-5 text-[var(--text-tertiary)]">{insight.triageSummary}</p>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <InfoBlock label="Raw title" value={selectedCandidate.raw_title || 'Missing raw title'} />
+                        <InfoBlock label="Created" value={formatDateTime(selectedCandidate.created_at)} />
+                        <InfoBlock label="Grade" value={formatGradeLevel(selectedCandidate.grade_level)} />
+                        <InfoBlock label="Duration" value={selectedCandidate.estimated_duration_seconds ? `${selectedCandidate.estimated_duration_seconds}s` : 'Unknown'} />
+                        <InfoBlock label="Source file" value={selectedCandidate.source_file || 'Missing'} subdued={selectedCandidate.source_type || undefined} />
+                        <InfoBlock label="Canonical link" value={selectedCandidate.canonical_drill_id || 'Not linked yet'} />
+                        <InfoBlock label="Completeness" value={`${insight.completenessScore}/6`} subdued={insight.completenessLabel} />
+                        <InfoBlock
+                          label="Duplicate pressure"
+                          value={`${insight.familySize} row${insight.familySize === 1 ? '' : 's'}`}
+                          subdued={selectedCandidate.dedupe_key || 'No dedupe key yet'}
+                        />
+                      </div>
+
+                      <DetailList title="Steps" items={jsonToStringList(selectedCandidate.steps_json)} emptyLabel="No steps extracted yet." />
+                      <DetailList title="Focus points" items={jsonToStringList(selectedCandidate.focus_points_json)} emptyLabel="No focus points extracted yet." />
+                      <DetailList title="Common mistakes" items={jsonToStringList(selectedCandidate.common_mistakes_json)} emptyLabel="No common mistakes extracted yet." />
+
+                      <TagGroup title="Format tags" items={selectedCandidate.format_tags} />
+                      <TagGroup title="Skill tags" items={selectedCandidate.skill_tags} />
+                      <TagGroup title="Tags" items={selectedCandidate.tags} />
+
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Review notes</p>
+                        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                          {selectedCandidate.review_notes || 'No review notes yet.'}
+                        </p>
+                        {selectedCandidate.coach_demo_quote ? (
+                          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
+                            Coach quote: {selectedCandidate.coach_demo_quote}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Family context</p>
+                            <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                              {selectedCandidate.dedupe_key
+                                ? `${selectedFamilyCandidates.length} visible row${selectedFamilyCandidates.length === 1 ? '' : 's'} share this dedupe key.`
+                                : 'No dedupe key on this candidate yet.'}
+                            </p>
+                          </div>
+                          {selectedCandidate.dedupe_key ? (
+                            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                              {selectedCandidate.dedupe_key}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {selectedCandidate.dedupe_key ? (
+                          <div className="mt-4 space-y-2">
+                            {selectedFamilyCandidates.slice(0, 6).map((candidate) => (
+                              <button
+                                key={candidate.id}
+                                type="button"
+                                onClick={() => setSelectedCandidateId(candidate.id)}
+                                className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-colors ${
+                                  candidate.id === selectedCandidate.id
+                                    ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)]'
+                                    : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
+                                }`}
+                              >
+                                <span className="min-w-0 pr-3 text-sm font-medium text-[var(--text-primary)]">{getDisplayTitle(candidate)}</span>
+                                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
+                                  {REVIEW_STATUS_LABELS[candidate.review_status]}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
             )}
           </div>
