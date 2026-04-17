@@ -452,6 +452,18 @@ export function ReviewQueueClient({
 }) {
   const searchParams = useSearchParams()
   const selectedCandidateFromUrl = searchParams.get('selected')
+  const scopedCandidateIds = useMemo(() => {
+    const rawIds = searchParams.get('ids')
+    if (!rawIds) return null
+
+    const ids = rawIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean)
+
+    return ids.length > 0 ? Array.from(new Set(ids)) : null
+  }, [searchParams])
+  const scopeRequestedCount = scopedCandidateIds?.length ?? 0
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | ReviewStatus>('pending')
   const [gradeFilter, setGradeFilter] = useState<'all' | string>('all')
@@ -520,8 +532,10 @@ export function ReviewQueueClient({
 
   const filteredCandidates = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
+    const scopedIdSet = scopedCandidateIds ? new Set(scopedCandidateIds) : null
 
     return candidates.filter((candidate) => {
+      if (scopedIdSet && !scopedIdSet.has(candidate.id)) return false
       if (statusFilter !== 'all' && candidate.review_status !== statusFilter) return false
 
       if (gradeFilter !== 'all') {
@@ -551,7 +565,7 @@ export function ReviewQueueClient({
 
       return haystack.includes(normalizedQuery)
     })
-  }, [candidates, query, statusFilter, gradeFilter, categoryFilter])
+  }, [candidates, query, statusFilter, gradeFilter, categoryFilter, scopedCandidateIds])
 
   const sortedCandidates = useMemo(() => {
     return [...filteredCandidates].sort((left, right) => {
@@ -1045,6 +1059,25 @@ export function ReviewQueueClient({
               </p>
             </div>
           </div>
+
+          {scopedCandidateIds ? (
+            <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-200">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold uppercase tracking-[0.14em]">Scoped review set</p>
+                  <p className="mt-2 leading-6">
+                    Showing {sortedCandidates.length} of {scopeRequestedCount} linked raw candidate{scopeRequestedCount === 1 ? '' : 's'} passed in from the drill library.
+                  </p>
+                </div>
+                <Link
+                  href="/review"
+                  className="inline-flex rounded-xl border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-950 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100 dark:hover:bg-sky-900/30"
+                >
+                  Clear scope
+                </Link>
+              </div>
+            </div>
+          ) : null}
 
           {sortedCandidates.length === 0 ? (
             <EmptyState title="No matching candidates" body="Nothing in raw_drill_candidates matches the current filter combination." />

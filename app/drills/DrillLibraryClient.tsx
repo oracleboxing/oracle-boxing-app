@@ -799,10 +799,18 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
           <div className="flex flex-wrap gap-2">
             {firstPendingCandidate ? (
               <Link
-                href={`/review?selected=${firstPendingCandidate.id}`}
+                href={`/review?selected=${firstPendingCandidate.id}&ids=${linkedCandidates.map((candidate) => candidate.id).join(',')}`}
                 className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Open first pending row
+              </Link>
+            ) : null}
+            {linkedCandidates.length > 0 ? (
+              <Link
+                href={`/review?selected=${linkedCandidates[0].id}&ids=${linkedCandidates.map((candidate) => candidate.id).join(',')}`}
+                className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Open linked review set
               </Link>
             ) : null}
             <Link
@@ -846,7 +854,7 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
                       {getReviewStatusLabel(candidate.review_status)}
                     </span>
                     <Link
-                      href={`/review?selected=${candidate.id}`}
+                      href={`/review?selected=${candidate.id}&ids=${linkedCandidates.map((linkedCandidate) => linkedCandidate.id).join(',')}`}
                       className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                     >
                       Open in review
