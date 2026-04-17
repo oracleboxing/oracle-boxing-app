@@ -93,6 +93,52 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 
 type LinkedCandidate = Pick<RawDrillCandidate, 'id' | 'cleaned_title' | 'raw_title' | 'review_status'>
 
+type LinkedCandidateReviewSummary = {
+  pending: number
+  approved: number
+  merged: number
+  rejected: number
+  total: number
+}
+
+function buildLinkedCandidateReviewSummary(candidates: LinkedCandidate[]): LinkedCandidateReviewSummary {
+  return candidates.reduce<LinkedCandidateReviewSummary>(
+    (acc, candidate) => {
+      acc[candidate.review_status] += 1
+      acc.total += 1
+      return acc
+    },
+    {
+      pending: 0,
+      approved: 0,
+      merged: 0,
+      rejected: 0,
+      total: 0,
+    }
+  )
+}
+
+function getLinkedReviewHealthLabel(summary: LinkedCandidateReviewSummary) {
+  if (summary.total === 0) return 'No linked raw review context'
+  if (summary.pending > 0) return summary.pending === summary.total ? 'Needs raw review' : 'Raw review still in progress'
+  if (summary.approved + summary.merged > 0) return 'Source set mostly reviewed'
+  return 'Source set needs judgment'
+}
+
+function getLinkedReviewHealthTone(summary: LinkedCandidateReviewSummary) {
+  if (summary.total === 0) return 'border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300'
+  if (summary.pending > 0) return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300'
+  if (summary.approved + summary.merged > 0) return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+  return 'border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300'
+}
+
+function getLinkedReviewNextMove(summary: LinkedCandidateReviewSummary) {
+  if (summary.total === 0) return 'This drill has no linked raw rows yet, so traceability is still thin.'
+  if (summary.pending > 0) return `Review the ${summary.pending} pending raw row${summary.pending === 1 ? '' : 's'} before treating this drill as settled.`
+  if (summary.approved + summary.merged > 0) return 'Raw source rows are already reviewed, so this drill is in decent shape for canonical polish.'
+  return 'Linked source rows exist, but they still need a proper review decision.'
+}
+
 function getReviewStatusTone(reviewStatus: LinkedCandidate['review_status']) {
   switch (reviewStatus) {
     case 'approved':
@@ -211,9 +257,16 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
     const curatedCount = drills.filter((drill) => drill.is_curated).length
     const withGradeCount = drills.filter((drill) => drill.grade_level).length
     const readyCount = drills.filter((drill) => getCompletenessScore(drill) >= 8).length
+    const withPendingRawReviewCount = drills.filter((drill) => {
+      const reviewSummary = buildLinkedCandidateReviewSummary(
+        linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id))
+      )
 
-    return { activeCount, curatedCount, withGradeCount, readyCount }
-  }, [drills])
+      return reviewSummary.pending > 0
+    }).length
+
+    return { activeCount, curatedCount, withGradeCount, readyCount, withPendingRawReviewCount }
+  }, [drills, linkedCandidates])
 
   if (drills.length === 0) {
     return (
@@ -226,11 +279,12 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" />
         <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" />
         <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" />
         <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" />
+        <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Drills still linked to at least one pending raw review row" />
       </section>
 
       <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
@@ -303,10 +357,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
               const isSelected = selectedDrillId === drill.id
               const completenessScore = getCompletenessScore(drill)
               const drillCandidates = linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id))
-              const statusCounts = drillCandidates.reduce((acc, candidate) => {
-                acc[candidate.review_status] = (acc[candidate.review_status] || 0) + 1
-                return acc
-              }, {} as Record<string, number>)
+              const reviewSummary = buildLinkedCandidateReviewSummary(drillCandidates)
 
               return (
                 <button
@@ -337,12 +388,21 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
                       {getCompletenessLabel(completenessScore)}
                     </span>
                     {drill.is_curated ? <Chip>Canonical</Chip> : <Chip>Needs curation</Chip>}
-                    {Object.entries(statusCounts).map(([status, count]) => (
-                      <span key={status} className={`rounded-full border px-3 py-1 text-xs font-semibold ${getReviewStatusTone(status as LinkedCandidate['review_status'])}`}>
-                        {count} {getReviewStatusLabel(status as LinkedCandidate['review_status'])} raw
-                      </span>
-                    ))}
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getLinkedReviewHealthTone(reviewSummary)}`}>
+                      {getLinkedReviewHealthLabel(reviewSummary)}
+                    </span>
+                    {reviewSummary.total > 0
+                      ? (Object.entries(reviewSummary) as Array<[keyof LinkedCandidateReviewSummary, number]>)
+                          .filter(([status, count]) => status !== 'total' && count > 0)
+                          .map(([status, count]) => (
+                            <span key={status} className={`rounded-full border px-3 py-1 text-xs font-semibold ${getReviewStatusTone(status as LinkedCandidate['review_status'])}`}>
+                              {count} {getReviewStatusLabel(status as LinkedCandidate['review_status'])} raw
+                            </span>
+                          ))
+                      : null}
                   </div>
+
+                  <p className="mt-4 text-xs leading-5 text-[var(--text-tertiary)]">{getLinkedReviewNextMove(reviewSummary)}</p>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <MiniStat label="Steps" value={String(countJsonItems(drill.steps_json))} />
@@ -375,6 +435,8 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
   const focusPoints = jsonToStringList(drill.focus_points_json)
   const mistakes = jsonToStringList(drill.common_mistakes_json)
   const completenessScore = getCompletenessScore(drill)
+  const reviewSummary = buildLinkedCandidateReviewSummary(linkedCandidates)
+  const firstPendingCandidate = linkedCandidates.find((candidate) => candidate.review_status === 'pending')
 
   return (
     <div className="space-y-6">
@@ -425,12 +487,40 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
               Jump straight back into the review queue for the raw rows feeding this canonical drill.
             </p>
           </div>
-          <Link
-            href="/review"
-            className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
-          >
-            Open review queue
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {firstPendingCandidate ? (
+              <Link
+                href={`/review?selected=${firstPendingCandidate.id}`}
+                className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Open first pending row
+              </Link>
+            ) : null}
+            <Link
+              href="/review"
+              className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+            >
+              Open review queue
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getLinkedReviewHealthTone(reviewSummary)}`}>
+              {getLinkedReviewHealthLabel(reviewSummary)}
+            </span>
+            {reviewSummary.total > 0
+              ? (Object.entries(reviewSummary) as Array<[keyof LinkedCandidateReviewSummary, number]>)
+                  .filter(([status, count]) => status !== 'total' && count > 0)
+                  .map(([status, count]) => (
+                    <span key={status} className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getReviewStatusTone(status as LinkedCandidate['review_status'])}`}>
+                      {count} {getReviewStatusLabel(status as LinkedCandidate['review_status'])}
+                    </span>
+                  ))
+              : null}
+          </div>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{getLinkedReviewNextMove(reviewSummary)}</p>
         </div>
 
         {linkedCandidates.length > 0 ? (
