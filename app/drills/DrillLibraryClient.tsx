@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import type { Drill, DrillCategory, DrillDifficulty, GradeLevel, Json } from '@/lib/supabase/types'
 
 type DrillStatusFilter = 'all' | 'active' | 'inactive'
@@ -90,6 +91,8 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 }
 
 export function DrillLibraryClient({ drills }: { drills: Drill[] }) {
+  const searchParams = useSearchParams()
+  const selectedDrillFromUrl = searchParams.get('selected')
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<'all' | DrillCategory>('all')
   const [gradeFilter, setGradeFilter] = useState<'all' | GradeLevel | 'unassigned'>('all')
@@ -166,10 +169,15 @@ export function DrillLibraryClient({ drills }: { drills: Drill[] }) {
       return
     }
 
+    if (selectedDrillFromUrl && filteredDrills.some((drill) => drill.id === selectedDrillFromUrl)) {
+      setSelectedDrillId(selectedDrillFromUrl)
+      return
+    }
+
     if (!selectedDrillId || !filteredDrills.some((drill) => drill.id === selectedDrillId)) {
       setSelectedDrillId(filteredDrills[0].id)
     }
-  }, [filteredDrills, selectedDrillId])
+  }, [filteredDrills, selectedDrillFromUrl, selectedDrillId])
 
   const selectedDrill = filteredDrills.find((drill) => drill.id === selectedDrillId) ?? null
 

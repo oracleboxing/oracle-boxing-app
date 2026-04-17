@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import type { Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
@@ -1216,25 +1217,35 @@ export function ReviewQueueClient({
                           <div className="mt-4 space-y-3">
                             {matchedDrills.map((drill) => (
                               <div key={drill.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="text-sm font-semibold text-[var(--text-primary)]">{drill.title}</p>
-                                  <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
-                                    Match {drill.matchScore}
-                                  </span>
-                                  {drill.is_curated ? (
-                                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
-                                      Curated
-                                    </span>
-                                  ) : null}
-                                  {!drill.is_active ? (
-                                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300">
-                                      Inactive
-                                    </span>
-                                  ) : null}
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="text-sm font-semibold text-[var(--text-primary)]">{drill.title}</p>
+                                      <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
+                                        Match {drill.matchScore}
+                                      </span>
+                                      {drill.is_curated ? (
+                                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                                          Curated
+                                        </span>
+                                      ) : null}
+                                      {!drill.is_active ? (
+                                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300">
+                                          Inactive
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                                      {drill.matchReasons.slice(0, 3).join(' • ')}
+                                    </p>
+                                  </div>
+                                  <Link
+                                    href={`/drills?selected=${drill.id}`}
+                                    className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                  >
+                                    Open in library
+                                  </Link>
                                 </div>
-                                <p className="mt-2 text-xs text-[var(--text-tertiary)]">
-                                  {drill.matchReasons.slice(0, 3).join(' • ')}
-                                </p>
                                 <p className="mt-2 text-sm text-[var(--text-secondary)]">{drill.summary || 'No library summary yet.'}</p>
                                 <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                                   {formatGradeLevel(drill.grade_level)} • {drill.category || 'Uncategorised'} • {drill.difficulty}
