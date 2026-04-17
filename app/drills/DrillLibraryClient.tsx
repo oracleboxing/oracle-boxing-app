@@ -9,6 +9,7 @@ import type { Drill, DrillCategory, DrillDifficulty, GradeLevel, Json, RawDrillC
 type DrillStatusFilter = 'all' | 'active' | 'inactive'
 type DrillReviewHealthFilter = 'all' | 'pending' | 'reviewed' | 'unlinked'
 type DrillCompletenessFilter = 'all' | 'ready' | 'usable' | 'thin'
+type DrillDemoReadinessFilter = 'all' | 'ready' | 'needs_either' | 'needs_video' | 'needs_quote'
 type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness'
 
 const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
@@ -30,6 +31,14 @@ const COMPLETENESS_FILTER_LABELS: Record<DrillCompletenessFilter, string> = {
   ready: 'Ready (8+ pts)',
   usable: 'Usable (5-7 pts)',
   thin: 'Thin (< 5 pts)',
+}
+
+const DEMO_READINESS_FILTER_LABELS: Record<DrillDemoReadinessFilter, string> = {
+  all: 'All demo states',
+  ready: 'Has video & quote',
+  needs_either: 'Missing video or quote',
+  needs_video: 'Missing video',
+  needs_quote: 'Missing quote',
 }
 
 function formatGradeLevel(value: GradeLevel | null) {
@@ -201,6 +210,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
   const [statusFilter, setStatusFilter] = useState<DrillStatusFilter>('active')
   const [reviewHealthFilter, setReviewHealthFilter] = useState<DrillReviewHealthFilter>('all')
   const [completenessFilter, setCompletenessFilter] = useState<DrillCompletenessFilter>('all')
+  const [demoReadinessFilter, setDemoReadinessFilter] = useState<DrillDemoReadinessFilter>('all')
   const [curatedOnly, setCuratedOnly] = useState(true)
   const [sortMode, setSortMode] = useState<DrillSortMode>('library')
   const [selectedDrillId, setSelectedDrillId] = useState<string | null>(drills[0]?.id ?? null)
@@ -230,6 +240,16 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
         if (completenessFilter === 'ready' && score < 8) return false
         if (completenessFilter === 'usable' && (score < 5 || score >= 8)) return false
         if (completenessFilter === 'thin' && score >= 5) return false
+      }
+
+      if (demoReadinessFilter !== 'all') {
+        const hasVideo = Boolean(drill.demo_video_url)
+        const hasQuote = Boolean(drill.coach_demo_quote)
+        
+        if (demoReadinessFilter === 'ready' && (!hasVideo || !hasQuote)) return false
+        if (demoReadinessFilter === 'needs_either' && hasVideo && hasQuote) return false
+        if (demoReadinessFilter === 'needs_video' && hasVideo) return false
+        if (demoReadinessFilter === 'needs_quote' && hasQuote) return false
       }
 
       const reviewSummary = buildLinkedCandidateReviewSummary(linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id)))
@@ -277,7 +297,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
     })
 
     return next
-  }, [categoryFilter, curatedOnly, difficultyFilter, drills, gradeFilter, linkedCandidates, query, reviewHealthFilter, sortMode, statusFilter, completenessFilter])
+  }, [categoryFilter, curatedOnly, difficultyFilter, drills, gradeFilter, linkedCandidates, query, reviewHealthFilter, sortMode, statusFilter, completenessFilter, demoReadinessFilter])
 
   useEffect(() => {
     if (filteredDrills.length === 0) {
@@ -310,8 +330,9 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
       return reviewSummary.pending > 0
     }).length
     const thinCount = drills.filter((drill) => getCompletenessScore(drill) < 5).length
+    const demoReadyCount = drills.filter((drill) => Boolean(drill.demo_video_url) && Boolean(drill.coach_demo_quote)).length
 
-    return { activeCount, curatedCount, withGradeCount, readyCount, withPendingRawReviewCount, thinCount }
+    return { activeCount, curatedCount, withGradeCount, readyCount, withPendingRawReviewCount, thinCount, demoReadyCount }
   }, [drills, linkedCandidates])
 
   if (drills.length === 0) {
@@ -325,17 +346,18 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-7">
         <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" />
         <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" />
         <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" />
         <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" />
+        <SummaryCard label="Demo ready" value={String(summary.demoReadyCount)} hint="Has demo video & coach quote" />
         <SummaryCard label="Thin drills" value={String(summary.thinCount)} hint="Canonical rows still missing core teaching detail" />
         <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Drills still linked to at least one pending raw review row" />
       </section>
 
       <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_repeat(7,minmax(0,1fr))]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_repeat(8,minmax(0,1fr))]">
           <label className="block">
             <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Search</span>
             <input
@@ -381,6 +403,12 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
             value={completenessFilter}
             onChange={(value) => setCompletenessFilter(value as DrillCompletenessFilter)}
             options={Object.entries(COMPLETENESS_FILTER_LABELS).map(([value, label]) => ({ value: value as DrillCompletenessFilter, label }))}
+          />
+          <FilterSelect
+            label="Demo / Proof"
+            value={demoReadinessFilter}
+            onChange={(value) => setDemoReadinessFilter(value as DrillDemoReadinessFilter)}
+            options={Object.entries(DEMO_READINESS_FILTER_LABELS).map(([value, label]) => ({ value: value as DrillDemoReadinessFilter, label }))}
           />
           <FilterSelect
             label="Sort"
@@ -541,6 +569,7 @@ function DrillDetail({ drill, linkedCandidates }: { drill: Drill; linkedCandidat
       <DetailBlock title="What it trains" body={drill.what_it_trains || 'Not written yet.'} />
       <DetailBlock title="When to assign" body={drill.when_to_assign || 'No assignment guidance yet.'} />
       <DetailBlock title="Coach demo quote" body={drill.coach_demo_quote || 'No coach quote saved yet.'} />
+      <DetailBlock title="Demo video" body={drill.demo_video_url ? `Available (${drill.demo_video_url})` : 'No demo video saved yet.'} />
 
       <div className="grid gap-4 md:grid-cols-3">
         <ListBlock title="Steps" items={steps} emptyLabel="No steps yet" />
