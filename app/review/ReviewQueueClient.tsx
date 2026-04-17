@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
 const REVIEW_STATUSES: ReviewStatus[] = ['pending', 'approved', 'merged', 'rejected']
@@ -18,6 +18,10 @@ function formatGradeLevel(value: string | null) {
 
 function countJsonItems(value: Json | null) {
   return Array.isArray(value) ? value.length : 0
+}
+
+function getJsonItems(value: Json | null) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : []
 }
 
 function getSourceLabel(candidate: RawDrillCandidate) {
@@ -59,6 +63,8 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
   const [statusFilter, setStatusFilter] = useState<'all' | ReviewStatus>('pending')
   const [gradeFilter, setGradeFilter] = useState<'all' | string>('all')
   const [categoryFilter, setCategoryFilter] = useState<'all' | string>('all')
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([])
 
   const availableGrades = useMemo(
     () => Array.from(new Set(candidates.map((candidate) => candidate.grade_level ?? 'unassigned'))).sort(),
@@ -142,6 +148,47 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
       }))
       .sort((left, right) => right.count - left.count || left.dedupeKey.localeCompare(right.dedupeKey))
   }, [filteredCandidates])
+
+  useEffect(() => {
+    if (filteredCandidates.length === 0) {
+      setSelectedCandidateId(null)
+      return
+    }
+
+    const selectedStillVisible = filteredCandidates.some((candidate) => candidate.id === selectedCandidateId)
+    if (!selectedStillVisible) {
+      setSelectedCandidateId(filteredCandidates[0]?.id ?? null)
+    }
+  }, [filteredCandidates, selectedCandidateId])
+
+  useEffect(() => {
+    setSelectedCandidateIds((current) => current.filter((id) => filteredCandidates.some((candidate) => candidate.id === id)))
+  }, [filteredCandidates])
+
+  const selectedCandidate = filteredCandidates.find((candidate) => candidate.id === selectedCandidateId) ?? null
+  const selectedCount = selectedCandidateIds.length
+  const selectedPendingCount = selectedCandidateIds.filter(
+    (id) => filteredCandidates.find((candidate) => candidate.id === id)?.review_status === 'pending'
+  ).length
+
+  function toggleCandidateSelection(candidateId: string) {
+    setSelectedCandidateIds((current) =>
+      current.includes(candidateId) ? current.filter((id) => id !== candidateId) : [...current, candidateId]
+    )
+  }
+
+  function toggleVisibleSelection() {
+    const visibleIds = filteredCandidates.map((candidate) => candidate.id)
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedCandidateIds.includes(id))
+
+    setSelectedCandidateIds((current) => {
+      if (allVisibleSelected) {
+        return current.filter((id) => !visibleIds.includes(id))
+      }
+
+      return Array.from(new Set([...current, ...visibleIds]))
+    })
+  }
 
   return (
     <>
@@ -298,7 +345,15 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
           ) : (
             <div className="mt-5 space-y-3">
               {duplicateFamilies.slice(0, 8).map((family) => (
-                <div key={family.dedupeKey} className="rounded-2xl border border-[var(--border)] px-4 py-4">
+                <button
+                  key={family.dedupeKey}
+                  type="button"
+                  onClick={() => {
+                    const familyMatch = filteredCandidates.find((candidate) => candidate.dedupe_key === family.dedupeKey)
+                    if (familyMatch) setSelectedCandidateId(familyMatch.id)
+                  }}
+                  className="block w-full rounded-2xl border border-[var(--border)] px-4 py-4 text-left transition-colors hover:bg-[var(--surface-primary)]"
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-sm font-semibold text-[var(--text-primary)]">{family.dedupeKey}</p>
@@ -315,7 +370,7 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
                       </span>
                     ))}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -323,7 +378,7 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
 
         <div className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Planned review actions</h2>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">These controls are placeholders only for now. They do not write to Supabase yet.</p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">Writes are still intentionally unwired here. The table shape is ready, but this local app surface should not pretend the moderation rules are final when service-role writes are still a separate decision.</p>
           <div className="mt-5 space-y-3">
             {['Approve into curated flow', 'Reject as noise', 'Merge into canonical drill'].map((label) => (
               <button
@@ -338,86 +393,219 @@ export function ReviewQueueClient({ candidates }: { candidates: RawDrillCandidat
             ))}
           </div>
           <p className="mt-4 text-xs leading-5 text-[var(--text-tertiary)]">
-            Next sensible step is wiring these to safe internal mutations once the review rules are nailed down.
+            This pass focuses on better review context and batch prep, not fake approve buttons that quietly do nothing.
           </p>
         </div>
       </section>
 
-      <section>
-        <div className="mb-4 flex items-end justify-between gap-4">
+      <section className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Visible raw drill candidates</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Selection staging</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Filterable internal scan of the raw intake layer, ordered for curation rather than final library use.
+              Queue up candidates for a future merge or reject pass. This is honest bulk-selection scaffolding only, no write path yet.
             </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={toggleVisibleSelection}
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-2 text-sm font-medium text-[var(--text-primary)]"
+            >
+              {filteredCandidates.length > 0 && filteredCandidates.every((candidate) => selectedCandidateIds.includes(candidate.id))
+                ? 'Clear visible selection'
+                : 'Select visible rows'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedCandidateIds([])}
+              disabled={selectedCount === 0}
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Reset staged rows
+            </button>
           </div>
         </div>
 
-        {filteredCandidates.length === 0 ? (
-          <EmptyState title="No matching candidates" body="Nothing in raw_drill_candidates matches the current filter combination." />
-        ) : (
-          <div className="space-y-4">
-            {filteredCandidates.map((candidate) => {
-              const stepsCount = countJsonItems(candidate.steps_json)
-              const focusPointsCount = countJsonItems(candidate.focus_points_json)
-              const mistakesCount = countJsonItems(candidate.common_mistakes_json)
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <InfoBlock label="Selected rows" value={String(selectedCount)} subdued="Temporary local staging only" />
+          <InfoBlock label="Pending in selection" value={String(selectedPendingCount)} subdued="Useful when preparing one clean moderation pass" />
+          <InfoBlock
+            label="Selected families"
+            value={String(new Set(filteredCandidates.filter((candidate) => selectedCandidateIds.includes(candidate.id)).map((candidate) => candidate.dedupe_key).filter(Boolean)).size)}
+            subdued="Helps spot when a merge pass is actually duplicate-heavy"
+          />
+        </div>
+      </section>
 
-              return (
-                <article key={candidate.id} className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
-                  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{getDisplayTitle(candidate)}</h3>
-                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
-                          {REVIEW_STATUS_LABELS[candidate.review_status]}
-                        </span>
-                        {candidate.dedupe_key && (
-                          <span className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                            Family: {candidate.dedupe_key}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-2 text-sm text-[var(--text-secondary)]">Raw title: {candidate.raw_title || 'Missing raw title'}</p>
-                      <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">{getShortSummary(candidate)}</p>
-                      {candidate.when_to_assign && (
-                        <p className="mt-2 text-xs leading-5 text-[var(--text-tertiary)]">Assign when: {candidate.when_to_assign}</p>
-                      )}
-                    </div>
-
-                    <div className="grid gap-2 sm:grid-cols-3 xl:w-[360px] xl:grid-cols-1">
-                      {['Approve', 'Reject', 'Merge'].map((label) => (
-                        <button
-                          key={label}
-                          type="button"
-                          disabled
-                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-sm font-medium text-[var(--text-primary)] opacity-70"
-                          title="Placeholder only, no mutation is wired yet"
-                        >
-                          {label}
-                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">Soon</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                    <InfoBlock label="Category" value={candidate.category || 'Uncategorised'} />
-                    <InfoBlock label="Difficulty" value={candidate.difficulty || 'Unset'} />
-                    <InfoBlock label="Grade" value={formatGradeLevel(candidate.grade_level)} />
-                    <InfoBlock label="Source" value={getSourceLabel(candidate)} subdued={candidate.source_type || undefined} />
-                    <InfoBlock
-                      label="Structure"
-                      value={`${stepsCount} steps`}
-                      subdued={`${focusPointsCount} focus points • ${mistakesCount} common mistakes`}
-                    />
-                  </div>
-                </article>
-              )
-            })}
+      <section className="grid gap-6 xl:grid-cols-[1.5fr_0.95fr]">
+        <div>
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Visible raw drill candidates</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                Filterable internal scan of the raw intake layer, ordered for curation rather than final library use.
+              </p>
+            </div>
           </div>
-        )}
+
+          {filteredCandidates.length === 0 ? (
+            <EmptyState title="No matching candidates" body="Nothing in raw_drill_candidates matches the current filter combination." />
+          ) : (
+            <div className="space-y-4">
+              {filteredCandidates.map((candidate) => {
+                const stepsCount = countJsonItems(candidate.steps_json)
+                const focusPointsCount = countJsonItems(candidate.focus_points_json)
+                const mistakesCount = countJsonItems(candidate.common_mistakes_json)
+                const isSelected = selectedCandidateIds.includes(candidate.id)
+                const isActive = selectedCandidateId === candidate.id
+
+                return (
+                  <article
+                    key={candidate.id}
+                    className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 transition-colors ${
+                      isActive ? 'border-[var(--accent-primary)]' : 'border-[var(--border)]'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleCandidateSelection(candidate.id)}
+                        className="mt-1 h-4 w-4 rounded border-[var(--border)]"
+                        aria-label={`Select ${getDisplayTitle(candidate)}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCandidateId(candidate.id)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-lg font-semibold text-[var(--text-primary)]">{getDisplayTitle(candidate)}</h3>
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
+                                {REVIEW_STATUS_LABELS[candidate.review_status]}
+                              </span>
+                              {candidate.dedupe_key && (
+                                <span className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                                  Family: {candidate.dedupe_key}
+                                </span>
+                              )}
+                              {isSelected ? (
+                                <span className="inline-flex rounded-full border border-[var(--accent-primary)] px-2.5 py-1 text-xs font-medium text-[var(--accent-primary)]">
+                                  Staged
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-2 text-sm text-[var(--text-secondary)]">Raw title: {candidate.raw_title || 'Missing raw title'}</p>
+                            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">{getShortSummary(candidate)}</p>
+                            {candidate.when_to_assign && (
+                              <p className="mt-2 text-xs leading-5 text-[var(--text-tertiary)]">Assign when: {candidate.when_to_assign}</p>
+                            )}
+                          </div>
+
+                          <div className="grid gap-2 sm:grid-cols-3 xl:w-[360px] xl:grid-cols-1">
+                            {['Approve', 'Reject', 'Merge'].map((label) => (
+                              <button
+                                key={label}
+                                type="button"
+                                disabled
+                                className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-sm font-medium text-[var(--text-primary)] opacity-70"
+                                title="Placeholder only, no mutation is wired yet"
+                              >
+                                {label}
+                                <span className="ml-2 text-xs text-[var(--text-tertiary)]">Soon</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                          <InfoBlock label="Category" value={candidate.category || 'Uncategorised'} />
+                          <InfoBlock label="Difficulty" value={candidate.difficulty || 'Unset'} />
+                          <InfoBlock label="Grade" value={formatGradeLevel(candidate.grade_level)} />
+                          <InfoBlock label="Source" value={getSourceLabel(candidate)} subdued={candidate.source_type || undefined} />
+                          <InfoBlock
+                            label="Structure"
+                            value={`${stepsCount} steps`}
+                            subdued={`${focusPointsCount} focus points • ${mistakesCount} common mistakes`}
+                          />
+                        </div>
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        <aside className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 xl:sticky xl:top-6 xl:self-start">
+          {selectedCandidate ? <CandidateDetailPanel candidate={selectedCandidate} /> : <EmptyState title="No candidate selected" body="Pick a row to inspect its review context in more detail." />}
+        </aside>
       </section>
     </>
+  )
+}
+
+function CandidateDetailPanel({ candidate }: { candidate: RawDrillCandidate }) {
+  const steps = getJsonItems(candidate.steps_json)
+  const focusPoints = getJsonItems(candidate.focus_points_json)
+  const mistakes = getJsonItems(candidate.common_mistakes_json)
+
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">Review detail</p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <h3 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">{getDisplayTitle(candidate)}</h3>
+        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
+          {REVIEW_STATUS_LABELS[candidate.review_status]}
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{getShortSummary(candidate)}</p>
+
+      <div className="mt-5 grid gap-3">
+        <InfoBlock label="Raw title" value={candidate.raw_title || 'Missing raw title'} />
+        <InfoBlock label="Dedupe family" value={candidate.dedupe_key || 'No dedupe key yet'} />
+        <InfoBlock label="Source" value={getSourceLabel(candidate)} subdued={candidate.source_type} />
+        <InfoBlock label="Grade" value={formatGradeLevel(candidate.grade_level)} subdued={candidate.category} />
+        <InfoBlock label="Canonical drill link" value={candidate.canonical_drill_id || 'Not linked yet'} />
+      </div>
+
+      <div className="mt-6 space-y-4">
+        <DetailList title="Steps" items={steps} emptyMessage="No structured steps on this candidate yet." />
+        <DetailList title="Focus points" items={focusPoints} emptyMessage="No focus points extracted yet." />
+        <DetailList title="Common mistakes" items={mistakes} emptyMessage="No common mistakes extracted yet." />
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-primary)] p-4">
+        <p className="text-sm font-semibold text-[var(--text-primary)]">Why there are still no live approve buttons</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+          The schema can support review states, but this app surface still needs a deliberate service-role write path and clearer moderation rules before it should mutate anything. Tonight’s pass makes review sharper without lying about that gap.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function DetailList({ title, items, emptyMessage }: { title: string; items: string[]; emptyMessage: string }) {
+  return (
+    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+      <h4 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h4>
+      {items.length === 0 ? (
+        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{emptyMessage}</p>
+      ) : (
+        <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--text-secondary)]">
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`} className="flex gap-2">
+              <span className="text-[var(--text-tertiary)]">•</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 
