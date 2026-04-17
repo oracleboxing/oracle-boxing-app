@@ -7,6 +7,7 @@ import Link from 'next/link'
 import type { Drill, DrillCategory, DrillDifficulty, GradeLevel, Json, RawDrillCandidate } from '@/lib/supabase/types'
 
 type DrillStatusFilter = 'all' | 'active' | 'inactive'
+type DrillReviewHealthFilter = 'all' | 'pending' | 'reviewed' | 'unlinked'
 type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness'
 
 const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
@@ -14,6 +15,13 @@ const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
   newest: 'Newest first',
   grade: 'Grade order',
   completeness: 'Most complete',
+}
+
+const REVIEW_HEALTH_FILTER_LABELS: Record<DrillReviewHealthFilter, string> = {
+  all: 'All source review states',
+  pending: 'Pending raw review',
+  reviewed: 'Source mostly reviewed',
+  unlinked: 'No linked raw rows',
 }
 
 function formatGradeLevel(value: GradeLevel | null) {
@@ -169,6 +177,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
   const [gradeFilter, setGradeFilter] = useState<'all' | GradeLevel | 'unassigned'>('all')
   const [difficultyFilter, setDifficultyFilter] = useState<'all' | DrillDifficulty>('all')
   const [statusFilter, setStatusFilter] = useState<DrillStatusFilter>('active')
+  const [reviewHealthFilter, setReviewHealthFilter] = useState<DrillReviewHealthFilter>('all')
   const [curatedOnly, setCuratedOnly] = useState(true)
   const [sortMode, setSortMode] = useState<DrillSortMode>('library')
   const [selectedDrillId, setSelectedDrillId] = useState<string | null>(drills[0]?.id ?? null)
@@ -192,6 +201,12 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
       if (statusFilter === 'active' && !drill.is_active) return false
       if (statusFilter === 'inactive' && drill.is_active) return false
       if (curatedOnly && !drill.is_curated) return false
+
+      const reviewSummary = buildLinkedCandidateReviewSummary(linkedCandidates.filter((candidate) => drill.raw_candidate_ids.includes(candidate.id)))
+
+      if (reviewHealthFilter === 'pending' && reviewSummary.pending === 0) return false
+      if (reviewHealthFilter === 'reviewed' && (reviewSummary.total === 0 || reviewSummary.pending > 0 || reviewSummary.approved + reviewSummary.merged === 0)) return false
+      if (reviewHealthFilter === 'unlinked' && reviewSummary.total > 0) return false
 
       if (gradeFilter !== 'all') {
         const value = drill.grade_level ?? 'unassigned'
@@ -232,7 +247,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
     })
 
     return next
-  }, [categoryFilter, curatedOnly, difficultyFilter, drills, gradeFilter, query, sortMode, statusFilter])
+  }, [categoryFilter, curatedOnly, difficultyFilter, drills, gradeFilter, linkedCandidates, query, reviewHealthFilter, sortMode, statusFilter])
 
   useEffect(() => {
     if (filteredDrills.length === 0) {
@@ -288,7 +303,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
       </section>
 
       <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_repeat(5,minmax(0,1fr))]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_repeat(6,minmax(0,1fr))]">
           <label className="block">
             <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Search</span>
             <input
@@ -322,6 +337,12 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
             value={statusFilter}
             onChange={(value) => setStatusFilter(value as DrillStatusFilter)}
             options={[{ value: 'active', label: 'Active only' }, { value: 'all', label: 'All statuses' }, { value: 'inactive', label: 'Inactive only' }]}
+          />
+          <FilterSelect
+            label="Source review"
+            value={reviewHealthFilter}
+            onChange={(value) => setReviewHealthFilter(value as DrillReviewHealthFilter)}
+            options={Object.entries(REVIEW_HEALTH_FILTER_LABELS).map(([value, label]) => ({ value: value as DrillReviewHealthFilter, label }))}
           />
           <FilterSelect
             label="Sort"
