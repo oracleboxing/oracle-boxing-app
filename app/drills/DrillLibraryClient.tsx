@@ -1014,6 +1014,32 @@ function DrillDetail({
     window.setTimeout(() => onCopyFeedback(null), 3000)
   }
 
+  function copyReviewHandoff() {
+    if (typeof window === 'undefined') return
+
+    const handoff = {
+      drill_id: drill.id,
+      drill_title: drill.title,
+      audit_priority: auditPriority.bucket,
+      suggested_next_move: getLinkedReviewNextMove(reviewSummary),
+      linked_review_set_url: linkedReviewHref ? `${window.location.origin}${linkedReviewHref}` : null,
+      first_pending_review_url: firstPendingReviewHref ? `${window.location.origin}${firstPendingReviewHref}` : null,
+      raw_candidate_ids: linkedCandidates.map((candidate) => candidate.id),
+      pending_raw_candidate_ids: linkedCandidates.filter((candidate) => candidate.review_status === 'pending').map((candidate) => candidate.id),
+      source_review_status_breakdown: {
+        pending: reviewSummary.pending,
+        approved: reviewSummary.approved,
+        merged: reviewSummary.merged,
+        rejected: reviewSummary.rejected,
+      },
+      readiness_gaps: readinessGaps,
+    }
+
+    navigator.clipboard.writeText(JSON.stringify(handoff, null, 2))
+    onCopyFeedback('Copied review handoff JSON')
+    window.setTimeout(() => onCopyFeedback(null), 3000)
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -1035,6 +1061,13 @@ function DrillDetail({
               className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
               Copy audit brief
+            </button>
+            <button
+              type="button"
+              onClick={copyReviewHandoff}
+              className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+            >
+              Copy review handoff JSON
             </button>
           </div>
         </div>
