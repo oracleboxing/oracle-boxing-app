@@ -970,6 +970,14 @@ export function ReviewQueueClient({
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Default sort surfaces the best next candidates first, instead of making reviewers scroll through transcript soup blindly.
             </p>
+            <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
+              <span className="mr-2">Keyboard:</span>
+              <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> navigate • 
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> select •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> approve •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> merge
+            </p>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
