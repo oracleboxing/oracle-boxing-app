@@ -46,6 +46,7 @@ type CandidateInsight = {
 }
 
 type FamilyDecision = 'keep' | 'merge' | 'reject'
+type ReviewMutationAction = 'approve' | 'reject' | 'merge'
 
 type DrillMatch = Pick<
   Drill,
@@ -490,6 +491,8 @@ export function ReviewQueueClient({
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(() => searchParams.get('selected') ?? candidates[0]?.id ?? null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') ?? ''
@@ -558,25 +561,6 @@ export function ReviewQueueClient({
     }
   }, [categoryFilter, sourceFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
-  const copyHandoff = useCallback((action: ReviewStatus, ids: string[], label?: string) => {
-    const targetCandidates = candidates.filter((c) => ids.includes(c.id))
-    const payload = {
-      action,
-      timestamp: new Date().toISOString(),
-      count: ids.length,
-      items: targetCandidates.map((c) => ({
-        id: c.id,
-        title: getDisplayTitle(c),
-        dedupe_key: c.dedupe_key,
-        grade: c.grade_level,
-        status_was: c.review_status,
-      })),
-    }
-    navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
-    setCopyFeedback(label || `Copied ${ids.length} to ${action}`)
-    setTimeout(() => setCopyFeedback(null), 3000)
-  }, [candidates])
-
   const copyFamilyHandoff = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
     setCopyFeedback('Copied family review notes')
@@ -589,6 +573,55 @@ export function ReviewQueueClient({
     setCopyFeedback(label)
     window.setTimeout(() => setCopyFeedback(null), 3000)
   }, [])
+
+  const runReviewAction = useCallback(
+    async ({
+      action,
+      candidateIds,
+      canonicalDrillId,
+      successLabel,
+    }: {
+      action: ReviewMutationAction
+      candidateIds: string[]
+      canonicalDrillId?: string
+      successLabel: string
+    }) => {
+      if (candidateIds.length === 0 || isSubmitting) return
+
+      setActionError(null)
+      setIsSubmitting(true)
+
+      try {
+        const response = await fetch('/api/review/mutate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action,
+            candidateIds,
+            canonicalDrillId,
+          }),
+        })
+
+        const payload = await response.json().catch(() => null)
+
+        if (!response.ok) {
+          throw new Error(payload?.error || 'Review action failed.')
+        }
+
+        setCopyFeedback(payload?.message || successLabel)
+        setSelectedIds((current) => current.filter((id) => !candidateIds.includes(id)))
+        window.setTimeout(() => setCopyFeedback(null), 3000)
+        router.refresh()
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Review action failed.')
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [isSubmitting, router]
+  )
 
   const focusFamily = useCallback(
     (dedupeKey: string, nextSelectedId?: string) => {
@@ -817,6 +850,8 @@ export function ReviewQueueClient({
       .slice(0, 5)
   }, [drills, selectedCandidate])
 
+  const preferredMergeTargetId = matchedDrills[0]?.id ?? null
+
   const selectedFamilyCandidates = selectedCandidate?.dedupe_key
     ? sortedCandidates.filter((candidate) => candidate.dedupe_key === selectedCandidate.dedupe_key)
     : []
@@ -961,26 +996,45 @@ export function ReviewQueueClient({
 
       if (key === 'a') {
         event.preventDefault()
-        if (selectedCandidateId) copyHandoff('approved', [selectedCandidateId], 'Copied Approve')
+        if (selectedCandidateId) {
+          runReviewAction({
+            action: 'approve',
+            candidateIds: [selectedCandidateId],
+            successLabel: 'Approved candidate into the drill library.',
+          })
+        }
         return
       }
 
       if (key === 'r') {
         event.preventDefault()
-        if (selectedCandidateId) copyHandoff('rejected', [selectedCandidateId], 'Copied Reject')
+        if (selectedCandidateId) {
+          runReviewAction({
+            action: 'reject',
+            candidateIds: [selectedCandidateId],
+            successLabel: 'Rejected candidate.',
+          })
+        }
         return
       }
 
       if (key === 'm') {
         event.preventDefault()
-        if (selectedCandidateId) copyHandoff('merged', [selectedCandidateId], 'Copied Merge')
+        if (selectedCandidateId && preferredMergeTargetId) {
+          runReviewAction({
+            action: 'merge',
+            candidateIds: [selectedCandidateId],
+            canonicalDrillId: preferredMergeTargetId,
+            successLabel: 'Merged candidate into the selected drill.',
+          })
+        }
         return
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [sortedCandidates, selectedCandidateId, toggleSelected, copyHandoff])
+  }, [preferredMergeTargetId, runReviewAction, selectedCandidateId, sortedCandidates, toggleSelected])
 
   const allVisiblePendingSelected =
     pendingCandidates.length > 0 && pendingCandidates.every((candidate) => visibleSelectedIds.includes(candidate.id))
@@ -1115,7 +1169,18 @@ export function ReviewQueueClient({
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
               {pendingCandidates.length} pending
             </span>
+            {isSubmitting ? (
+              <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-900 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300">
+                Saving review action...
+              </span>
+            ) : null}
           </div>
+
+          {actionError ? (
+            <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
+              {actionError}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -1279,9 +1344,9 @@ export function ReviewQueueClient({
         </div>
 
         <div className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] p-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Bulk review scaffold</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Bulk review actions</h2>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Write actions happen via the service role. Select rows here, copy the handoff JSON, and pass it to the agent.
+            Service-role route is wired now, so this panel can actually push review decisions instead of cosplaying as a clipboard.
           </p>
           <div className="mt-5 space-y-3">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3">
@@ -1302,22 +1367,56 @@ export function ReviewQueueClient({
               {allVisiblePendingSelected ? 'Clear visible pending selection' : 'Select all visible pending'}
             </button>
 
-            {[
-              { label: 'Approve selected', status: 'approved' as ReviewStatus },
-              { label: 'Reject selected', status: 'rejected' as ReviewStatus },
-              { label: 'Merge selected', status: 'merged' as ReviewStatus }
-            ].map(({ label, status }) => (
-              <button
-                key={label}
-                type="button"
-                disabled={visibleSelectedIds.length === 0}
-                onClick={() => copyHandoff(status, visibleSelectedIds, `Copied handoff (${visibleSelectedIds.length})`)}
-                className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
-              >
-                <span>{label}</span>
-                <span className="text-xs text-[var(--text-tertiary)]">Copy JSON</span>
-              </button>
-            ))}
+            <button
+              type="button"
+              disabled={visibleSelectedIds.length === 0 || isSubmitting}
+              onClick={() =>
+                runReviewAction({
+                  action: 'approve',
+                  candidateIds: visibleSelectedIds,
+                  successLabel: visibleSelectedIds.length === 1 ? 'Approved candidate into the drill library.' : `Approved ${visibleSelectedIds.length} candidates into the drill library.`,
+                })
+              }
+              className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <span>Approve selected</span>
+              <span className="text-xs text-[var(--text-tertiary)]">Create drills</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={visibleSelectedIds.length === 0 || isSubmitting}
+              onClick={() =>
+                runReviewAction({
+                  action: 'reject',
+                  candidateIds: visibleSelectedIds,
+                  successLabel: visibleSelectedIds.length === 1 ? 'Rejected candidate.' : `Rejected ${visibleSelectedIds.length} candidates.`,
+                })
+              }
+              className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <span>Reject selected</span>
+              <span className="text-xs text-[var(--text-tertiary)]">Mark rejected</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={visibleSelectedIds.length === 0 || !preferredMergeTargetId || isSubmitting}
+              onClick={() =>
+                preferredMergeTargetId
+                  ? runReviewAction({
+                      action: 'merge',
+                      candidateIds: visibleSelectedIds,
+                      canonicalDrillId: preferredMergeTargetId,
+                      successLabel: visibleSelectedIds.length === 1 ? 'Merged candidate into the selected drill.' : `Merged ${visibleSelectedIds.length} candidates into the selected drill.`,
+                    })
+                  : null
+              }
+              className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <span>Merge selected</span>
+              <span className="text-xs text-[var(--text-tertiary)]">{preferredMergeTargetId ? 'Use top library match' : 'Pick a candidate with a target first'}</span>
+            </button>
           </div>
         </div>
       </section>
@@ -1423,24 +1522,55 @@ export function ReviewQueueClient({
                       </div>
 
                       <div className="grid gap-2 sm:grid-cols-3 xl:w-[360px] xl:grid-cols-1">
-                        {[
-                          { label: 'Approve', status: 'approved' as ReviewStatus },
-                          { label: 'Reject', status: 'rejected' as ReviewStatus },
-                          { label: 'Merge', status: 'merged' as ReviewStatus }
-                        ].map(({ label, status }) => (
-                          <button
-                            key={label}
-                            type="button"
-                            onClick={() => {
-                              copyHandoff(status, [candidate.id], `Copied ${label}`)
-                            }}
-                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
-                            title="Copy single handoff JSON"
-                          >
-                            {label}
-                            <span className="ml-2 text-xs text-[var(--text-tertiary)]">Copy</span>
-                          </button>
-                        ))}
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={() =>
+                            runReviewAction({
+                              action: 'approve',
+                              candidateIds: [candidate.id],
+                              successLabel: 'Approved candidate into the drill library.',
+                            })
+                          }
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+                        >
+                          Approve
+                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">Create drill</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={() =>
+                            runReviewAction({
+                              action: 'reject',
+                              candidateIds: [candidate.id],
+                              successLabel: 'Rejected candidate.',
+                            })
+                          }
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+                        >
+                          Reject
+                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">Mark rejected</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSubmitting || !isSelected || !preferredMergeTargetId}
+                          onClick={() =>
+                            preferredMergeTargetId
+                              ? runReviewAction({
+                                  action: 'merge',
+                                  candidateIds: [candidate.id],
+                                  canonicalDrillId: preferredMergeTargetId,
+                                  successLabel: 'Merged candidate into the selected drill.',
+                                })
+                              : null
+                          }
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+                          title={isSelected ? 'Merge this candidate into the top likely canonical target.' : 'Select this candidate first to choose a merge target.'}
+                        >
+                          Merge
+                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">{isSelected ? (preferredMergeTargetId ? 'Use top match' : 'No target yet') : 'Select first'}</span>
+                        </button>
                       </div>
                     </div>
 
@@ -1475,7 +1605,7 @@ export function ReviewQueueClient({
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Review detail</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Honest prep for approve, reject, and merge. Read here first, mutate later when the write path exists.
+              Honest prep for approve, reject, and merge, with the service-role write path finally wired instead of mocked.
             </p>
 
             {!selectedCandidate ? (
@@ -1569,7 +1699,7 @@ export function ReviewQueueClient({
                       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Likely canonical targets</p>
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                          Merge prep only. These are likely matches from the curated drills table, so reviewers can compare before any safe write path exists.
+                          These are the strongest likely canonical targets from the curated drills table, so you can merge straight from here instead of juggling IDs by hand.
                         </p>
 
                         {matchedDrills.length === 0 ? (
@@ -1600,12 +1730,29 @@ export function ReviewQueueClient({
                                       {drill.matchReasons.slice(0, 3).join(' • ')}
                                     </p>
                                   </div>
-                                  <Link
-                                    href={returnToLibraryHref ? `${returnToLibraryHref}${returnToLibraryHref.includes('?') ? '&' : '?'}selected=${drill.id}` : `/drills?selected=${drill.id}`}
-                                    className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
-                                  >
-                                    Open in library
-                                  </Link>
+                                  <div className="flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={isSubmitting}
+                                      onClick={() =>
+                                        runReviewAction({
+                                          action: 'merge',
+                                          candidateIds: [selectedCandidate.id],
+                                          canonicalDrillId: drill.id,
+                                          successLabel: `Merged candidate into ${drill.title}.`,
+                                        })
+                                      }
+                                      className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+                                    >
+                                      Merge into this drill
+                                    </button>
+                                    <Link
+                                      href={returnToLibraryHref ? `${returnToLibraryHref}${returnToLibraryHref.includes('?') ? '&' : '?'}selected=${drill.id}` : `/drills?selected=${drill.id}`}
+                                      className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                    >
+                                      Open in library
+                                    </Link>
+                                  </div>
                                 </div>
                                 <p className="mt-2 text-sm text-[var(--text-secondary)]">{drill.summary || 'No library summary yet.'}</p>
                                 <p className="mt-2 text-xs text-[var(--text-tertiary)]">
