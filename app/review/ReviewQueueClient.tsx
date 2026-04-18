@@ -479,6 +479,10 @@ export function ReviewQueueClient({
   const [gradeFilter, setGradeFilter] = useState<'all' | string>(() => searchParams.get('grade') ?? 'all')
   const [categoryFilter, setCategoryFilter] = useState<'all' | string>(() => searchParams.get('category') ?? 'all')
   const [sourceFilter, setSourceFilter] = useState<'all' | string>(() => searchParams.get('source') ?? 'all')
+  const [familyFilter, setFamilyFilter] = useState<string | null>(() => {
+    const value = searchParams.get('family')
+    return value?.trim() ? value : null
+  })
   const [sortMode, setSortMode] = useState<SortMode>(() => {
     const value = searchParams.get('sort')
     return value && value in SORT_MODE_LABELS ? (value as SortMode) : 'triage'
@@ -493,6 +497,7 @@ export function ReviewQueueClient({
     const nextGrade = searchParams.get('grade') ?? 'all'
     const nextCategory = searchParams.get('category') ?? 'all'
     const nextSource = searchParams.get('source') ?? 'all'
+    const nextFamily = searchParams.get('family')
     const nextSort = searchParams.get('sort')
     const nextSelected = searchParams.get('selected')
 
@@ -504,6 +509,10 @@ export function ReviewQueueClient({
     setGradeFilter((current) => (current === nextGrade ? current : nextGrade))
     setCategoryFilter((current) => (current === nextCategory ? current : nextCategory))
     setSourceFilter((current) => (current === nextSource ? current : nextSource))
+    setFamilyFilter((current) => {
+      const resolved = nextFamily?.trim() ? nextFamily : null
+      return current === resolved ? current : resolved
+    })
     setSortMode((current) => {
       const resolved = nextSort && nextSort in SORT_MODE_LABELS ? (nextSort as SortMode) : 'triage'
       return current === resolved ? current : resolved
@@ -532,6 +541,9 @@ export function ReviewQueueClient({
     if (sourceFilter !== 'all') nextParams.set('source', sourceFilter)
     else nextParams.delete('source')
 
+    if (familyFilter) nextParams.set('family', familyFilter)
+    else nextParams.delete('family')
+
     if (sortMode !== 'triage') nextParams.set('sort', sortMode)
     else nextParams.delete('sort')
 
@@ -544,7 +556,7 @@ export function ReviewQueueClient({
     if (next !== current) {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
     }
-  }, [categoryFilter, sourceFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
+  }, [categoryFilter, sourceFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
   const copyHandoff = useCallback((action: ReviewStatus, ids: string[], label?: string) => {
     const targetCandidates = candidates.filter((c) => ids.includes(c.id))
@@ -576,6 +588,23 @@ export function ReviewQueueClient({
     navigator.clipboard.writeText(window.location.href)
     setCopyFeedback(label)
     window.setTimeout(() => setCopyFeedback(null), 3000)
+  }, [])
+
+  const focusFamily = useCallback(
+    (dedupeKey: string, nextSelectedId?: string) => {
+      setFamilyFilter(dedupeKey)
+      if (statusFilter !== 'all') {
+        setStatusFilter('all')
+      }
+      if (nextSelectedId) {
+        setSelectedCandidateId(nextSelectedId)
+      }
+    },
+    [statusFilter]
+  )
+
+  const clearFamilyFocus = useCallback(() => {
+    setFamilyFilter(null)
   }, [])
 
   const familySizeByKey = useMemo(() => {
@@ -630,6 +659,7 @@ export function ReviewQueueClient({
 
       if (categoryFilter !== 'all' && candidate.category !== categoryFilter) return false
       if (sourceFilter !== 'all' && candidate.source_file !== sourceFilter) return false
+      if (familyFilter && candidate.dedupe_key !== familyFilter) return false
 
       if (!normalizedQuery) return true
 
@@ -651,7 +681,7 @@ export function ReviewQueueClient({
 
       return haystack.includes(normalizedQuery)
     })
-  }, [candidates, query, statusFilter, gradeFilter, categoryFilter, sourceFilter, scopedCandidateIds])
+  }, [candidates, query, statusFilter, gradeFilter, categoryFilter, sourceFilter, familyFilter, scopedCandidateIds])
 
   const sortedCandidates = useMemo(() => {
     return [...filteredCandidates].sort((left, right) => {
@@ -1089,6 +1119,31 @@ export function ReviewQueueClient({
         </div>
       </section>
 
+      {familyFilter ? (
+        <section className="mb-8 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em]">Family focus active</p>
+              <p className="mt-2 text-sm leading-6">
+                Narrowing the queue to dedupe family <span className="font-semibold">{familyFilter}</span> so you can review one duplicate cluster at a time.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-950 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-100">
+                {sortedCandidates.length} visible in focus
+              </span>
+              <button
+                type="button"
+                onClick={clearFamilyFocus}
+                className="inline-flex rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-950 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-100 dark:hover:bg-amber-900/30"
+              >
+                Clear family focus
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="mb-8 grid gap-4 lg:grid-cols-6">
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5 lg:col-span-2">
           <p className="text-sm font-medium text-[var(--text-secondary)]">Visible pending review</p>
@@ -1176,26 +1231,49 @@ export function ReviewQueueClient({
             <p className="mt-5 text-sm text-[var(--text-secondary)]">No dedupe-key families are visible under the current filter set.</p>
           ) : (
             <div className="mt-5 space-y-3">
-              {duplicateFamilies.slice(0, 8).map((family) => (
-                <div key={family.dedupeKey} className="rounded-2xl border border-[var(--border)] px-4 py-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">{family.dedupeKey}</p>
-                      <p className="mt-1 text-xs text-[var(--text-tertiary)]">{family.sampleTitles.join(' • ')}</p>
-                    </div>
-                    <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                      {family.count} rows
-                    </span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {family.statuses.map((status) => (
-                      <span key={status} className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(status)}`}>
-                        {REVIEW_STATUS_LABELS[status]}
+              {duplicateFamilies.slice(0, 8).map((family) => {
+                const isFocusedFamily = familyFilter === family.dedupeKey
+
+                return (
+                  <button
+                    key={family.dedupeKey}
+                    type="button"
+                    onClick={() => focusFamily(family.dedupeKey)}
+                    className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
+                      isFocusedFamily
+                        ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                        : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-[var(--text-primary)]">{family.dedupeKey}</p>
+                          {isFocusedFamily ? (
+                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                              Focused
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--text-tertiary)]">{family.sampleTitles.join(' • ')}</p>
+                      </div>
+                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                        {family.count} rows
                       </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {family.statuses.map((status) => (
+                        <span key={status} className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(status)}`}>
+                          {REVIEW_STATUS_LABELS[status]}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs font-medium text-[var(--text-tertiary)]">
+                      {isFocusedFamily ? 'Current family focus' : 'Click to focus this duplicate family'}
+                    </p>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
@@ -1550,9 +1628,28 @@ export function ReviewQueueClient({
                             </p>
                           </div>
                           {selectedCandidate.dedupe_key ? (
-                            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                              {selectedCandidate.dedupe_key}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                                {selectedCandidate.dedupe_key}
+                              </span>
+                              {familyFilter === selectedCandidate.dedupe_key ? (
+                                <button
+                                  type="button"
+                                  onClick={clearFamilyFocus}
+                                  className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                >
+                                  Clear focus
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => focusFamily(selectedCandidate.dedupe_key!, selectedCandidate.id)}
+                                  className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                >
+                                  Focus family
+                                </button>
+                              )}
+                            </div>
                           ) : null}
                         </div>
 
@@ -1562,7 +1659,12 @@ export function ReviewQueueClient({
                               <button
                                 key={candidate.id}
                                 type="button"
-                                onClick={() => setSelectedCandidateId(candidate.id)}
+                                onClick={() => {
+                                  setSelectedCandidateId(candidate.id)
+                                  if (candidate.dedupe_key) {
+                                    focusFamily(candidate.dedupe_key, candidate.id)
+                                  }
+                                }}
                                 className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-colors ${
                                   candidate.id === selectedCandidate.id
                                     ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)]'
