@@ -951,6 +951,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
                 drill={selectedDrill}
                 linkedCandidates={linkedCandidates.filter((candidate) => selectedDrill.raw_candidate_ids.includes(candidate.id))}
                 reviewReturnHref={reviewReturnHref}
+                onCopyFeedback={setCopyFeedback}
               />
             ) : (
               <EmptyState title="Choose a drill" body="Select a drill from the library list to inspect its content quality and app readiness." />
@@ -967,10 +968,12 @@ function DrillDetail({
   drill,
   linkedCandidates,
   reviewReturnHref,
+  onCopyFeedback,
 }: {
   drill: Drill
   linkedCandidates: LinkedCandidate[]
   reviewReturnHref: string
+  onCopyFeedback: (value: string | null) => void
 }) {
   const steps = jsonToStringList(drill.steps_json)
   const focusPoints = jsonToStringList(drill.focus_points_json)
@@ -980,6 +983,36 @@ function DrillDetail({
   const firstPendingCandidate = linkedCandidates.find((candidate) => candidate.review_status === 'pending')
   const readinessGaps = getDrillReadinessGaps(drill)
   const auditPriority = getAuditPriority(drill, linkedCandidates)
+  const linkedCandidateIds = linkedCandidates.map((candidate) => candidate.id).join(',')
+  const linkedReviewHref = linkedCandidates.length > 0 ? `/review?selected=${linkedCandidates[0].id}&ids=${linkedCandidateIds}&from=${encodeURIComponent(reviewReturnHref)}` : null
+  const firstPendingReviewHref = firstPendingCandidate ? `/review?selected=${firstPendingCandidate.id}&ids=${linkedCandidateIds}&from=${encodeURIComponent(reviewReturnHref)}` : null
+
+  function copyAuditBrief() {
+    if (typeof window === 'undefined') return
+
+    const reviewStatusBreakdown = (Object.entries(reviewSummary) as Array<[keyof LinkedCandidateReviewSummary, number]>)
+      .filter(([status, count]) => status !== 'total' && count > 0)
+      .map(([status, count]) => `${count} ${getReviewStatusLabel(status as LinkedCandidate['review_status']).toLowerCase()}`)
+      .join(', ')
+
+    const auditBrief = [
+      `Drill audit: ${drill.title}`,
+      `Priority: ${auditPriority.label}`,
+      `Completeness: ${getCompletenessLabel(completenessScore)} (${completenessScore}/10)`,
+      `Proof: ${getDemoReadinessLabel(drill)}`,
+      `Gaps: ${readinessGaps.length > 0 ? readinessGaps.join('; ') : 'No obvious readiness gaps'}`,
+      `Source review: ${getLinkedReviewHealthLabel(reviewSummary)}${reviewStatusBreakdown ? ` (${reviewStatusBreakdown})` : ''}`,
+      `Next move: ${getLinkedReviewNextMove(reviewSummary)}`,
+      linkedReviewHref ? `Linked review set: ${window.location.origin}${linkedReviewHref}` : null,
+      firstPendingReviewHref ? `First pending row: ${window.location.origin}${firstPendingReviewHref}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    navigator.clipboard.writeText(auditBrief)
+    onCopyFeedback('Copied audit brief')
+    window.setTimeout(() => onCopyFeedback(null), 3000)
+  }
 
   return (
     <div className="space-y-6">
@@ -996,6 +1029,13 @@ function DrillDetail({
             <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCompletenessTone(completenessScore)}`}>
               {getCompletenessLabel(completenessScore)} {completenessScore}/10
             </span>
+            <button
+              type="button"
+              onClick={copyAuditBrief}
+              className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+            >
+              Copy audit brief
+            </button>
           </div>
         </div>
         <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{drill.summary}</p>
@@ -1086,7 +1126,7 @@ function DrillDetail({
           <div className="flex flex-wrap gap-2">
             {firstPendingCandidate ? (
               <Link
-                href={`/review?selected=${firstPendingCandidate.id}&ids=${linkedCandidates.map((candidate) => candidate.id).join(',')}&from=${encodeURIComponent(reviewReturnHref)}`}
+                href={firstPendingReviewHref!}
                 className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Open first pending row
@@ -1094,7 +1134,7 @@ function DrillDetail({
             ) : null}
             {linkedCandidates.length > 0 ? (
               <Link
-                href={`/review?selected=${linkedCandidates[0].id}&ids=${linkedCandidates.map((candidate) => candidate.id).join(',')}&from=${encodeURIComponent(reviewReturnHref)}`}
+                href={linkedReviewHref!}
                 className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Open linked review set
@@ -1141,7 +1181,7 @@ function DrillDetail({
                       {getReviewStatusLabel(candidate.review_status)}
                     </span>
                     <Link
-                      href={`/review?selected=${candidate.id}&ids=${linkedCandidates.map((linkedCandidate) => linkedCandidate.id).join(',')}&from=${encodeURIComponent(reviewReturnHref)}`}
+                      href={`/review?selected=${candidate.id}&ids=${linkedCandidateIds}&from=${encodeURIComponent(reviewReturnHref)}`}
                       className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                     >
                       Open in review
