@@ -23,6 +23,45 @@ type SummaryPreset =
   | 'pending_review'
   | 'unlinked'
 
+const SUMMARY_PRESET_META: Record<SummaryPreset, { label: string; hint: string }> = {
+  all: {
+    label: 'Full library',
+    hint: 'Default active-canonical view with no audit narrowing.',
+  },
+  audit_now: {
+    label: 'Audit now',
+    hint: 'Weakest canonical drills that need attention first.',
+  },
+  watch_next: {
+    label: 'Watch next',
+    hint: 'Worth monitoring soon, but not the ugliest fires.',
+  },
+  ready: {
+    label: 'Ready-ish',
+    hint: 'Most complete drills, useful when you want the strongest rows first.',
+  },
+  demo_ready: {
+    label: 'Demo ready',
+    hint: 'Already has both a demo video and coach quote.',
+  },
+  needs_proof: {
+    label: 'Needs proof',
+    hint: 'Missing demo proof, so frontend confidence is still thin.',
+  },
+  thin: {
+    label: 'Thin drills',
+    hint: 'Teaching detail is still patchy and needs filling in.',
+  },
+  pending_review: {
+    label: 'Pending source review',
+    hint: 'Linked raw rows still need reviewer judgment.',
+  },
+  unlinked: {
+    label: 'No raw links',
+    hint: 'Canonical drill lacks raw-source traceability.',
+  },
+}
+
 const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
   library: 'Library order',
   newest: 'Newest first',
@@ -532,6 +571,8 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
     return reviewHealthFilter === 'unlinked' && completenessFilter === 'all' && demoReadinessFilter === 'all' && auditPriorityFilter === 'all' && sortMode === 'library'
   }
 
+  const activeSummaryPreset = (Object.keys(SUMMARY_PRESET_META) as SummaryPreset[]).find((preset) => isSummaryPresetActive(preset)) ?? null
+
   const filteredDrills = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
@@ -789,6 +830,22 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
             Copy current view
           </button>
         </div>
+
+        {activeSummaryPreset && activeSummaryPreset !== 'all' ? (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3">
+            <span className="rounded-full border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--accent-primary)]">
+              Preset active: {SUMMARY_PRESET_META[activeSummaryPreset].label}
+            </span>
+            <p className="text-sm text-[var(--text-secondary)]">{SUMMARY_PRESET_META[activeSummaryPreset].hint}</p>
+            <button
+              type="button"
+              onClick={() => applySummaryPreset('all')}
+              className="ml-auto inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+            >
+              Reset to full library
+            </button>
+          </div>
+        ) : null}
       </section>
 
       {filteredDrills.length === 0 ? (
