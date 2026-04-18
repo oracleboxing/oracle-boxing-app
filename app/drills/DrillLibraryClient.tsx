@@ -12,6 +12,16 @@ type DrillCompletenessFilter = 'all' | 'ready' | 'usable' | 'thin'
 type DrillDemoReadinessFilter = 'all' | 'ready' | 'needs_either' | 'needs_video' | 'needs_quote'
 type DrillAuditPriorityFilter = 'all' | 'audit_now' | 'watch_next' | 'healthy'
 type DrillSortMode = 'library' | 'newest' | 'grade' | 'completeness' | 'least_complete' | 'proof_gaps' | 'audit_priority'
+type SummaryPreset =
+  | 'all'
+  | 'audit_now'
+  | 'watch_next'
+  | 'ready'
+  | 'demo_ready'
+  | 'needs_proof'
+  | 'thin'
+  | 'pending_review'
+  | 'unlinked'
 
 const SORT_MODE_LABELS: Record<DrillSortMode, string> = {
   library: 'Library order',
@@ -424,6 +434,104 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
     window.setTimeout(() => setCopyFeedback(null), 3000)
   }
 
+  function applySummaryPreset(preset: SummaryPreset) {
+    setQuery('')
+    setCategoryFilter('all')
+    setGradeFilter('all')
+    setDifficultyFilter('all')
+    setStatusFilter('active')
+    setReviewHealthFilter('all')
+    setCompletenessFilter('all')
+    setDemoReadinessFilter('all')
+    setAuditPriorityFilter('all')
+    setCuratedOnly(true)
+    setSortMode('library')
+
+    if (preset === 'audit_now') {
+      setAuditPriorityFilter('audit_now')
+      setSortMode('audit_priority')
+      return
+    }
+
+    if (preset === 'watch_next') {
+      setAuditPriorityFilter('watch_next')
+      setSortMode('audit_priority')
+      return
+    }
+
+    if (preset === 'ready') {
+      setCompletenessFilter('ready')
+      setSortMode('completeness')
+      return
+    }
+
+    if (preset === 'demo_ready') {
+      setDemoReadinessFilter('ready')
+      return
+    }
+
+    if (preset === 'needs_proof') {
+      setDemoReadinessFilter('needs_either')
+      setSortMode('proof_gaps')
+      return
+    }
+
+    if (preset === 'thin') {
+      setCompletenessFilter('thin')
+      setSortMode('least_complete')
+      return
+    }
+
+    if (preset === 'pending_review') {
+      setReviewHealthFilter('pending')
+      return
+    }
+
+    if (preset === 'unlinked') {
+      setReviewHealthFilter('unlinked')
+    }
+  }
+
+  function isSummaryPresetActive(preset: SummaryPreset) {
+    if (query.trim()) return false
+    if (categoryFilter !== 'all' || gradeFilter !== 'all' || difficultyFilter !== 'all') return false
+    if (statusFilter !== 'active' || !curatedOnly) return false
+
+    if (preset === 'all') {
+      return reviewHealthFilter === 'all' && completenessFilter === 'all' && demoReadinessFilter === 'all' && auditPriorityFilter === 'all' && sortMode === 'library'
+    }
+
+    if (preset === 'audit_now') {
+      return reviewHealthFilter === 'all' && completenessFilter === 'all' && demoReadinessFilter === 'all' && auditPriorityFilter === 'audit_now' && sortMode === 'audit_priority'
+    }
+
+    if (preset === 'watch_next') {
+      return reviewHealthFilter === 'all' && completenessFilter === 'all' && demoReadinessFilter === 'all' && auditPriorityFilter === 'watch_next' && sortMode === 'audit_priority'
+    }
+
+    if (preset === 'ready') {
+      return reviewHealthFilter === 'all' && completenessFilter === 'ready' && demoReadinessFilter === 'all' && auditPriorityFilter === 'all' && sortMode === 'completeness'
+    }
+
+    if (preset === 'demo_ready') {
+      return reviewHealthFilter === 'all' && completenessFilter === 'all' && demoReadinessFilter === 'ready' && auditPriorityFilter === 'all' && sortMode === 'library'
+    }
+
+    if (preset === 'needs_proof') {
+      return reviewHealthFilter === 'all' && completenessFilter === 'all' && demoReadinessFilter === 'needs_either' && auditPriorityFilter === 'all' && sortMode === 'proof_gaps'
+    }
+
+    if (preset === 'thin') {
+      return reviewHealthFilter === 'all' && completenessFilter === 'thin' && demoReadinessFilter === 'all' && auditPriorityFilter === 'all' && sortMode === 'least_complete'
+    }
+
+    if (preset === 'pending_review') {
+      return reviewHealthFilter === 'pending' && completenessFilter === 'all' && demoReadinessFilter === 'all' && auditPriorityFilter === 'all' && sortMode === 'library'
+    }
+
+    return reviewHealthFilter === 'unlinked' && completenessFilter === 'all' && demoReadinessFilter === 'all' && auditPriorityFilter === 'all' && sortMode === 'library'
+  }
+
   const filteredDrills = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
@@ -581,17 +689,17 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
       <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-11">
-        <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" />
-        <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" />
-        <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" />
-        <SummaryCard label="Audit now" value={String(summary.auditNowCount)} hint="Weak canonical rows that need eyes first" />
-        <SummaryCard label="Watch next" value={String(summary.watchNextCount)} hint="Not broken, but still a bit suspect" />
-        <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" />
-        <SummaryCard label="Demo ready" value={String(summary.demoReadyCount)} hint="Has demo video and coach quote, so frontend work is less guessy" />
-        <SummaryCard label="Needs proof" value={String(summary.needsProofCount)} hint="Still missing a demo video, a coach quote, or both" />
-        <SummaryCard label="Thin drills" value={String(summary.thinCount)} hint="Canonical rows still missing core teaching detail" />
-        <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Drills still linked to at least one pending raw review row" />
-        <SummaryCard label="No raw links" value={String(summary.unlinkedCount)} hint="Canonical rows with no raw candidate traceability yet" />
+        <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
+        <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
+        <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
+        <SummaryCard label="Audit now" value={String(summary.auditNowCount)} hint="Weak canonical rows that need eyes first" onClick={() => applySummaryPreset('audit_now')} isActive={isSummaryPresetActive('audit_now')} />
+        <SummaryCard label="Watch next" value={String(summary.watchNextCount)} hint="Not broken, but still a bit suspect" onClick={() => applySummaryPreset('watch_next')} isActive={isSummaryPresetActive('watch_next')} />
+        <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" onClick={() => applySummaryPreset('ready')} isActive={isSummaryPresetActive('ready')} />
+        <SummaryCard label="Demo ready" value={String(summary.demoReadyCount)} hint="Has demo video and coach quote, so frontend work is less guessy" onClick={() => applySummaryPreset('demo_ready')} isActive={isSummaryPresetActive('demo_ready')} />
+        <SummaryCard label="Needs proof" value={String(summary.needsProofCount)} hint="Still missing a demo video, a coach quote, or both" onClick={() => applySummaryPreset('needs_proof')} isActive={isSummaryPresetActive('needs_proof')} />
+        <SummaryCard label="Thin drills" value={String(summary.thinCount)} hint="Canonical rows still missing core teaching detail" onClick={() => applySummaryPreset('thin')} isActive={isSummaryPresetActive('thin')} />
+        <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Drills still linked to at least one pending raw review row" onClick={() => applySummaryPreset('pending_review')} isActive={isSummaryPresetActive('pending_review')} />
+        <SummaryCard label="No raw links" value={String(summary.unlinkedCount)} hint="Canonical rows with no raw candidate traceability yet" onClick={() => applySummaryPreset('unlinked')} isActive={isSummaryPresetActive('unlinked')} />
       </section>
 
       <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
@@ -1005,9 +1113,37 @@ function DrillDetail({
   )
 }
 
-function SummaryCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+function SummaryCard({
+  label,
+  value,
+  hint,
+  onClick,
+  isActive = false,
+}: {
+  label: string
+  value: string
+  hint: string
+  onClick?: () => void
+  isActive?: boolean
+}) {
+  const className = `rounded-3xl border p-5 text-left transition ${
+    isActive
+      ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+      : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-primary)]'
+  }`
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className}>
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{label}</p>
+        <p className="mt-3 text-3xl font-semibold text-[var(--text-primary)]">{value}</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{hint}</p>
+      </button>
+    )
+  }
+
   return (
-    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+    <div className={className}>
       <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{label}</p>
       <p className="mt-3 text-3xl font-semibold text-[var(--text-primary)]">{value}</p>
       <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{hint}</p>
