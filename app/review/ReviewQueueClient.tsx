@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
 const REVIEW_STATUSES: ReviewStatus[] = ['pending', 'approved', 'merged', 'rejected']
@@ -478,6 +478,7 @@ export function ReviewQueueClient({
   })
   const [gradeFilter, setGradeFilter] = useState<'all' | string>(() => searchParams.get('grade') ?? 'all')
   const [categoryFilter, setCategoryFilter] = useState<'all' | string>(() => searchParams.get('category') ?? 'all')
+  const [sourceFilter, setSourceFilter] = useState<'all' | string>(() => searchParams.get('source') ?? 'all')
   const [sortMode, setSortMode] = useState<SortMode>(() => {
     const value = searchParams.get('sort')
     return value && value in SORT_MODE_LABELS ? (value as SortMode) : 'triage'
@@ -491,6 +492,7 @@ export function ReviewQueueClient({
     const nextStatus = searchParams.get('status')
     const nextGrade = searchParams.get('grade') ?? 'all'
     const nextCategory = searchParams.get('category') ?? 'all'
+    const nextSource = searchParams.get('source') ?? 'all'
     const nextSort = searchParams.get('sort')
     const nextSelected = searchParams.get('selected')
 
@@ -501,6 +503,7 @@ export function ReviewQueueClient({
     })
     setGradeFilter((current) => (current === nextGrade ? current : nextGrade))
     setCategoryFilter((current) => (current === nextCategory ? current : nextCategory))
+    setSourceFilter((current) => (current === nextSource ? current : nextSource))
     setSortMode((current) => {
       const resolved = nextSort && nextSort in SORT_MODE_LABELS ? (nextSort as SortMode) : 'triage'
       return current === resolved ? current : resolved
@@ -526,6 +529,9 @@ export function ReviewQueueClient({
     if (categoryFilter !== 'all') nextParams.set('category', categoryFilter)
     else nextParams.delete('category')
 
+    if (sourceFilter !== 'all') nextParams.set('source', sourceFilter)
+    else nextParams.delete('source')
+
     if (sortMode !== 'triage') nextParams.set('sort', sortMode)
     else nextParams.delete('sort')
 
@@ -538,9 +544,9 @@ export function ReviewQueueClient({
     if (next !== current) {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
     }
-  }, [categoryFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
+  }, [categoryFilter, sourceFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
-  function copyHandoff(action: ReviewStatus, ids: string[], label?: string) {
+  const copyHandoff = useCallback((action: ReviewStatus, ids: string[], label?: string) => {
     const targetCandidates = candidates.filter((c) => ids.includes(c.id))
     const payload = {
       action,
@@ -557,20 +563,20 @@ export function ReviewQueueClient({
     navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
     setCopyFeedback(label || `Copied ${ids.length} to ${action}`)
     setTimeout(() => setCopyFeedback(null), 3000)
-  }
+  }, [candidates])
 
-  function copyFamilyHandoff(text: string) {
+  const copyFamilyHandoff = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
     setCopyFeedback('Copied family review notes')
     setTimeout(() => setCopyFeedback(null), 3000)
-  }
+  }, [])
 
-  function copyCurrentView(label: string) {
+  const copyCurrentView = useCallback((label: string) => {
     if (typeof window === 'undefined') return
     navigator.clipboard.writeText(window.location.href)
     setCopyFeedback(label)
     window.setTimeout(() => setCopyFeedback(null), 3000)
-  }
+  }, [])
 
   const familySizeByKey = useMemo(() => {
     const counts = new Map<string, number>()
@@ -604,6 +610,11 @@ export function ReviewQueueClient({
     [candidates]
   )
 
+  const availableSources = useMemo(
+    () => Array.from(new Set(candidates.map((candidate) => candidate.source_file).filter(Boolean) as string[])).sort(),
+    [candidates]
+  )
+
   const filteredCandidates = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     const scopedIdSet = scopedCandidateIds ? new Set(scopedCandidateIds) : null
@@ -618,6 +629,7 @@ export function ReviewQueueClient({
       }
 
       if (categoryFilter !== 'all' && candidate.category !== categoryFilter) return false
+      if (sourceFilter !== 'all' && candidate.source_file !== sourceFilter) return false
 
       if (!normalizedQuery) return true
 
@@ -639,7 +651,7 @@ export function ReviewQueueClient({
 
       return haystack.includes(normalizedQuery)
     })
-  }, [candidates, query, statusFilter, gradeFilter, categoryFilter, scopedCandidateIds])
+  }, [candidates, query, statusFilter, gradeFilter, categoryFilter, sourceFilter, scopedCandidateIds])
 
   const sortedCandidates = useMemo(() => {
     return [...filteredCandidates].sort((left, right) => {
@@ -857,11 +869,11 @@ export function ReviewQueueClient({
     { pending: 0, approved: 0, merged: 0, rejected: 0 }
   )
 
-  function toggleSelected(id: string) {
+  const toggleSelected = useCallback((id: string) => {
     setSelectedIds((current) => (current.includes(id) ? current.filter((value) => value !== id) : [...current, id]))
-  }
+  }, [])
 
-  function toggleSelectAllVisiblePending() {
+  const toggleSelectAllVisiblePending = useCallback(() => {
     const pendingIds = pendingCandidates.map((candidate) => candidate.id)
     const allSelected = pendingIds.length > 0 && pendingIds.every((id) => visibleSelectedIds.includes(id))
 
@@ -869,7 +881,76 @@ export function ReviewQueueClient({
       const withoutVisiblePending = current.filter((id) => !pendingIds.includes(id))
       return allSelected ? withoutVisiblePending : [...withoutVisiblePending, ...pendingIds]
     })
-  }
+  }, [pendingCandidates, visibleSelectedIds])
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLSelectElement ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey
+      ) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+
+      if (key === 'j' || key === 'k') {
+        event.preventDefault()
+        if (sortedCandidates.length === 0) return
+
+        const currentIndex = sortedCandidates.findIndex((c) => c.id === selectedCandidateId)
+
+        if (currentIndex === -1) {
+          setSelectedCandidateId(sortedCandidates[0].id)
+          return
+        }
+
+        if (key === 'j' && currentIndex < sortedCandidates.length - 1) {
+          const nextId = sortedCandidates[currentIndex + 1].id
+          setSelectedCandidateId(nextId)
+          document.getElementById(`candidate-${nextId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        } else if (key === 'k' && currentIndex > 0) {
+          const prevId = sortedCandidates[currentIndex - 1].id
+          setSelectedCandidateId(prevId)
+          document.getElementById(`candidate-${prevId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+        return
+      }
+
+      if (key === 'x') {
+        event.preventDefault()
+        if (selectedCandidateId) {
+          toggleSelected(selectedCandidateId)
+        }
+        return
+      }
+
+      if (key === 'a') {
+        event.preventDefault()
+        if (selectedCandidateId) copyHandoff('approved', [selectedCandidateId], 'Copied Approve')
+        return
+      }
+
+      if (key === 'r') {
+        event.preventDefault()
+        if (selectedCandidateId) copyHandoff('rejected', [selectedCandidateId], 'Copied Reject')
+        return
+      }
+
+      if (key === 'm') {
+        event.preventDefault()
+        if (selectedCandidateId) copyHandoff('merged', [selectedCandidateId], 'Copied Merge')
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [sortedCandidates, selectedCandidateId, toggleSelected, copyHandoff])
 
   const allVisiblePendingSelected =
     pendingCandidates.length > 0 && pendingCandidates.every((candidate) => visibleSelectedIds.includes(candidate.id))
@@ -891,7 +972,7 @@ export function ReviewQueueClient({
             </p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <label className="text-sm text-[var(--text-secondary)]">
               <span className="mb-1 block">Search</span>
               <input
@@ -945,6 +1026,22 @@ export function ReviewQueueClient({
                 {availableCategories.map((category) => (
                   <option key={category} value={category}>
                     {category}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm text-[var(--text-secondary)]">
+              <span className="mb-1 block">Source file</span>
+              <select
+                value={sourceFilter}
+                onChange={(event) => setSourceFilter(event.target.value)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+              >
+                <option value="all">All sources</option>
+                {availableSources.map((source) => (
+                  <option key={source} value={source}>
+                    {source}
                   </option>
                 ))}
               </select>
@@ -1192,6 +1289,7 @@ export function ReviewQueueClient({
                 return (
                   <article
                     key={candidate.id}
+                    id={`candidate-${candidate.id}`}
                     className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 transition-colors ${
                       isSelected ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)]'
                     }`}
