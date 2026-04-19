@@ -480,6 +480,12 @@ export function ReviewQueueClient({
   const [gradeFilter, setGradeFilter] = useState<'all' | string>(() => searchParams.get('grade') ?? 'all')
   const [categoryFilter, setCategoryFilter] = useState<'all' | string>(() => searchParams.get('category') ?? 'all')
   const [sourceFilter, setSourceFilter] = useState<'all' | string>(() => searchParams.get('source') ?? 'all')
+  const [triageFilter, setTriageFilter] = useState<'all' | TriageLevel>(() => {
+    const value = searchParams.get('triage')
+    return value === 'all' || value === 'act-now' || value === 'worth-a-look' || value === 'low-signal' || value === 'already-reviewed'
+      ? ((value as 'all' | TriageLevel) ?? 'all')
+      : 'all'
+  })
   const [familyFilter, setFamilyFilter] = useState<string | null>(() => {
     const value = searchParams.get('family')
     return value?.trim() ? value : null
@@ -500,6 +506,7 @@ export function ReviewQueueClient({
     const nextGrade = searchParams.get('grade') ?? 'all'
     const nextCategory = searchParams.get('category') ?? 'all'
     const nextSource = searchParams.get('source') ?? 'all'
+    const nextTriage = searchParams.get('triage')
     const nextFamily = searchParams.get('family')
     const nextSort = searchParams.get('sort')
     const nextSelected = searchParams.get('selected')
@@ -512,6 +519,13 @@ export function ReviewQueueClient({
     setGradeFilter((current) => (current === nextGrade ? current : nextGrade))
     setCategoryFilter((current) => (current === nextCategory ? current : nextCategory))
     setSourceFilter((current) => (current === nextSource ? current : nextSource))
+    setTriageFilter((current) => {
+      const resolved =
+        nextTriage === 'all' || nextTriage === 'act-now' || nextTriage === 'worth-a-look' || nextTriage === 'low-signal' || nextTriage === 'already-reviewed'
+          ? ((nextTriage as 'all' | TriageLevel) ?? 'all')
+          : 'all'
+      return current === resolved ? current : resolved
+    })
     setFamilyFilter((current) => {
       const resolved = nextFamily?.trim() ? nextFamily : null
       return current === resolved ? current : resolved
@@ -544,6 +558,9 @@ export function ReviewQueueClient({
     if (sourceFilter !== 'all') nextParams.set('source', sourceFilter)
     else nextParams.delete('source')
 
+    if (triageFilter !== 'all') nextParams.set('triage', triageFilter)
+    else nextParams.delete('triage')
+
     if (familyFilter) nextParams.set('family', familyFilter)
     else nextParams.delete('family')
 
@@ -559,7 +576,7 @@ export function ReviewQueueClient({
     if (next !== current) {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
     }
-  }, [categoryFilter, sourceFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
+  }, [categoryFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
   const copyFamilyHandoff = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
@@ -677,7 +694,7 @@ export function ReviewQueueClient({
     [candidates]
   )
 
-  const filteredCandidates = useMemo(() => {
+  const baseFilteredCandidates = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     const scopedIdSet = scopedCandidateIds ? new Set(scopedCandidateIds) : null
 
@@ -715,6 +732,15 @@ export function ReviewQueueClient({
       return haystack.includes(normalizedQuery)
     })
   }, [candidates, query, statusFilter, gradeFilter, categoryFilter, sourceFilter, familyFilter, scopedCandidateIds])
+
+  const filteredCandidates = useMemo(() => {
+    if (triageFilter === 'all') return baseFilteredCandidates
+
+    return baseFilteredCandidates.filter((candidate) => {
+      const insight = candidateInsights.get(candidate.id)
+      return insight?.triageLevel === triageFilter
+    })
+  }, [baseFilteredCandidates, candidateInsights, triageFilter])
 
   const sortedCandidates = useMemo(() => {
     return [...filteredCandidates].sort((left, right) => {
@@ -777,6 +803,7 @@ export function ReviewQueueClient({
   }, [filteredCandidates, candidateInsights, sortMode])
 
   const pendingCandidates = sortedCandidates.filter((candidate) => candidate.review_status === 'pending')
+  const basePendingCandidates = baseFilteredCandidates.filter((candidate) => candidate.review_status === 'pending')
 
   const statusCounts = REVIEW_STATUSES.map((status) => ({
     status,
@@ -789,7 +816,7 @@ export function ReviewQueueClient({
     return acc
   }, {})
 
-  const triageCounts = pendingCandidates.reduce<Record<TriageLevel, number>>(
+  const triageCounts = basePendingCandidates.reduce<Record<TriageLevel, number>>(
     (acc, candidate) => {
       const triageLevel = candidateInsights.get(candidate.id)?.triageLevel ?? 'low-signal'
       acc[triageLevel] += 1
@@ -803,7 +830,7 @@ export function ReviewQueueClient({
     }
   )
 
-  const missingSummaryCount = pendingCandidates.filter(
+  const missingSummaryCount = basePendingCandidates.filter(
     (candidate) => !candidate.summary && !candidate.what_it_trains && !candidate.description
   ).length
 
@@ -1169,6 +1196,15 @@ export function ReviewQueueClient({
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
               {pendingCandidates.length} pending
             </span>
+            {triageFilter !== 'all' ? (
+              <button
+                type="button"
+                onClick={() => setTriageFilter('all')}
+                className="rounded-full border border-[var(--accent-primary)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Triage slice: {getTriageLabel(triageFilter)} • Clear
+              </button>
+            ) : null}
             {isSubmitting ? (
               <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-900 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300">
                 Saving review action...
@@ -1215,26 +1251,45 @@ export function ReviewQueueClient({
           <p className="mt-2 text-4xl font-bold tracking-tight text-[var(--text-primary)]">{pendingCandidates.length}</p>
           <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
             Working subset after filters, currently sorted by <span className="font-medium text-[var(--text-primary)]">{SORT_MODE_LABELS[sortMode]}</span>.
+            Use the triage cards to jump straight into the right slice.
           </p>
         </div>
 
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+        <button
+          type="button"
+          onClick={() => setTriageFilter((current) => (current === 'act-now' ? 'all' : 'act-now'))}
+          className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
+            triageFilter === 'act-now' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+          }`}
+        >
           <p className="text-sm font-medium text-[var(--text-secondary)]">Act now</p>
           <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['act-now']}</p>
           <p className="mt-3 text-xs text-[var(--text-tertiary)]">Pending rows with real duplicate pressure and enough structure to review cleanly.</p>
-        </div>
+        </button>
 
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+        <button
+          type="button"
+          onClick={() => setTriageFilter((current) => (current === 'worth-a-look' ? 'all' : 'worth-a-look'))}
+          className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
+            triageFilter === 'worth-a-look' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+          }`}
+        >
           <p className="text-sm font-medium text-[var(--text-secondary)]">Worth a look</p>
           <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['worth-a-look']}</p>
           <p className="mt-3 text-xs text-[var(--text-tertiary)]">Reasonable next passes, but not the most urgent cleanup in the queue.</p>
-        </div>
+        </button>
 
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+        <button
+          type="button"
+          onClick={() => setTriageFilter((current) => (current === 'low-signal' ? 'all' : 'low-signal'))}
+          className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
+            triageFilter === 'low-signal' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+          }`}
+        >
           <p className="text-sm font-medium text-[var(--text-secondary)]">Low signal</p>
           <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['low-signal']}</p>
           <p className="mt-3 text-xs text-[var(--text-tertiary)]">Thin or isolated rows that should wait until better candidates are handled.</p>
-        </div>
+        </button>
 
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
           <p className="text-sm font-medium text-[var(--text-secondary)]">Duplicate families</p>
