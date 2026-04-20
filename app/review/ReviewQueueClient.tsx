@@ -707,6 +707,10 @@ export function ReviewQueueClient({
     setCategoryFilter((current) => (current === category ? 'all' : category))
   }, [])
 
+  const toggleSourceFocus = useCallback((source: string) => {
+    setSourceFilter((current) => (current === source ? 'all' : source))
+  }, [])
+
   const toggleStatusFocus = useCallback((status: ReviewStatus) => {
     setStatusFilter((current) => (current === status ? 'all' : status))
   }, [])
@@ -936,6 +940,12 @@ export function ReviewQueueClient({
 
   const categoryCounts = pendingCandidates.reduce<Record<string, number>>((acc, candidate) => {
     const key = candidate.category ?? 'uncategorised'
+    acc[key] = (acc[key] ?? 0) + 1
+    return acc
+  }, {})
+
+  const sourceCounts = pendingCandidates.reduce<Record<string, number>>((acc, candidate) => {
+    const key = getSourceLabel(candidate)
     acc[key] = (acc[key] ?? 0) + 1
     return acc
   }, {})
@@ -1712,6 +1722,63 @@ export function ReviewQueueClient({
                           </p>
                         </div>
                         <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                          {count} pending
+                        </span>
+                      </button>
+                    )
+                  })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by source</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Useful when you want to clear one import batch at a time instead of mixing different transcript drops together.</p>
+              </div>
+              {sourceFilter !== 'all' ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                  Focused on {sourceFilter}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-5 space-y-3">
+              {Object.keys(sourceCounts).length === 0 ? (
+                <p className="text-sm text-[var(--text-secondary)]">No pending sources in the current filter set.</p>
+              ) : (
+                Object.entries(sourceCounts)
+                  .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+                  .slice(0, 6)
+                  .map(([source, count]) => {
+                    const isFocusedSource = sourceFilter === source
+
+                    return (
+                      <button
+                        key={source}
+                        type="button"
+                        onClick={() => toggleSourceFocus(source)}
+                        className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                          isFocusedSource
+                            ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                            : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                        }`}
+                        aria-pressed={isFocusedSource}
+                      >
+                        <div className="min-w-0 pr-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="truncate text-sm font-medium text-[var(--text-primary)]">{source}</span>
+                            {isFocusedSource ? (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                            {isFocusedSource ? 'Click to clear this source filter' : 'Click to filter the queue to this source'}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
                           {count} pending
                         </span>
                       </button>
