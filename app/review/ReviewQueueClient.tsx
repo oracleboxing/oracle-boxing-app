@@ -287,6 +287,18 @@ function getNextReviewSelection(candidateIds: string[], orderedCandidateIds: str
   return null
 }
 
+function getNextPendingReviewSelection(
+  candidateIds: string[],
+  pendingCandidateIds: string[],
+  orderedCandidateIds: string[],
+  currentSelectedId: string | null
+) {
+  return (
+    getNextReviewSelection(candidateIds, pendingCandidateIds, currentSelectedId) ??
+    getNextReviewSelection(candidateIds, orderedCandidateIds, currentSelectedId)
+  )
+}
+
 function shouldIgnoreShortcutTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
 
@@ -836,6 +848,9 @@ export function ReviewQueueClient({
     })
   }, [filteredCandidates, candidateInsights, sortMode])
 
+  const pendingCandidates = sortedCandidates.filter((candidate) => candidate.review_status === 'pending')
+  const basePendingCandidates = baseFilteredCandidates.filter((candidate) => candidate.review_status === 'pending')
+
   const runReviewAction = useCallback(
     async ({
       action,
@@ -874,10 +889,13 @@ export function ReviewQueueClient({
 
         const nextStatus = REVIEW_ACTION_STATUS[action]
         const actedRowsWillDisappear = statusFilter !== 'all' && statusFilter !== nextStatus
+        const selectedRowWasActedOn = selectedCandidateId ? candidateIds.includes(selectedCandidateId) : false
+        const shouldAdvanceSelection = actedRowsWillDisappear || selectedRowWasActedOn || candidateIds.length === 1
 
-        if (actedRowsWillDisappear) {
-          const nextSelectedId = getNextReviewSelection(
+        if (shouldAdvanceSelection) {
+          const nextSelectedId = getNextPendingReviewSelection(
             candidateIds,
+            pendingCandidates.map((candidate) => candidate.id),
             sortedCandidates.map((candidate) => candidate.id),
             selectedCandidateId
           )
@@ -894,11 +912,8 @@ export function ReviewQueueClient({
         setIsSubmitting(false)
       }
     },
-    [isSubmitting, router, selectedCandidateId, sortedCandidates, statusFilter]
+    [isSubmitting, pendingCandidates, router, selectedCandidateId, sortedCandidates, statusFilter]
   )
-
-  const pendingCandidates = sortedCandidates.filter((candidate) => candidate.review_status === 'pending')
-  const basePendingCandidates = baseFilteredCandidates.filter((candidate) => candidate.review_status === 'pending')
 
   const statusCounts = REVIEW_STATUSES.map((status) => ({
     status,
