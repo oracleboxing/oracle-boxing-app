@@ -30,35 +30,49 @@ export default async function ReviewPage() {
   }
 
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('raw_drill_candidates')
-    .select(
-      'id, cleaned_title, raw_title, dedupe_key, category, difficulty, grade_level, review_status, review_notes, source_type, source_file, summary, description, what_it_trains, when_to_assign, coach_demo_quote, estimated_duration_seconds, format_tags, skill_tags, tags, steps_json, focus_points_json, common_mistakes_json, canonical_drill_id, created_at'
-    )
-    .order('review_status', { ascending: true })
-    .order('grade_level', { ascending: true, nullsFirst: false })
-    .order('cleaned_title', { ascending: true })
+  const candidateColumns =
+    'id, cleaned_title, raw_title, dedupe_key, category, difficulty, grade_level, review_status, review_notes, source_type, source_file, summary, description, what_it_trains, when_to_assign, coach_demo_quote, estimated_duration_seconds, format_tags, skill_tags, tags, steps_json, focus_points_json, common_mistakes_json, canonical_drill_id, created_at'
 
-  if (error) {
+  const { data, error } = await supabase.from('raw_drill_candidates').select(candidateColumns)
+
+  const candidatesQueryError = error?.code === 'PGRST205'
+    ? await supabase
+        .from('raw_drill_candidates')
+        .select(candidateColumns)
+        .order('review_status', { ascending: true })
+        .order('grade_level', { ascending: true, nullsFirst: false })
+        .order('cleaned_title', { ascending: true })
+        .then((result) => result.error)
+    : null
+
+  const effectiveCandidatesError = candidatesQueryError ?? error
+
+  if (effectiveCandidatesError) {
     return (
       <div className="min-h-screen px-8 py-10">
         <div className="mx-auto max-w-7xl">
           <Header />
           <EmptyState
             title="Review queue unavailable"
-            body={error.message || 'The app could not read raw_drill_candidates. Check table access, RLS, and local Supabase configuration.'}
+            body={effectiveCandidatesError.message || 'The app could not read raw_drill_candidates. Check table access, RLS, and local Supabase configuration.'}
           />
         </div>
       </div>
     )
   }
 
-  const { data: drillsData, error: drillsError } = await supabase
-    .from('drills')
-    .select('id, title, category, difficulty, grade_level, summary, skill_tags, tags, raw_candidate_ids, is_active, is_curated')
-    .order('is_active', { ascending: false })
-    .order('is_curated', { ascending: false })
-    .order('title', { ascending: true })
+  const drillColumns = 'id, title, category, difficulty, grade_level, summary, skill_tags, tags, raw_candidate_ids, is_active, is_curated'
+  const { data: drillsData, error: drillsBaseError } = await supabase.from('drills').select(drillColumns)
+
+  const drillsError = drillsBaseError?.code === 'PGRST205'
+    ? await supabase
+        .from('drills')
+        .select(drillColumns)
+        .order('is_active', { ascending: false })
+        .order('is_curated', { ascending: false })
+        .order('title', { ascending: true })
+        .then((result) => result.error)
+    : drillsBaseError
 
   if (drillsError) {
     return (

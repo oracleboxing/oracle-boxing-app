@@ -48,6 +48,12 @@ type CandidateInsight = {
 type FamilyDecision = 'keep' | 'merge' | 'reject'
 type ReviewMutationAction = 'approve' | 'reject' | 'merge'
 
+const REVIEW_ACTION_STATUS: Record<ReviewMutationAction, ReviewStatus> = {
+  approve: 'approved',
+  reject: 'rejected',
+  merge: 'merged',
+}
+
 type DrillMatch = Pick<
   Drill,
   'id' | 'title' | 'category' | 'difficulty' | 'grade_level' | 'summary' | 'skill_tags' | 'tags' | 'raw_candidate_ids' | 'is_active' | 'is_curated'
@@ -79,6 +85,7 @@ function formatDateTime(value: string | null) {
   return new Intl.DateTimeFormat('en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: 'UTC',
   }).format(date)
 }
 
@@ -224,6 +231,35 @@ function getGradeSortValue(value: string | null) {
     default:
       return 99
   }
+}
+
+function getNextReviewSelection(candidateIds: string[], orderedCandidateIds: string[], currentSelectedId: string | null) {
+  if (orderedCandidateIds.length === 0) return null
+
+  const removedIds = new Set(candidateIds)
+  const anchorId = currentSelectedId && removedIds.has(currentSelectedId) ? currentSelectedId : candidateIds[0]
+  const anchorIndex = orderedCandidateIds.findIndex((id) => id === anchorId)
+
+  if (anchorIndex === -1) {
+    return orderedCandidateIds.find((id) => !removedIds.has(id)) ?? null
+  }
+
+  for (let index = anchorIndex + 1; index < orderedCandidateIds.length; index += 1) {
+    if (!removedIds.has(orderedCandidateIds[index])) return orderedCandidateIds[index]
+  }
+
+  for (let index = anchorIndex - 1; index >= 0; index -= 1) {
+    if (!removedIds.has(orderedCandidateIds[index])) return orderedCandidateIds[index]
+  }
+
+  return null
+}
+
+function shouldIgnoreShortcutTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+
+  const interactiveParent = target.closest('input, textarea, select, button, a, [contenteditable="true"], [role="button"], [role="link"]')
+  return Boolean(interactiveParent || target.isContentEditable)
 }
 
 function normaliseTokens(value: string) {
@@ -592,55 +628,6 @@ export function ReviewQueueClient({
     window.setTimeout(() => setCopyFeedback(null), 3000)
   }, [])
 
-  const runReviewAction = useCallback(
-    async ({
-      action,
-      candidateIds,
-      canonicalDrillId,
-      successLabel,
-    }: {
-      action: ReviewMutationAction
-      candidateIds: string[]
-      canonicalDrillId?: string
-      successLabel: string
-    }) => {
-      if (candidateIds.length === 0 || isSubmitting) return
-
-      setActionError(null)
-      setIsSubmitting(true)
-
-      try {
-        const response = await fetch('/api/review/mutate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action,
-            candidateIds,
-            canonicalDrillId,
-          }),
-        })
-
-        const payload = await response.json().catch(() => null)
-
-        if (!response.ok) {
-          throw new Error(payload?.error || 'Review action failed.')
-        }
-
-        setCopyFeedback(payload?.message || successLabel)
-        setSelectedIds((current) => current.filter((id) => !candidateIds.includes(id)))
-        window.setTimeout(() => setCopyFeedback(null), 3000)
-        router.refresh()
-      } catch (error) {
-        setActionError(error instanceof Error ? error.message : 'Review action failed.')
-      } finally {
-        setIsSubmitting(false)
-      }
-    },
-    [isSubmitting, router]
-  )
-
   const focusFamily = useCallback(
     (dedupeKey: string, nextSelectedId?: string) => {
       setFamilyFilter(dedupeKey)
@@ -802,6 +789,67 @@ export function ReviewQueueClient({
       }
     })
   }, [filteredCandidates, candidateInsights, sortMode])
+
+  const runReviewAction = useCallback(
+    async ({
+      action,
+      candidateIds,
+      canonicalDrillId,
+      successLabel,
+    }: {
+      action: ReviewMutationAction
+      candidateIds: string[]
+      canonicalDrillId?: string
+      successLabel: string
+    }) => {
+      if (candidateIds.length === 0 || isSubmitting) return
+
+      setActionError(null)
+      setIsSubmitting(true)
+
+      try {
+        const response = await fetch('/api/review/mutate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action,
+            candidateIds,
+            canonicalDrillId,
+          }),
+        })
+
+        const payload = await response.json().catch(() => null)
+
+        if (!response.ok) {
+          throw new Error(payload?.error || 'Review action failed.')
+        }
+
+        const nextStatus = REVIEW_ACTION_STATUS[action]
+        const actedRowsWillDisappear = statusFilter !== 'all' && statusFilter !== nextStatus
+
+        if (actedRowsWillDisappear) {
+          const nextSelectedId = getNextReviewSelection(
+            candidateIds,
+            sortedCandidates.map((candidate) => candidate.id),
+            selectedCandidateId
+          )
+          setSelectedCandidateId(nextSelectedId)
+        }
+
+        setCopyFeedback(payload?.message || successLabel)
+        setSelectedIds((current) => current.filter((id) => !candidateIds.includes(id)))
+        window.setTimeout(() => setCopyFeedback(null), 3000)
+        router.refresh()
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : 'Review action failed.')
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [isSubmitting, router, selectedCandidateId, sortedCandidates, statusFilter]
+  )
 
   const pendingCandidates = sortedCandidates.filter((candidate) => candidate.review_status === 'pending')
   const basePendingCandidates = baseFilteredCandidates.filter((candidate) => candidate.review_status === 'pending')
@@ -993,14 +1041,7 @@ export function ReviewQueueClient({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (
-        event.target instanceof HTMLInputElement ||
-        event.target instanceof HTMLTextAreaElement ||
-        event.target instanceof HTMLSelectElement ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.altKey
-      ) {
+      if (shouldIgnoreShortcutTarget(event.target) || event.metaKey || event.ctrlKey || event.altKey) {
         return
       }
 
@@ -1090,8 +1131,8 @@ export function ReviewQueueClient({
         </div>
       )}
 
-      <section className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <section className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
+        <div className="flex flex-col gap-5">
           <div>
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Review controls</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
@@ -1107,7 +1148,7 @@ export function ReviewQueueClient({
             </p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <label className="text-sm text-[var(--text-secondary)]">
               <span className="mb-1 block">Search</span>
               <input
@@ -1198,7 +1239,7 @@ export function ReviewQueueClient({
             </label>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-4">
             <button
               type="button"
               onClick={() => copyCurrentView(scopedCandidateIds ? 'Copied scoped review view link' : 'Copied review queue view link')}
@@ -1261,8 +1302,8 @@ export function ReviewQueueClient({
         </section>
       ) : null}
 
-      <section className="mb-8 grid gap-4 lg:grid-cols-6">
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5 lg:col-span-2">
+      <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5 md:col-span-2 xl:col-span-1 2xl:col-span-2 shadow-sm">
           <p className="text-sm font-medium text-[var(--text-secondary)]">Visible pending review</p>
           <p className="mt-2 text-4xl font-bold tracking-tight text-[var(--text-primary)]">{pendingCandidates.length}</p>
           <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
@@ -1274,7 +1315,7 @@ export function ReviewQueueClient({
         <button
           type="button"
           onClick={() => setTriageFilter((current) => (current === 'act-now' ? 'all' : 'act-now'))}
-          className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
+          className={`min-h-[168px] rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
             triageFilter === 'act-now' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
           }`}
         >
@@ -1286,7 +1327,7 @@ export function ReviewQueueClient({
         <button
           type="button"
           onClick={() => setTriageFilter((current) => (current === 'worth-a-look' ? 'all' : 'worth-a-look'))}
-          className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
+          className={`min-h-[168px] rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
             triageFilter === 'worth-a-look' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
           }`}
         >
@@ -1298,7 +1339,7 @@ export function ReviewQueueClient({
         <button
           type="button"
           onClick={() => setTriageFilter((current) => (current === 'low-signal' ? 'all' : 'low-signal'))}
-          className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
+          className={`min-h-[168px] rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
             triageFilter === 'low-signal' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
           }`}
         >
@@ -1307,13 +1348,13 @@ export function ReviewQueueClient({
           <p className="mt-3 text-xs text-[var(--text-tertiary)]">Thin or isolated rows that should wait until better candidates are handled.</p>
         </button>
 
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+        <div className="min-h-[168px] rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5 shadow-sm">
           <p className="text-sm font-medium text-[var(--text-secondary)]">Duplicate families</p>
           <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{duplicateFamilies.length}</p>
           <p className="mt-3 text-xs text-[var(--text-tertiary)]">Distinct dedupe groups currently visible after filtering.</p>
         </div>
 
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5">
+        <div className="min-h-[168px] rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5 shadow-sm">
           <p className="text-sm font-medium text-[var(--text-secondary)]">Needs summary</p>
           <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{missingSummaryCount}</p>
           <p className="mt-3 text-xs text-[var(--text-tertiary)]">Visible pending rows with no summary, description, or training note.</p>
