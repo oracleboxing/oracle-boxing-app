@@ -2174,6 +2174,99 @@ export function ReviewQueueClient({
 
                   return (
                     <>
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Quick review actions</p>
+                            <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                              Review this row from the detail panel, then keep moving through the pending queue without bouncing back to the list.
+                            </p>
+                          </div>
+                          {nextPendingCandidate && nextPendingCandidate.id !== selectedCandidate.id ? (
+                            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                              Next pending: {getDisplayTitle(nextPendingCandidate)}
+                            </span>
+                          ) : (
+                            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                              No later pending row in this view
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={() =>
+                              runReviewAction({
+                                action: 'approve',
+                                candidateIds: [selectedCandidate.id],
+                                successLabel: 'Approved candidate into the drill library.',
+                              })
+                            }
+                            className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm font-medium text-emerald-900 transition-colors hover:bg-emerald-100 disabled:pointer-events-none disabled:opacity-50 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                          >
+                            Approve candidate
+                            <span className="mt-1 block text-xs font-normal text-emerald-700 dark:text-emerald-400">Shortcut A • Creates a drill and advances selection</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={() =>
+                              runReviewAction({
+                                action: 'reject',
+                                candidateIds: [selectedCandidate.id],
+                                successLabel: 'Rejected candidate.',
+                              })
+                            }
+                            className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-left text-sm font-medium text-rose-900 transition-colors hover:bg-rose-100 disabled:pointer-events-none disabled:opacity-50 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-950/30"
+                          >
+                            Reject candidate
+                            <span className="mt-1 block text-xs font-normal text-rose-700 dark:text-rose-400">Shortcut R • Marks it rejected and advances selection</span>
+                          </button>
+                        </div>
+
+                        <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                          <label className="text-sm text-[var(--text-secondary)]">
+                            <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Merge target</span>
+                            <select
+                              value={preferredMergeTargetId ?? ''}
+                              onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
+                              className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+                            >
+                              <option value="">No target selected</option>
+                              {matchedDrills.map((drill) => (
+                                <option key={drill.id} value={drill.id}>
+                                  {drill.title} · Match {drill.matchScore}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <button
+                            type="button"
+                            disabled={isSubmitting || !preferredMergeTargetId}
+                            onClick={() =>
+                              preferredMergeTargetId
+                                ? runReviewAction({
+                                    action: 'merge',
+                                    candidateIds: [selectedCandidate.id],
+                                    canonicalDrillId: preferredMergeTargetId,
+                                    successLabel: 'Merged candidate into the selected drill.',
+                                  })
+                                : null
+                            }
+                            className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left text-sm font-medium text-sky-900 transition-colors hover:bg-sky-100 disabled:pointer-events-none disabled:opacity-50 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300 dark:hover:bg-sky-950/30"
+                          >
+                            Merge candidate
+                            <span className="mt-1 block text-xs font-normal text-sky-700 dark:text-sky-400">
+                              Shortcut M • {preferredMergeTargetId ? 'Uses the selected canonical target and advances selection' : 'Pick a target first'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-xl font-semibold text-[var(--text-primary)]">{getDisplayTitle(selectedCandidate)}</h3>
