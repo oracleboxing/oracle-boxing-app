@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
+import type { AiDecision, Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
 const REVIEW_STATUSES: ReviewStatus[] = ['pending', 'approved', 'merged', 'rejected']
 const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
@@ -60,6 +60,36 @@ type DrillMatch = Pick<
 > & {
   matchScore: number
   matchReasons: string[]
+}
+
+function getAiDecisionTone(decision: AiDecision | null) {
+  switch (decision) {
+    case 'approve':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+    case 'merge':
+      return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300'
+    case 'reject':
+      return 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300'
+    case 'review':
+      return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300'
+    default:
+      return 'border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300'
+  }
+}
+
+function getAiDecisionLabel(decision: AiDecision | null) {
+  switch (decision) {
+    case 'approve':
+      return 'AI approve'
+    case 'merge':
+      return 'AI merge'
+    case 'reject':
+      return 'AI reject'
+    case 'review':
+      return 'AI review'
+    default:
+      return 'No AI triage yet'
+  }
 }
 
 function formatGradeLevel(value: string | null) {
@@ -920,14 +950,23 @@ export function ReviewQueueClient({
     }
 
     return Array.from(families.entries())
-      .map(([dedupeKey, familyCandidates]) => ({
-        dedupeKey,
-        count: familyCandidates.length,
-        statuses: Array.from(new Set(familyCandidates.map((candidate) => candidate.review_status))),
-        sampleTitles: familyCandidates.slice(0, 3).map((candidate) => getDisplayTitle(candidate)),
-      }))
+      .map(([dedupeKey, familyCandidates]) => {
+        const leadCandidate = familyCandidates[0] ?? null
+        const leadInsight = leadCandidate ? candidateInsights.get(leadCandidate.id) ?? null : null
+        const leadDecision = leadCandidate && leadInsight ? getCandidateDecisionHint(leadCandidate, leadInsight) : null
+
+        return {
+          dedupeKey,
+          count: familyCandidates.length,
+          statuses: Array.from(new Set(familyCandidates.map((candidate) => candidate.review_status))),
+          sampleTitles: familyCandidates.slice(0, 3).map((candidate) => getDisplayTitle(candidate)),
+          leadCandidate,
+          leadInsight,
+          leadDecision,
+        }
+      })
       .sort((left, right) => right.count - left.count || left.dedupeKey.localeCompare(right.dedupeKey))
-  }, [sortedCandidates])
+  }, [candidateInsights, sortedCandidates])
 
   const visibleSelectedIds = useMemo(
     () => selectedIds.filter((id) => sortedCandidates.some((candidate) => candidate.id === id)),
@@ -1032,6 +1071,21 @@ export function ReviewQueueClient({
 
     return selectedFamilyCandidates[currentIndex + 1] ?? null
   }, [selectedCandidate, selectedFamilyCandidates])
+
+  const nextDuplicateFamily = useMemo(() => {
+    const currentFamilyKey = familyFilter ?? selectedCandidate?.dedupe_key ?? null
+    if (!currentFamilyKey || duplicateFamilies.length === 0) return null
+
+    const currentIndex = duplicateFamilies.findIndex((family) => family.dedupeKey === currentFamilyKey)
+    if (currentIndex === -1) {
+      return duplicateFamilies.find((family) => family.statuses.includes('pending')) ?? duplicateFamilies[0] ?? null
+    }
+
+    const laterPendingFamily = duplicateFamilies.slice(currentIndex + 1).find((family) => family.statuses.includes('pending'))
+    if (laterPendingFamily) return laterPendingFamily
+
+    return duplicateFamilies.slice(0, currentIndex).find((family) => family.statuses.includes('pending')) ?? null
+  }, [duplicateFamilies, familyFilter, selectedCandidate])
 
   useEffect(() => {
     if (!selectedCandidate) {
@@ -1614,6 +1668,20 @@ export function ReviewQueueClient({
                         </span>
                       ))}
                     </div>
+                    {family.leadCandidate && family.leadInsight && family.leadDecision ? (
+                      <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getDecisionTone(family.leadDecision)}`}>
+                            {getDecisionLabel(family.leadDecision)}
+                          </span>
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getTriageTone(family.leadInsight.triageLevel)}`}>
+                            {getTriageLabel(family.leadInsight.triageLevel)}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">Start with {getDisplayTitle(family.leadCandidate)}</p>
+                        <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{getReviewerNextMove(family.leadCandidate, family.leadInsight)}</p>
+                      </div>
+                    ) : null}
                     <p className="mt-3 text-xs font-medium text-[var(--text-tertiary)]">
                       {isFocusedFamily ? 'Current family focus' : 'Click to focus this duplicate family'}
                     </p>
@@ -1806,6 +1874,9 @@ export function ReviewQueueClient({
                               <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(insight.triageLevel)}`}>
                                 {getTriageLabel(insight.triageLevel)}
                               </span>
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAiDecisionTone(candidate.ai_decision ?? null)}`}>
+                                {getAiDecisionLabel(candidate.ai_decision ?? null)}
+                              </span>
                               {candidate.dedupe_key && (
                                 <span className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
                                   Family: {candidate.dedupe_key}
@@ -1815,6 +1886,11 @@ export function ReviewQueueClient({
                             <p className="mt-2 text-sm text-[var(--text-secondary)]">Raw title: {candidate.raw_title || 'Missing raw title'}</p>
                             <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">{getShortSummary(candidate)}</p>
                             <p className="mt-3 text-xs leading-5 text-[var(--text-tertiary)]">{insight.triageSummary}</p>
+                            {candidate.ai_reason ? (
+                              <p className="mt-2 text-xs leading-5 text-[var(--text-secondary)]">
+                                AI: {candidate.ai_reason}{typeof candidate.ai_confidence === 'number' ? ` (${Math.round(candidate.ai_confidence * 100)}%)` : ''}
+                              </p>
+                            ) : null}
                             {candidate.when_to_assign && (
                               <p className="mt-2 text-xs leading-5 text-[var(--text-tertiary)]">Assign when: {candidate.when_to_assign}</p>
                             )}
@@ -2032,6 +2108,11 @@ export function ReviewQueueClient({
                       <div className="grid gap-3 sm:grid-cols-2">
                         <InfoBlock label="Raw title" value={selectedCandidate.raw_title || 'Missing raw title'} />
                         <InfoBlock label="Created" value={formatDateTime(selectedCandidate.created_at)} />
+                        <InfoBlock
+                          label="AI recommendation"
+                          value={getAiDecisionLabel(selectedCandidate.ai_decision ?? null)}
+                          subdued={selectedCandidate.ai_reason || (typeof selectedCandidate.ai_confidence === 'number' ? `${Math.round(selectedCandidate.ai_confidence * 100)}% confidence` : 'No AI recommendation yet')}
+                        />
                         <InfoBlock label="Grade" value={formatGradeLevel(selectedCandidate.grade_level)} />
                         <InfoBlock label="Duration" value={selectedCandidate.estimated_duration_seconds ? `${selectedCandidate.estimated_duration_seconds}s` : 'Unknown'} />
                         <InfoBlock label="Source file" value={selectedCandidate.source_file || 'Missing'} subdued={selectedCandidate.source_type || undefined} />
@@ -2243,7 +2324,7 @@ export function ReviewQueueClient({
                             <InfoBlock label="Suggested reject" value={String(selectedFamilyWorkspace.decisionCounts.reject)} subdued="Thin or noisy overlap" />
                           </div>
 
-                          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                             <button
                               type="button"
                               onClick={() => selectCandidate(selectedFamilyWorkspace.keepCandidate.id, { scrollIntoView: false })}
@@ -2280,6 +2361,19 @@ export function ReviewQueueClient({
                               Open next reject row
                               <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                                 {selectedFamilyWorkspace.nextRejectCandidate ? getDisplayTitle(selectedFamilyWorkspace.nextRejectCandidate) : 'No pending reject row left'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!nextDuplicateFamily || nextDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
+                              onClick={() => focusFamily(nextDuplicateFamily!.dedupeKey, nextDuplicateFamily!.leadCandidate?.id ?? null)}
+                              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              Open next family
+                              <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                                {nextDuplicateFamily
+                                  ? `${nextDuplicateFamily.dedupeKey} • ${nextDuplicateFamily.count} rows`
+                                  : 'No other pending duplicate family visible'}
                               </span>
                             </button>
                           </div>
