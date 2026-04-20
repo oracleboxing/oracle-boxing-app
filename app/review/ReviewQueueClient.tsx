@@ -1390,6 +1390,38 @@ export function ReviewQueueClient({
     }
   )
 
+  const suggestedActionSummaries = useMemo(() => {
+    const summary = new Map<
+      FamilyDecision,
+      {
+        count: number
+        leadCandidate: RawDrillCandidate | null
+        leadInsight: CandidateInsight | null
+      }
+    >()
+
+    for (const candidate of basePendingCandidates) {
+      const insight = candidateInsights.get(candidate.id)
+      if (!insight) continue
+
+      const key = getCandidateDecisionHint(candidate, insight)
+      const existing = summary.get(key)
+
+      if (!existing) {
+        summary.set(key, {
+          count: 1,
+          leadCandidate: candidate,
+          leadInsight: insight,
+        })
+        continue
+      }
+
+      existing.count += 1
+    }
+
+    return summary
+  }, [basePendingCandidates, candidateInsights])
+
   const visiblePendingTriageCounts = pendingCandidates.reduce<Record<TriageLevel, number>>(
     (acc, candidate) => {
       const triageLevel = candidateInsights.get(candidate.id)?.triageLevel ?? 'low-signal'
@@ -2919,49 +2951,95 @@ export function ReviewQueueClient({
                 (['keep', 'merge', 'reject'] as FamilyDecision[]).map((decision) => {
                   const count = suggestedActionCounts[decision]
                   const isFocusedDecision = suggestedActionFilter === decision
+                  const decisionSummary = suggestedActionSummaries.get(decision)
 
                   return (
-                    <button
+                    <div
                       key={decision}
-                      type="button"
-                      onClick={() => toggleSuggestedActionFocus(decision)}
-                      disabled={count === 0}
-                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                      className={`rounded-2xl border px-4 py-4 transition-colors ${
                         isFocusedDecision
                           ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
-                          : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
-                      } ${count === 0 ? 'cursor-not-allowed opacity-50' : ''}`}
-                      aria-pressed={isFocusedDecision}
+                          : 'border-[var(--border)] bg-[var(--surface-primary)]'
+                      } ${count === 0 ? 'opacity-50' : ''}`}
                     >
-                      <div className="pr-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDecisionTone(decision)}`}>
-                            {getDecisionLabel(decision)}
-                          </span>
-                          {isFocusedDecision ? (
-                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                              Active
+                      <button
+                        type="button"
+                        onClick={() => toggleSuggestedActionFocus(decision)}
+                        disabled={count === 0}
+                        className="flex w-full items-center justify-between text-left disabled:cursor-not-allowed"
+                        aria-pressed={isFocusedDecision}
+                      >
+                        <div className="pr-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDecisionTone(decision)}`}>
+                              {getDecisionLabel(decision)}
                             </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                          {decision === 'keep'
-                            ? isFocusedDecision
-                              ? 'Click to clear this canonical-seed lane'
-                              : 'Click to focus the likely canonical seeds'
-                            : decision === 'merge'
+                            {isFocusedDecision ? (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                            {decision === 'keep'
                               ? isFocusedDecision
-                                ? 'Click to clear this merge lane'
-                                : 'Click to focus the supporting duplicates'
-                              : isFocusedDecision
-                                ? 'Click to clear this reject lane'
-                                : 'Click to focus the likely reject rows'}
-                        </p>
-                      </div>
-                      <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                        {count} pending
-                      </span>
-                    </button>
+                                ? 'Click to clear this canonical-seed lane'
+                                : 'Click to focus the likely canonical seeds'
+                              : decision === 'merge'
+                                ? isFocusedDecision
+                                  ? 'Click to clear this merge lane'
+                                  : 'Click to focus the supporting duplicates'
+                                : isFocusedDecision
+                                  ? 'Click to clear this reject lane'
+                                  : 'Click to focus the likely reject rows'}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                          {count} pending
+                        </span>
+                      </button>
+
+                      {decisionSummary?.leadCandidate && decisionSummary.leadInsight ? (
+                        <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Lead row in this lane</p>
+                              <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">{getDisplayTitle(decisionSummary.leadCandidate)}</p>
+                            </div>
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(decisionSummary.leadInsight.triageLevel)}`}>
+                              {getTriageLabel(decisionSummary.leadInsight.triageLevel)}
+                            </span>
+                          </div>
+                          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{getReviewerNextMove(decisionSummary.leadCandidate, decisionSummary.leadInsight)}</p>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <InfoBlock label="Source" value={getSourceLabel(decisionSummary.leadCandidate)} />
+                            <InfoBlock
+                              label="Duplicate pressure"
+                              value={`${decisionSummary.leadInsight.familySize} row${decisionSummary.leadInsight.familySize === 1 ? '' : 's'}`}
+                              subdued={decisionSummary.leadCandidate.dedupe_key || 'No family yet'}
+                            />
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => selectCandidate(decisionSummary.leadCandidate!.id, { scrollIntoView: false })}
+                              className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            >
+                              Open lead row
+                            </button>
+                            {decisionSummary.leadCandidate.dedupe_key ? (
+                              <button
+                                type="button"
+                                onClick={() => focusFamily(decisionSummary.leadCandidate!.dedupe_key!, decisionSummary.leadCandidate!.id)}
+                                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                              >
+                                Focus this family
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   )
                 })
               )}
