@@ -1309,6 +1309,13 @@ export function ReviewQueueClient({
       .filter(([, count]) => count > 0)
       .sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
 
+    const dominantVisibleFamilyShape = (Object.entries(pendingFamilyShapeSummary) as Array<[
+      Exclude<DuplicateShapeFilter, 'all'>,
+      { rows: number; families: Set<string>; leadCandidate: RawDrillCandidate | null }
+    ]>)
+      .filter(([, summary]) => summary.rows > 0)
+      .sort((left, right) => right[1].rows - left[1].rows)[0]?.[0] ?? null
+
     const topVisibleSource = (() => {
       const counts = new Map<string, number>()
 
@@ -1327,6 +1334,7 @@ export function ReviewQueueClient({
       `Current sort: ${SORT_MODE_LABELS[sortMode]}`,
       `Active triage slice: ${triageFilter === 'all' ? 'All visible pending' : getTriageLabel(triageFilter)}`,
       `Active completeness slice: ${completenessFilter === 'all' ? 'All extract levels' : COMPLETENESS_BAND_LABELS[completenessFilter]}`,
+      `Active duplicate lane: ${familyShapeFilter === 'all' ? 'All family shapes' : DUPLICATE_SHAPE_LABELS[familyShapeFilter]}`,
       `Family focus: ${familyFilter ?? 'None'}`,
       `Missing summary rows: ${missingSummaryCount}`,
       `Visible duplicate families: ${duplicateFamilies.length}`,
@@ -1338,6 +1346,10 @@ export function ReviewQueueClient({
 
     if (dominantVisibleCompleteness) {
       lines.push(`Dominant visible completeness: ${COMPLETENESS_BAND_LABELS[dominantVisibleCompleteness]}`)
+    }
+
+    if (dominantVisibleFamilyShape) {
+      lines.push(`Dominant duplicate lane: ${DUPLICATE_SHAPE_LABELS[dominantVisibleFamilyShape]}`)
     }
 
     if (topVisibleSource) {
@@ -1360,10 +1372,11 @@ export function ReviewQueueClient({
       leadInsight,
       dominantVisibleTriage,
       dominantVisibleCompleteness,
+      dominantVisibleFamilyShape,
       topVisibleSource,
       handoffText: lines.join('\n'),
     }
-  }, [candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, missingSummaryCount, pendingCandidates, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
+  }, [candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, missingSummaryCount, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
 
   const duplicateFamilySummary = useMemo(() => {
     const leadFamily = duplicateFamilies[0] ?? null
@@ -2130,7 +2143,7 @@ export function ReviewQueueClient({
             </button>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <InfoBlock label="Visible pending" value={String(pendingCandidates.length)} subdued={`${sortedCandidates.length} total visible`} />
             <InfoBlock
               label="Dominant triage"
@@ -2141,6 +2154,11 @@ export function ReviewQueueClient({
               label="Dominant completeness"
               value={currentSliceSummary.dominantVisibleCompleteness ? COMPLETENESS_BAND_LABELS[currentSliceSummary.dominantVisibleCompleteness] : 'No pending rows'}
               subdued={completenessFilter === 'all' ? 'Across the current view' : 'Inside the active slice'}
+            />
+            <InfoBlock
+              label="Dominant duplicate lane"
+              value={currentSliceSummary.dominantVisibleFamilyShape ? DUPLICATE_SHAPE_LABELS[currentSliceSummary.dominantVisibleFamilyShape] : 'No pending rows'}
+              subdued={familyShapeFilter === 'all' ? 'Across the current view' : 'Inside the active lane'}
             />
             <InfoBlock
               label="Main source"
@@ -2167,6 +2185,15 @@ export function ReviewQueueClient({
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus dominant completeness
+              </button>
+            ) : null}
+            {currentSliceSummary.dominantVisibleFamilyShape ? (
+              <button
+                type="button"
+                onClick={() => setFamilyShapeFilter(currentSliceSummary.dominantVisibleFamilyShape!)}
+                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Focus duplicate lane
               </button>
             ) : null}
             {currentSliceSummary.topVisibleSource ? (
