@@ -35,6 +35,15 @@ const SORT_MODE_LABELS: Record<SortMode, string> = {
 type TriageLevel = 'act-now' | 'worth-a-look' | 'low-signal' | 'already-reviewed'
 type CompletenessBand = 'thin' | 'usable' | 'rich'
 type SuggestedActionFilter = 'all' | FamilyDecision
+type DuplicateShapeFilter = 'all' | 'solo' | 'pair' | 'small-family' | 'large-family'
+
+const DUPLICATE_SHAPE_LABELS: Record<DuplicateShapeFilter, string> = {
+  all: 'All family shapes',
+  solo: 'Solo rows',
+  pair: 'Pairs',
+  'small-family': 'Small families',
+  'large-family': 'Large families',
+}
 
 const COMPLETENESS_BAND_LABELS: Record<CompletenessBand, string> = {
   thin: 'Thin extract',
@@ -198,6 +207,17 @@ function isSuggestedActionFilter(value: string | null): value is SuggestedAction
 
 function getSuggestedActionFilterLabel(value: SuggestedActionFilter) {
   return value === 'all' ? 'All suggested actions' : getDecisionLabel(value)
+}
+
+function getDuplicateShape(familySize: number): Exclude<DuplicateShapeFilter, 'all'> {
+  if (familySize <= 1) return 'solo'
+  if (familySize === 2) return 'pair'
+  if (familySize <= 4) return 'small-family'
+  return 'large-family'
+}
+
+function isDuplicateShapeFilter(value: string | null): value is DuplicateShapeFilter {
+  return value === 'all' || value === 'solo' || value === 'pair' || value === 'small-family' || value === 'large-family'
 }
 
 function getCandidateReadinessGaps(candidate: RawDrillCandidate, insight: CandidateInsight) {
@@ -619,6 +639,10 @@ export function ReviewQueueClient({
     const value = searchParams.get('action')
     return isSuggestedActionFilter(value) ? value : 'all'
   })
+  const [familyShapeFilter, setFamilyShapeFilter] = useState<DuplicateShapeFilter>(() => {
+    const value = searchParams.get('familyShape')
+    return isDuplicateShapeFilter(value) ? value : 'all'
+  })
   const [familyFilter, setFamilyFilter] = useState<string | null>(() => {
     const value = searchParams.get('family')
     return value?.trim() ? value : null
@@ -645,6 +669,7 @@ export function ReviewQueueClient({
     const nextTriage = searchParams.get('triage')
     const nextCompleteness = searchParams.get('completeness')
     const nextSuggestedAction = searchParams.get('action')
+    const nextFamilyShape = searchParams.get('familyShape')
     const nextFamily = searchParams.get('family')
     const nextSort = searchParams.get('sort')
     const nextSelected = searchParams.get('selected')
@@ -678,6 +703,10 @@ export function ReviewQueueClient({
     })
     setSuggestedActionFilter((current) => {
       const resolved = isSuggestedActionFilter(nextSuggestedAction) ? nextSuggestedAction : 'all'
+      return current === resolved ? current : resolved
+    })
+    setFamilyShapeFilter((current) => {
+      const resolved = isDuplicateShapeFilter(nextFamilyShape) ? nextFamilyShape : 'all'
       return current === resolved ? current : resolved
     })
     setFamilyFilter((current) => {
@@ -727,6 +756,9 @@ export function ReviewQueueClient({
     if (suggestedActionFilter !== 'all') nextParams.set('action', suggestedActionFilter)
     else nextParams.delete('action')
 
+    if (familyShapeFilter !== 'all') nextParams.set('familyShape', familyShapeFilter)
+    else nextParams.delete('familyShape')
+
     if (familyFilter) nextParams.set('family', familyFilter)
     else nextParams.delete('family')
 
@@ -742,7 +774,7 @@ export function ReviewQueueClient({
     if (next !== current) {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
     }
-  }, [aiDecisionFilter, categoryFilter, completenessFilter, suggestedActionFilter, difficultyFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
+  }, [aiDecisionFilter, categoryFilter, completenessFilter, suggestedActionFilter, difficultyFilter, familyShapeFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
   const copyFamilyHandoff = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
@@ -809,8 +841,15 @@ export function ReviewQueueClient({
     setTriageFilter('all')
     setCompletenessFilter('all')
     setSuggestedActionFilter('all')
+    setFamilyShapeFilter('all')
     setFamilyFilter(null)
     setSortMode('triage')
+  }, [])
+
+  const focusFamilyShape = useCallback((shape: Exclude<DuplicateShapeFilter, 'all'>) => {
+    setFamilyShapeFilter((current) => (current === shape ? 'all' : shape))
+    setFamilyFilter(null)
+    setSortMode(shape === 'solo' ? 'triage' : 'duplicate-pressure')
   }, [])
 
   const toggleGradeFocus = useCallback((grade: string) => {
@@ -895,6 +934,9 @@ export function ReviewQueueClient({
       if (scopedIdSet && !scopedIdSet.has(candidate.id)) return false
       if (statusFilter !== 'all' && candidate.review_status !== statusFilter) return false
 
+      const insight = candidateInsights.get(candidate.id)
+      if (!insight) return false
+
       if (gradeFilter !== 'all') {
         const candidateGrade = candidate.grade_level ?? 'unassigned'
         if (candidateGrade !== gradeFilter) return false
@@ -908,6 +950,7 @@ export function ReviewQueueClient({
       if (categoryFilter !== 'all' && candidate.category !== categoryFilter) return false
       if (sourceFilter !== 'all' && candidate.source_file !== sourceFilter) return false
       if (aiDecisionFilter !== 'all' && getAiDecisionFilterValue(candidate.ai_decision ?? null) !== aiDecisionFilter) return false
+      if (familyShapeFilter !== 'all' && getDuplicateShape(insight.familySize) !== familyShapeFilter) return false
       if (familyFilter && candidate.dedupe_key !== familyFilter) return false
 
       if (!normalizedQuery) return true
@@ -930,7 +973,7 @@ export function ReviewQueueClient({
 
       return haystack.includes(normalizedQuery)
     })
-  }, [aiDecisionFilter, candidates, query, statusFilter, gradeFilter, difficultyFilter, categoryFilter, sourceFilter, familyFilter, scopedCandidateIds])
+  }, [aiDecisionFilter, candidateInsights, candidates, query, statusFilter, gradeFilter, difficultyFilter, categoryFilter, familyShapeFilter, sourceFilter, familyFilter, scopedCandidateIds])
 
   const filteredCandidates = useMemo(() => {
     return baseFilteredCandidates.filter((candidate) => {
@@ -1005,6 +1048,29 @@ export function ReviewQueueClient({
 
   const pendingCandidates = sortedCandidates.filter((candidate) => candidate.review_status === 'pending')
   const basePendingCandidates = baseFilteredCandidates.filter((candidate) => candidate.review_status === 'pending')
+
+  const pendingFamilyShapeSummary = useMemo(() => {
+    const summary: Record<Exclude<DuplicateShapeFilter, 'all'>, { rows: number; families: Set<string>; leadCandidate: RawDrillCandidate | null }> = {
+      solo: { rows: 0, families: new Set<string>(), leadCandidate: null },
+      pair: { rows: 0, families: new Set<string>(), leadCandidate: null },
+      'small-family': { rows: 0, families: new Set<string>(), leadCandidate: null },
+      'large-family': { rows: 0, families: new Set<string>(), leadCandidate: null },
+    }
+
+    for (const candidate of pendingCandidates) {
+      const insight = candidateInsights.get(candidate.id)
+      if (!insight) continue
+
+      const shape = getDuplicateShape(insight.familySize)
+      summary[shape].rows += 1
+      summary[shape].families.add(candidate.dedupe_key || candidate.id)
+      if (!summary[shape].leadCandidate) {
+        summary[shape].leadCandidate = candidate
+      }
+    }
+
+    return summary
+  }, [candidateInsights, pendingCandidates])
 
   const runReviewAction = useCallback(
     async ({
@@ -1642,6 +1708,13 @@ export function ReviewQueueClient({
             onClear: () => setSuggestedActionFilter('all'),
           }
         : null,
+      familyShapeFilter !== 'all'
+        ? {
+            key: 'family-shape',
+            label: `Family shape: ${DUPLICATE_SHAPE_LABELS[familyShapeFilter]}`,
+            onClear: () => setFamilyShapeFilter('all'),
+          }
+        : null,
       familyFilter
         ? {
             key: 'family',
@@ -1672,7 +1745,7 @@ export function ReviewQueueClient({
         onClear: () => void
       } => Boolean(chip)
     ),
-    [aiDecisionFilter, categoryFilter, clearScopedReview, completenessFilter, difficultyFilter, familyFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
+    [aiDecisionFilter, categoryFilter, clearScopedReview, completenessFilter, difficultyFilter, familyFilter, familyShapeFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
   )
 
   const copyCurrentSliceHandoff = useCallback(() => {
@@ -1799,6 +1872,21 @@ export function ReviewQueueClient({
             </label>
 
             <label className="text-sm text-[var(--text-secondary)]">
+              <span className="mb-1 block">Family shape</span>
+              <select
+                value={familyShapeFilter}
+                onChange={(event) => setFamilyShapeFilter(event.target.value as DuplicateShapeFilter)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+              >
+                {Object.entries(DUPLICATE_SHAPE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm text-[var(--text-secondary)]">
               <span className="mb-1 block">Sort</span>
               <select
                 value={sortMode}
@@ -1844,6 +1932,15 @@ export function ReviewQueueClient({
                 className="rounded-full border border-[var(--accent-primary)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Completeness: {COMPLETENESS_BAND_LABELS[completenessFilter]} • Clear
+              </button>
+            ) : null}
+            {familyShapeFilter !== 'all' ? (
+              <button
+                type="button"
+                onClick={() => setFamilyShapeFilter('all')}
+                className="rounded-full border border-[var(--accent-primary)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Family shape: {DUPLICATE_SHAPE_LABELS[familyShapeFilter]} • Clear
               </button>
             ) : null}
             {isSubmitting ? (
@@ -2566,6 +2663,61 @@ export function ReviewQueueClient({
               )}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Batch duplicate lanes</h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">Jump straight into solos, pairs, or heavier duplicate clusters without rebuilding the view by hand.</p>
+          </div>
+          {familyShapeFilter !== 'all' ? (
+            <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+              Focused on {DUPLICATE_SHAPE_LABELS[familyShapeFilter]}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {(['solo', 'pair', 'small-family', 'large-family'] as Array<Exclude<DuplicateShapeFilter, 'all'>>).map((shape) => {
+            const summary = pendingFamilyShapeSummary[shape]
+            const isFocusedShape = familyShapeFilter === shape
+            const familyCount = summary.families.size
+            const leadCandidate = summary.leadCandidate
+
+            return (
+              <button
+                key={shape}
+                type="button"
+                onClick={() => focusFamilyShape(shape)}
+                className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                  isFocusedShape
+                    ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                    : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                }`}
+                aria-pressed={isFocusedShape}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">{DUPLICATE_SHAPE_LABELS[shape]}</span>
+                  {isFocusedShape ? (
+                    <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                      Active
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-3xl font-bold text-[var(--text-primary)]">{summary.rows}</p>
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                  {shape === 'solo'
+                    ? `${familyCount} standalone candidate${familyCount === 1 ? '' : 's'}`
+                    : `${familyCount} famil${familyCount === 1 ? 'y' : 'ies'} waiting`}
+                </p>
+                <p className="mt-3 text-xs leading-5 text-[var(--text-secondary)]">
+                  {leadCandidate ? `Start with ${getDisplayTitle(leadCandidate)}.` : 'Nothing pending in this lane right now.'}
+                </p>
+              </button>
+            )
+          })}
         </div>
       </section>
 
