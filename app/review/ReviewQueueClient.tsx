@@ -739,12 +739,17 @@ export function ReviewQueueClient({
     document.getElementById(`candidate-${candidateId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [])
 
-  const copyCurrentView = useCallback((label: string) => {
+  const copyText = useCallback((value: string, label: string) => {
     if (typeof window === 'undefined') return
-    navigator.clipboard.writeText(window.location.href)
+    navigator.clipboard.writeText(value)
     setCopyFeedback(label)
     window.setTimeout(() => setCopyFeedback(null), 3000)
   }, [])
+
+  const copyCurrentView = useCallback((label: string) => {
+    if (typeof window === 'undefined') return
+    copyText(window.location.href, label)
+  }, [copyText])
 
   const clearScopedReview = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams.toString())
@@ -1252,6 +1257,32 @@ export function ReviewQueueClient({
       handoffText: lines.join('\n'),
     }
   }, [candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, missingSummaryCount, pendingCandidates, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
+
+  const duplicateFamilySummary = useMemo(() => {
+    const leadFamily = duplicateFamilies[0] ?? null
+    if (!leadFamily || !leadFamily.leadCandidate || !leadFamily.leadInsight || !leadFamily.leadDecision) {
+      return null
+    }
+
+    const lines = [
+      'Duplicate family handoff',
+      `Visible families: ${duplicateFamilies.length}`,
+      `Current family focus: ${familyFilter ?? 'None'}`,
+      '',
+      `Lead family: ${leadFamily.dedupeKey}`,
+      `Rows in family: ${leadFamily.count}`,
+      `Lead row: ${getDisplayTitle(leadFamily.leadCandidate)}`,
+      `Lead status: ${REVIEW_STATUS_LABELS[leadFamily.leadCandidate.review_status]} • ${getTriageLabel(leadFamily.leadInsight.triageLevel)}`,
+      `Recommended move: ${getDecisionLabel(leadFamily.leadDecision)}`,
+      `Reviewer next move: ${getReviewerNextMove(leadFamily.leadCandidate, leadFamily.leadInsight)}`,
+      `Sample titles: ${leadFamily.sampleTitles.join(' • ')}`,
+    ]
+
+    return {
+      leadFamily,
+      handoffText: lines.join('\n'),
+    }
+  }, [duplicateFamilies, familyFilter])
 
   const selectedCandidateIndex = selectedCandidate ? sortedCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
   const selectedPendingIndex = selectedCandidate ? pendingCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
@@ -2356,11 +2387,20 @@ export function ReviewQueueClient({
 
       <section className="mb-8 grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Duplicate family pressure</h2>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">The biggest clusters first, so Sha-Lyn can clean duplicates instead of reviewing rows in random order.</p>
             </div>
+            {duplicateFamilySummary ? (
+              <button
+                type="button"
+                onClick={() => copyText(duplicateFamilySummary.handoffText, 'Copied duplicate family handoff')}
+                className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-primary)]"
+              >
+                Copy family handoff
+              </button>
+            ) : null}
           </div>
 
           {duplicateFamilies.length === 0 ? (
