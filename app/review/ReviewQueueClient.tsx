@@ -21,6 +21,7 @@ const STATUS_SORT_ORDER: Record<ReviewStatus, number> = {
 }
 
 type SortMode = 'triage' | 'pending-first' | 'duplicate-pressure' | 'completeness' | 'newest' | 'grade'
+type AiDecisionFilter = 'all' | AiDecision | 'none'
 
 const SORT_MODE_LABELS: Record<SortMode, string> = {
   triage: 'Best next triage',
@@ -90,6 +91,18 @@ function getAiDecisionLabel(decision: AiDecision | null) {
     default:
       return 'No AI triage yet'
   }
+}
+
+function getAiDecisionFilterValue(decision: AiDecision | null): Exclude<AiDecisionFilter, 'all'> {
+  return decision ?? 'none'
+}
+
+function isAiDecisionFilter(value: string | null): value is AiDecisionFilter {
+  return value === 'all' || value === 'approve' || value === 'merge' || value === 'review' || value === 'reject' || value === 'none'
+}
+
+function getAiDecisionFilterLabel(value: AiDecisionFilter) {
+  return value === 'all' ? 'All AI recommendations' : getAiDecisionLabel(value === 'none' ? null : value)
 }
 
 function formatGradeLevel(value: string | null) {
@@ -566,6 +579,10 @@ export function ReviewQueueClient({
   const [difficultyFilter, setDifficultyFilter] = useState<'all' | string>(() => searchParams.get('difficulty') ?? 'all')
   const [categoryFilter, setCategoryFilter] = useState<'all' | string>(() => searchParams.get('category') ?? 'all')
   const [sourceFilter, setSourceFilter] = useState<'all' | string>(() => searchParams.get('source') ?? 'all')
+  const [aiDecisionFilter, setAiDecisionFilter] = useState<AiDecisionFilter>(() => {
+    const value = searchParams.get('ai')
+    return isAiDecisionFilter(value) ? value : 'all'
+  })
   const [triageFilter, setTriageFilter] = useState<'all' | TriageLevel>(() => {
     const value = searchParams.get('triage')
     return value === 'all' || value === 'act-now' || value === 'worth-a-look' || value === 'low-signal' || value === 'already-reviewed'
@@ -594,6 +611,7 @@ export function ReviewQueueClient({
     const nextDifficulty = searchParams.get('difficulty') ?? 'all'
     const nextCategory = searchParams.get('category') ?? 'all'
     const nextSource = searchParams.get('source') ?? 'all'
+    const nextAiDecision = searchParams.get('ai')
     const nextTriage = searchParams.get('triage')
     const nextFamily = searchParams.get('family')
     const nextSort = searchParams.get('sort')
@@ -608,6 +626,10 @@ export function ReviewQueueClient({
     setDifficultyFilter((current) => (current === nextDifficulty ? current : nextDifficulty))
     setCategoryFilter((current) => (current === nextCategory ? current : nextCategory))
     setSourceFilter((current) => (current === nextSource ? current : nextSource))
+    setAiDecisionFilter((current) => {
+      const resolved = isAiDecisionFilter(nextAiDecision) ? nextAiDecision : 'all'
+      return current === resolved ? current : resolved
+    })
     setTriageFilter((current) => {
       const resolved =
         nextTriage === 'all' || nextTriage === 'act-now' || nextTriage === 'worth-a-look' || nextTriage === 'low-signal' || nextTriage === 'already-reviewed'
@@ -650,6 +672,9 @@ export function ReviewQueueClient({
     if (sourceFilter !== 'all') nextParams.set('source', sourceFilter)
     else nextParams.delete('source')
 
+    if (aiDecisionFilter !== 'all') nextParams.set('ai', aiDecisionFilter)
+    else nextParams.delete('ai')
+
     if (triageFilter !== 'all') nextParams.set('triage', triageFilter)
     else nextParams.delete('triage')
 
@@ -668,7 +693,7 @@ export function ReviewQueueClient({
     if (next !== current) {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
     }
-  }, [categoryFilter, difficultyFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
+  }, [aiDecisionFilter, categoryFilter, difficultyFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
   const copyFamilyHandoff = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
@@ -726,6 +751,7 @@ export function ReviewQueueClient({
     setDifficultyFilter('all')
     setCategoryFilter('all')
     setSourceFilter('all')
+    setAiDecisionFilter('all')
     setTriageFilter('all')
     setFamilyFilter(null)
     setSortMode('triage')
@@ -745,6 +771,10 @@ export function ReviewQueueClient({
 
   const toggleSourceFocus = useCallback((source: string) => {
     setSourceFilter((current) => (current === source ? 'all' : source))
+  }, [])
+
+  const toggleAiDecisionFocus = useCallback((decision: Exclude<AiDecisionFilter, 'all'>) => {
+    setAiDecisionFilter((current) => (current === decision ? 'all' : decision))
   }, [])
 
   const toggleStatusFocus = useCallback((status: ReviewStatus) => {
@@ -813,6 +843,7 @@ export function ReviewQueueClient({
 
       if (categoryFilter !== 'all' && candidate.category !== categoryFilter) return false
       if (sourceFilter !== 'all' && candidate.source_file !== sourceFilter) return false
+      if (aiDecisionFilter !== 'all' && getAiDecisionFilterValue(candidate.ai_decision ?? null) !== aiDecisionFilter) return false
       if (familyFilter && candidate.dedupe_key !== familyFilter) return false
 
       if (!normalizedQuery) return true
@@ -835,7 +866,7 @@ export function ReviewQueueClient({
 
       return haystack.includes(normalizedQuery)
     })
-  }, [candidates, query, statusFilter, gradeFilter, difficultyFilter, categoryFilter, sourceFilter, familyFilter, scopedCandidateIds])
+  }, [aiDecisionFilter, candidates, query, statusFilter, gradeFilter, difficultyFilter, categoryFilter, sourceFilter, familyFilter, scopedCandidateIds])
 
   const filteredCandidates = useMemo(() => {
     if (triageFilter === 'all') return baseFilteredCandidates
@@ -1001,6 +1032,21 @@ export function ReviewQueueClient({
     acc[key] = (acc[key] ?? 0) + 1
     return acc
   }, {})
+
+  const aiDecisionCounts = pendingCandidates.reduce<Record<Exclude<AiDecisionFilter, 'all'>, number>>(
+    (acc, candidate) => {
+      const key = getAiDecisionFilterValue(candidate.ai_decision ?? null)
+      acc[key] += 1
+      return acc
+    },
+    {
+      approve: 0,
+      merge: 0,
+      review: 0,
+      reject: 0,
+      none: 0,
+    }
+  )
 
   const triageCounts = basePendingCandidates.reduce<Record<TriageLevel, number>>(
     (acc, candidate) => {
@@ -1438,6 +1484,13 @@ export function ReviewQueueClient({
             onClear: () => setSourceFilter('all'),
           }
         : null,
+      aiDecisionFilter !== 'all'
+        ? {
+            key: 'ai',
+            label: `AI recommendation: ${getAiDecisionFilterLabel(aiDecisionFilter)}`,
+            onClear: () => setAiDecisionFilter('all'),
+          }
+        : null,
       triageFilter !== 'all'
         ? {
             key: 'triage',
@@ -1475,7 +1528,7 @@ export function ReviewQueueClient({
         onClear: () => void
       } => Boolean(chip)
     ),
-    [categoryFilter, clearScopedReview, difficultyFilter, familyFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
+    [aiDecisionFilter, categoryFilter, clearScopedReview, difficultyFilter, familyFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
   )
 
   const copyCurrentSliceHandoff = useCallback(() => {
@@ -1930,6 +1983,65 @@ export function ReviewQueueClient({
                       </button>
                     )
                   })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by AI recommendation</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Jump straight into the AI-suggested action lane, while keeping the default pending triage flow intact.</p>
+              </div>
+              {aiDecisionFilter !== 'all' ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                  Focused on {getAiDecisionFilterLabel(aiDecisionFilter)}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-5 space-y-3">
+              {(Object.values(aiDecisionCounts) as number[]).every((count) => count === 0) ? (
+                <p className="text-sm text-[var(--text-secondary)]">No pending AI recommendation groups in the current filter set.</p>
+              ) : (
+                (['approve', 'merge', 'review', 'reject', 'none'] as Array<Exclude<AiDecisionFilter, 'all'>>).map((decision) => {
+                  const count = aiDecisionCounts[decision]
+                  if (count === 0) return null
+
+                  const isFocusedDecision = aiDecisionFilter === decision
+
+                  return (
+                    <button
+                      key={decision}
+                      type="button"
+                      onClick={() => toggleAiDecisionFocus(decision)}
+                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        isFocusedDecision
+                          ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                          : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                      }`}
+                      aria-pressed={isFocusedDecision}
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAiDecisionTone(decision === 'none' ? null : decision)}`}>
+                            {getAiDecisionFilterLabel(decision)}
+                          </span>
+                          {isFocusedDecision ? (
+                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                              Active
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                          {isFocusedDecision ? 'Click to clear this AI recommendation filter' : 'Click to filter the queue to this AI recommendation'}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                        {count} pending
+                      </span>
+                    </button>
+                  )
+                })
               )}
             </div>
           </div>
