@@ -1316,6 +1316,38 @@ export function ReviewQueueClient({
     }
   )
 
+  const aiDecisionSummaries = useMemo(() => {
+    const summary = new Map<
+      Exclude<AiDecisionFilter, 'all'>,
+      {
+        count: number
+        leadCandidate: RawDrillCandidate | null
+        leadInsight: CandidateInsight | null
+        leadDecision: FamilyDecision | null
+      }
+    >()
+
+    for (const candidate of pendingCandidates) {
+      const key = getAiDecisionFilterValue(candidate.ai_decision ?? null)
+      const existing = summary.get(key)
+
+      if (!existing) {
+        const leadInsight = candidateInsights.get(candidate.id) ?? null
+        summary.set(key, {
+          count: 1,
+          leadCandidate: candidate,
+          leadInsight,
+          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null,
+        })
+        continue
+      }
+
+      existing.count += 1
+    }
+
+    return summary
+  }, [candidateInsights, pendingCandidates])
+
   const triageCounts = basePendingCandidates.reduce<Record<TriageLevel, number>>(
     (acc, candidate) => {
       const triageLevel = candidateInsights.get(candidate.id)?.triageLevel ?? 'low-signal'
@@ -2728,38 +2760,83 @@ export function ReviewQueueClient({
                   if (count === 0) return null
 
                   const isFocusedDecision = aiDecisionFilter === decision
+                  const decisionSummary = aiDecisionSummaries.get(decision)
 
                   return (
-                    <button
+                    <div
                       key={decision}
-                      type="button"
-                      onClick={() => toggleAiDecisionFocus(decision)}
-                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                      className={`rounded-2xl border px-4 py-4 transition-colors ${
                         isFocusedDecision
                           ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
                           : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
                       }`}
-                      aria-pressed={isFocusedDecision}
                     >
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAiDecisionTone(decision === 'none' ? null : decision)}`}>
-                            {getAiDecisionFilterLabel(decision)}
-                          </span>
-                          {isFocusedDecision ? (
-                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                              Active
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 pr-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAiDecisionTone(decision === 'none' ? null : decision)}`}>
+                              {getAiDecisionFilterLabel(decision)}
                             </span>
-                          ) : null}
+                            {isFocusedDecision ? (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                            {isFocusedDecision ? 'Click to clear this AI recommendation filter' : 'Click to filter the queue to this AI recommendation'}
+                          </p>
                         </div>
-                        <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                          {isFocusedDecision ? 'Click to clear this AI recommendation filter' : 'Click to filter the queue to this AI recommendation'}
-                        </p>
+                        <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                          {count} pending
+                        </span>
                       </div>
-                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                        {count} pending
-                      </span>
-                    </button>
+
+                      {decisionSummary?.leadCandidate && decisionSummary.leadInsight && decisionSummary.leadDecision ? (
+                        <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getDecisionTone(decisionSummary.leadDecision)}`}>
+                              {getDecisionLabel(decisionSummary.leadDecision)}
+                            </span>
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getTriageTone(decisionSummary.leadInsight.triageLevel)}`}>
+                              {getTriageLabel(decisionSummary.leadInsight.triageLevel)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">Start with {getDisplayTitle(decisionSummary.leadCandidate)}</p>
+                          <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{getReviewerNextMove(decisionSummary.leadCandidate, decisionSummary.leadInsight)}</p>
+                        </div>
+                      ) : null}
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleAiDecisionFocus(decision)}
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                          aria-pressed={isFocusedDecision}
+                        >
+                          {isFocusedDecision ? 'Current AI lane' : 'Focus this AI lane'}
+                          <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                            Narrow the queue to this AI recommendation.
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={!decisionSummary?.leadCandidate}
+                          onClick={() => {
+                            if (!decisionSummary?.leadCandidate) return
+                            toggleAiDecisionFocus(decision)
+                            selectCandidate(decisionSummary.leadCandidate.id, { scrollIntoView: false })
+                          }}
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                        >
+                          Open lead row
+                          <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                            {decisionSummary?.leadCandidate ? getDisplayTitle(decisionSummary.leadCandidate) : 'No lead row available in this AI lane'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   )
                 })
               )}
