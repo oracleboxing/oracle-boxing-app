@@ -97,6 +97,11 @@ function formatGradeLevel(value: string | null) {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase())
 }
 
+function formatDifficultyLabel(value: string | null) {
+  if (!value) return 'Unassigned'
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase())
+}
+
 function countJsonItems(value: Json | null) {
   return Array.isArray(value) ? value.length : 0
 }
@@ -558,6 +563,7 @@ export function ReviewQueueClient({
     return value === 'all' || REVIEW_STATUSES.includes(value as ReviewStatus) ? (value as 'all' | ReviewStatus) || 'pending' : 'pending'
   })
   const [gradeFilter, setGradeFilter] = useState<'all' | string>(() => searchParams.get('grade') ?? 'all')
+  const [difficultyFilter, setDifficultyFilter] = useState<'all' | string>(() => searchParams.get('difficulty') ?? 'all')
   const [categoryFilter, setCategoryFilter] = useState<'all' | string>(() => searchParams.get('category') ?? 'all')
   const [sourceFilter, setSourceFilter] = useState<'all' | string>(() => searchParams.get('source') ?? 'all')
   const [triageFilter, setTriageFilter] = useState<'all' | TriageLevel>(() => {
@@ -585,6 +591,7 @@ export function ReviewQueueClient({
     const nextQuery = searchParams.get('q') ?? ''
     const nextStatus = searchParams.get('status')
     const nextGrade = searchParams.get('grade') ?? 'all'
+    const nextDifficulty = searchParams.get('difficulty') ?? 'all'
     const nextCategory = searchParams.get('category') ?? 'all'
     const nextSource = searchParams.get('source') ?? 'all'
     const nextTriage = searchParams.get('triage')
@@ -598,6 +605,7 @@ export function ReviewQueueClient({
       return current === resolved ? current : resolved
     })
     setGradeFilter((current) => (current === nextGrade ? current : nextGrade))
+    setDifficultyFilter((current) => (current === nextDifficulty ? current : nextDifficulty))
     setCategoryFilter((current) => (current === nextCategory ? current : nextCategory))
     setSourceFilter((current) => (current === nextSource ? current : nextSource))
     setTriageFilter((current) => {
@@ -633,6 +641,9 @@ export function ReviewQueueClient({
     if (gradeFilter !== 'all') nextParams.set('grade', gradeFilter)
     else nextParams.delete('grade')
 
+    if (difficultyFilter !== 'all') nextParams.set('difficulty', difficultyFilter)
+    else nextParams.delete('difficulty')
+
     if (categoryFilter !== 'all') nextParams.set('category', categoryFilter)
     else nextParams.delete('category')
 
@@ -657,7 +668,7 @@ export function ReviewQueueClient({
     if (next !== current) {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
     }
-  }, [categoryFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
+  }, [categoryFilter, difficultyFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
   const copyFamilyHandoff = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
@@ -712,6 +723,7 @@ export function ReviewQueueClient({
     setQuery('')
     setStatusFilter('pending')
     setGradeFilter('all')
+    setDifficultyFilter('all')
     setCategoryFilter('all')
     setSourceFilter('all')
     setTriageFilter('all')
@@ -725,6 +737,10 @@ export function ReviewQueueClient({
 
   const toggleCategoryFocus = useCallback((category: string) => {
     setCategoryFilter((current) => (current === category ? 'all' : category))
+  }, [])
+
+  const toggleDifficultyFocus = useCallback((difficulty: string) => {
+    setDifficultyFilter((current) => (current === difficulty ? 'all' : difficulty))
   }, [])
 
   const toggleSourceFocus = useCallback((source: string) => {
@@ -767,6 +783,11 @@ export function ReviewQueueClient({
     [candidates]
   )
 
+  const availableDifficulties = useMemo<string[]>(
+    () => Array.from(new Set(candidates.map((candidate) => candidate.difficulty ?? 'unassigned'))).sort(),
+    [candidates]
+  )
+
   const availableSources = useMemo(
     () => Array.from(new Set(candidates.map((candidate) => candidate.source_file).filter(Boolean) as string[])).sort(),
     [candidates]
@@ -783,6 +804,11 @@ export function ReviewQueueClient({
       if (gradeFilter !== 'all') {
         const candidateGrade = candidate.grade_level ?? 'unassigned'
         if (candidateGrade !== gradeFilter) return false
+      }
+
+      if (difficultyFilter !== 'all') {
+        const candidateDifficulty = candidate.difficulty ?? 'unassigned'
+        if (candidateDifficulty !== difficultyFilter) return false
       }
 
       if (categoryFilter !== 'all' && candidate.category !== categoryFilter) return false
@@ -809,7 +835,7 @@ export function ReviewQueueClient({
 
       return haystack.includes(normalizedQuery)
     })
-  }, [candidates, query, statusFilter, gradeFilter, categoryFilter, sourceFilter, familyFilter, scopedCandidateIds])
+  }, [candidates, query, statusFilter, gradeFilter, difficultyFilter, categoryFilter, sourceFilter, familyFilter, scopedCandidateIds])
 
   const filteredCandidates = useMemo(() => {
     if (triageFilter === 'all') return baseFilteredCandidates
@@ -960,6 +986,12 @@ export function ReviewQueueClient({
 
   const categoryCounts = pendingCandidates.reduce<Record<string, number>>((acc, candidate) => {
     const key = candidate.category ?? 'uncategorised'
+    acc[key] = (acc[key] ?? 0) + 1
+    return acc
+  }, {})
+
+  const difficultyCounts = pendingCandidates.reduce<Record<string, number>>((acc, candidate) => {
+    const key = candidate.difficulty ?? 'unassigned'
     acc[key] = (acc[key] ?? 0) + 1
     return acc
   }, {})
@@ -1385,6 +1417,13 @@ export function ReviewQueueClient({
             onClear: () => setGradeFilter('all'),
           }
         : null,
+      difficultyFilter !== 'all'
+        ? {
+            key: 'difficulty',
+            label: `Difficulty: ${formatDifficultyLabel(difficultyFilter)}`,
+            onClear: () => setDifficultyFilter('all'),
+          }
+        : null,
       categoryFilter !== 'all'
         ? {
             key: 'category',
@@ -1436,7 +1475,7 @@ export function ReviewQueueClient({
         onClear: () => void
       } => Boolean(chip)
     ),
-    [categoryFilter, clearScopedReview, familyFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
+    [categoryFilter, clearScopedReview, difficultyFilter, familyFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
   )
 
   const copyCurrentSliceHandoff = useCallback(() => {
@@ -1471,7 +1510,7 @@ export function ReviewQueueClient({
             </p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-7">
             <label className="text-sm text-[var(--text-secondary)]">
               <span className="mb-1 block">Search</span>
               <input
@@ -1525,6 +1564,22 @@ export function ReviewQueueClient({
                 {availableCategories.map((category) => (
                   <option key={category} value={category}>
                     {category}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm text-[var(--text-secondary)]">
+              <span className="mb-1 block">Difficulty</span>
+              <select
+                value={difficultyFilter}
+                onChange={(event) => setDifficultyFilter(event.target.value)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+              >
+                <option value="all">All difficulties</option>
+                {availableDifficulties.map((difficulty) => (
+                  <option key={difficulty} value={difficulty}>
+                    {formatDifficultyLabel(difficulty)}
                   </option>
                 ))}
               </select>
@@ -1927,6 +1982,62 @@ export function ReviewQueueClient({
                           </p>
                         </div>
                         <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                          {count} pending
+                        </span>
+                      </button>
+                    )
+                  })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by difficulty</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Useful when you want to clear one effort band at a time instead of mixing beginner clean-up with harder combinations.</p>
+              </div>
+              {difficultyFilter !== 'all' ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                  Focused on {formatDifficultyLabel(difficultyFilter)}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-5 space-y-3">
+              {Object.keys(difficultyCounts).length === 0 ? (
+                <p className="text-sm text-[var(--text-secondary)]">No pending difficulty bands in the current filter set.</p>
+              ) : (
+                Object.entries(difficultyCounts)
+                  .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+                  .map(([difficulty, count]) => {
+                    const isFocusedDifficulty = difficultyFilter === difficulty
+
+                    return (
+                      <button
+                        key={difficulty}
+                        type="button"
+                        onClick={() => toggleDifficultyFocus(difficulty)}
+                        className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                          isFocusedDifficulty
+                            ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                            : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                        }`}
+                        aria-pressed={isFocusedDifficulty}
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium text-[var(--text-primary)]">{formatDifficultyLabel(difficulty)}</span>
+                            {isFocusedDifficulty ? (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                            {isFocusedDifficulty ? 'Click to clear this difficulty filter' : 'Click to filter the queue to this difficulty'}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
                           {count} pending
                         </span>
                       </button>
