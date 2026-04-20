@@ -2013,6 +2013,45 @@ export function ReviewQueueClient({
             />
             <InfoBlock label="Visible families" value={String(duplicateFamilies.length)} subdued={`${missingSummaryCount} rows still need a summary`} />
           </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {currentSliceSummary.dominantVisibleTriage ? (
+              <button
+                type="button"
+                onClick={() => setTriageFilter(currentSliceSummary.dominantVisibleTriage!)}
+                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Focus dominant triage
+              </button>
+            ) : null}
+            {currentSliceSummary.dominantVisibleCompleteness ? (
+              <button
+                type="button"
+                onClick={() => setCompletenessFilter(currentSliceSummary.dominantVisibleCompleteness!)}
+                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Focus dominant completeness
+              </button>
+            ) : null}
+            {currentSliceSummary.topVisibleSource ? (
+              <button
+                type="button"
+                onClick={() => setSourceFilter(currentSliceSummary.topVisibleSource![0])}
+                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Focus main source
+              </button>
+            ) : null}
+            {currentSliceSummary.leadCandidate ? (
+              <button
+                type="button"
+                onClick={() => selectCandidate(currentSliceSummary.leadCandidate!.id, { scrollIntoView: false })}
+                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Open lead candidate
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
@@ -2021,21 +2060,50 @@ export function ReviewQueueClient({
             <p className="mt-4 text-sm text-[var(--text-secondary)]">No visible candidate in the current filter set.</p>
           ) : (
             <div className="mt-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-[var(--text-primary)]">{getDisplayTitle(currentSliceSummary.leadCandidate)}</p>
-                <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(currentSliceSummary.leadInsight.triageLevel)}`}>
-                  {getTriageLabel(currentSliceSummary.leadInsight.triageLevel)}
-                </span>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{getReviewerNextMove(currentSliceSummary.leadCandidate, currentSliceSummary.leadInsight)}</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <InfoBlock label="Source" value={getSourceLabel(currentSliceSummary.leadCandidate)} />
-                <InfoBlock
-                  label="Duplicate pressure"
-                  value={`${currentSliceSummary.leadInsight.familySize} row${currentSliceSummary.leadInsight.familySize === 1 ? '' : 's'}`}
-                  subdued={currentSliceSummary.leadCandidate.dedupe_key || 'No family yet'}
-                />
-              </div>
+              {(() => {
+                const leadDecision = getCandidateDecisionHint(currentSliceSummary.leadCandidate, currentSliceSummary.leadInsight)
+
+                return (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">{getDisplayTitle(currentSliceSummary.leadCandidate)}</p>
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(currentSliceSummary.leadInsight.triageLevel)}`}>
+                        {getTriageLabel(currentSliceSummary.leadInsight.triageLevel)}
+                      </span>
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDecisionTone(leadDecision)}`}>
+                        {getDecisionLabel(leadDecision)}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{getReviewerNextMove(currentSliceSummary.leadCandidate, currentSliceSummary.leadInsight)}</p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <InfoBlock label="Source" value={getSourceLabel(currentSliceSummary.leadCandidate)} />
+                      <InfoBlock
+                        label="Duplicate pressure"
+                        value={`${currentSliceSummary.leadInsight.familySize} row${currentSliceSummary.leadInsight.familySize === 1 ? '' : 's'}`}
+                        subdued={currentSliceSummary.leadCandidate.dedupe_key || 'No family yet'}
+                      />
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => selectCandidate(currentSliceSummary.leadCandidate.id, { scrollIntoView: false })}
+                        className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        Open in detail panel
+                      </button>
+                      {currentSliceSummary.leadCandidate.dedupe_key ? (
+                        <button
+                          type="button"
+                          onClick={() => focusFamily(currentSliceSummary.leadCandidate!.dedupe_key!, currentSliceSummary.leadCandidate!.id)}
+                          className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                        >
+                          Focus this family
+                        </button>
+                      ) : null}
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           )}
         </div>
@@ -2733,6 +2801,8 @@ export function ReviewQueueClient({
 
                 if (!insight) return null
 
+                const suggestedAction = getCandidateDecisionHint(candidate, insight)
+
                 return (
                   <article
                     key={candidate.id}
@@ -2769,6 +2839,9 @@ export function ReviewQueueClient({
                               </span>
                               <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAiDecisionTone(candidate.ai_decision ?? null)}`}>
                                 {getAiDecisionLabel(candidate.ai_decision ?? null)}
+                              </span>
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDecisionTone(suggestedAction)}`}>
+                                {getDecisionLabel(suggestedAction)}
                               </span>
                               {candidate.dedupe_key && (
                                 <span className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
@@ -2853,6 +2926,7 @@ export function ReviewQueueClient({
                         value={`${insight.completenessScore}/6`}
                         subdued={insight.completenessLabel}
                       />
+                      <InfoBlock label="Suggested action" value={getDecisionLabel(suggestedAction)} subdued={getReviewerNextMove(candidate, insight)} />
                       <InfoBlock
                         label="Duplicate pressure"
                         value={`${insight.familySize} row${insight.familySize === 1 ? '' : 's'}`}
@@ -2984,6 +3058,8 @@ export function ReviewQueueClient({
                     return <p className="text-sm text-[var(--text-secondary)]">Candidate detail is unavailable.</p>
                   }
 
+                  const suggestedAction = getCandidateDecisionHint(selectedCandidate, insight)
+
                   return (
                     <>
                       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
@@ -3088,6 +3164,9 @@ export function ReviewQueueClient({
                           <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(insight.triageLevel)}`}>
                             {getTriageLabel(insight.triageLevel)}
                           </span>
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDecisionTone(suggestedAction)}`}>
+                            {getDecisionLabel(suggestedAction)}
+                          </span>
                         </div>
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">{getShortSummary(selectedCandidate)}</p>
                         <p className="mt-3 text-xs leading-5 text-[var(--text-tertiary)]">{insight.triageSummary}</p>
@@ -3115,6 +3194,7 @@ export function ReviewQueueClient({
                         <InfoBlock label="Duration" value={selectedCandidate.estimated_duration_seconds ? `${selectedCandidate.estimated_duration_seconds}s` : 'Unknown'} />
                         <InfoBlock label="Source file" value={selectedCandidate.source_file || 'Missing'} subdued={selectedCandidate.source_type || undefined} />
                         <InfoBlock label="Canonical link" value={selectedCandidate.canonical_drill_id || 'Not linked yet'} />
+                        <InfoBlock label="Suggested action" value={getDecisionLabel(suggestedAction)} subdued={getReviewerNextMove(selectedCandidate, insight)} />
                         <InfoBlock label="Completeness" value={`${insight.completenessScore}/6`} subdued={insight.completenessLabel} />
                         <InfoBlock
                           label="Duplicate pressure"
