@@ -682,6 +682,15 @@ export function ReviewQueueClient({
     window.setTimeout(() => setCopyFeedback(null), 3000)
   }, [])
 
+  const clearScopedReview = useCallback(() => {
+    const nextParams = new URLSearchParams(searchParams.toString())
+    nextParams.delete('ids')
+    nextParams.delete('selected')
+
+    const next = nextParams.toString()
+    router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
+  }, [pathname, router, searchParams])
+
   const focusFamily = useCallback(
     (dedupeKey: string, nextSelectedId?: string) => {
       setFamilyFilter(dedupeKey)
@@ -697,6 +706,17 @@ export function ReviewQueueClient({
 
   const clearFamilyFocus = useCallback(() => {
     setFamilyFilter(null)
+  }, [])
+
+  const clearAllViewFilters = useCallback(() => {
+    setQuery('')
+    setStatusFilter('pending')
+    setGradeFilter('all')
+    setCategoryFilter('all')
+    setSourceFilter('all')
+    setTriageFilter('all')
+    setFamilyFilter(null)
+    setSortMode('triage')
   }, [])
 
   const toggleGradeFocus = useCallback((grade: string) => {
@@ -1342,6 +1362,83 @@ export function ReviewQueueClient({
   const allVisiblePendingSelected =
     pendingCandidates.length > 0 && pendingCandidates.every((candidate) => visibleSelectedIds.includes(candidate.id))
 
+  const activeViewChips = useMemo(
+    () => [
+      query.trim()
+        ? {
+            key: 'query',
+            label: `Search: ${query.trim()}`,
+            onClear: () => setQuery(''),
+          }
+        : null,
+      statusFilter !== 'pending'
+        ? {
+            key: 'status',
+            label: `Status: ${statusFilter === 'all' ? 'All statuses' : REVIEW_STATUS_LABELS[statusFilter]}`,
+            onClear: () => setStatusFilter('pending'),
+          }
+        : null,
+      gradeFilter !== 'all'
+        ? {
+            key: 'grade',
+            label: `Grade: ${formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}`,
+            onClear: () => setGradeFilter('all'),
+          }
+        : null,
+      categoryFilter !== 'all'
+        ? {
+            key: 'category',
+            label: `Category: ${categoryFilter}`,
+            onClear: () => setCategoryFilter('all'),
+          }
+        : null,
+      sourceFilter !== 'all'
+        ? {
+            key: 'source',
+            label: `Source: ${sourceFilter}`,
+            onClear: () => setSourceFilter('all'),
+          }
+        : null,
+      triageFilter !== 'all'
+        ? {
+            key: 'triage',
+            label: `Triage: ${getTriageLabel(triageFilter)}`,
+            onClear: () => setTriageFilter('all'),
+          }
+        : null,
+      familyFilter
+        ? {
+            key: 'family',
+            label: `Family: ${familyFilter}`,
+            onClear: () => setFamilyFilter(null),
+          }
+        : null,
+      sortMode !== 'triage'
+        ? {
+            key: 'sort',
+            label: `Sort: ${SORT_MODE_LABELS[sortMode]}`,
+            onClear: () => setSortMode('triage'),
+          }
+        : null,
+      scopedCandidateIds
+        ? {
+            key: 'scope',
+            label: `Scope: ${scopeRequestedCount} linked row${scopeRequestedCount === 1 ? '' : 's'}`,
+            onClear: clearScopedReview,
+          }
+        : null,
+    ].filter(
+      (
+        chip
+      ): chip is {
+        key: string
+        label: string
+        onClear: () => void
+      } => Boolean(chip)
+    ),
+    [categoryFilter, clearScopedReview, familyFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
+  )
+
   const copyCurrentSliceHandoff = useCallback(() => {
     navigator.clipboard.writeText(currentSliceSummary.handoffText)
     setCopyFeedback('Copied review queue handoff')
@@ -1498,6 +1595,39 @@ export function ReviewQueueClient({
           {actionError ? (
             <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
               {actionError}
+            </div>
+          ) : null}
+
+          {activeViewChips.length > 0 ? (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Active view modifiers</p>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)]">Clear one filter at a time, or reset the queue back to the default pending triage view.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearAllViewFilters}
+                  className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                >
+                  Reset view
+                </button>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {activeViewChips.map((chip) => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={chip.onClear}
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-primary)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                  >
+                    <span>{chip.label}</span>
+                    <span aria-hidden="true" className="text-[var(--text-tertiary)]">
+                      ×
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
         </div>
@@ -2061,12 +2191,13 @@ export function ReviewQueueClient({
                   >
                     Copy scope link
                   </button>
-                  <Link
-                    href="/review"
+                  <button
+                    type="button"
+                    onClick={clearScopedReview}
                     className="inline-flex rounded-xl border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-950 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100 dark:hover:bg-sky-900/30"
                   >
                     Clear scope
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
