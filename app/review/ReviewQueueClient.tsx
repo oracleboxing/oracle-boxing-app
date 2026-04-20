@@ -2747,11 +2747,9 @@ export function ReviewQueueClient({
                 const isFocusedFamily = familyFilter === family.dedupeKey
 
                 return (
-                  <button
+                  <div
                     key={family.dedupeKey}
-                    type="button"
-                    onClick={() => focusFamily(family.dedupeKey)}
-                    className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
+                    className={`w-full rounded-2xl border px-4 py-4 transition-colors ${
                       isFocusedFamily
                         ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
                         : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
@@ -2794,10 +2792,31 @@ export function ReviewQueueClient({
                         <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{getReviewerNextMove(family.leadCandidate, family.leadInsight)}</p>
                       </div>
                     ) : null}
-                    <p className="mt-3 text-xs font-medium text-[var(--text-tertiary)]">
-                      {isFocusedFamily ? 'Current family focus' : 'Click to focus this duplicate family'}
-                    </p>
-                  </button>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => focusFamily(family.dedupeKey)}
+                        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        {isFocusedFamily ? 'Current family focus' : 'Focus this family'}
+                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                          Narrow the queue to this duplicate cluster.
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!family.leadCandidate}
+                        onClick={() => (family.leadCandidate ? focusFamily(family.dedupeKey, family.leadCandidate.id) : null)}
+                        className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        Open lead row
+                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                          {family.leadCandidate ? getDisplayTitle(family.leadCandidate) : 'No lead row available in this family'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
                 )
               })}
             </div>
