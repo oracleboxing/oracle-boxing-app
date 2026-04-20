@@ -1082,6 +1082,12 @@ export function ReviewQueueClient({
     )
 
     const pendingCount = ranked.filter(({ candidate }) => candidate.review_status === 'pending').length
+    const nextMergeCandidate =
+      ranked.find(
+        ({ candidate, insight }) =>
+          candidate.id !== keepCandidate.id && candidate.review_status === 'pending' && getCandidateDecisionHint(candidate, insight) === 'merge'
+      )?.candidate ?? null
+    const nextRejectCandidate = ranked.find(({ candidate, insight }) => candidate.review_status === 'pending' && getCandidateDecisionHint(candidate, insight) === 'reject')?.candidate ?? null
 
     const handoffLines = [
       `Family: ${selectedCandidate.dedupe_key}`,
@@ -1110,6 +1116,8 @@ export function ReviewQueueClient({
     return {
       ranked,
       keepCandidate,
+      nextMergeCandidate,
+      nextRejectCandidate,
       decisionCounts,
       pendingCount,
       handoffText: handoffLines.join('\n'),
@@ -2233,6 +2241,47 @@ export function ReviewQueueClient({
                             <InfoBlock label="Suggested keep" value={String(selectedFamilyWorkspace.decisionCounts.keep)} subdued={getDisplayTitle(selectedFamilyWorkspace.keepCandidate)} />
                             <InfoBlock label="Suggested merge" value={String(selectedFamilyWorkspace.decisionCounts.merge)} subdued="Useful supporting duplicates" />
                             <InfoBlock label="Suggested reject" value={String(selectedFamilyWorkspace.decisionCounts.reject)} subdued="Thin or noisy overlap" />
+                          </div>
+
+                          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                            <button
+                              type="button"
+                              onClick={() => selectCandidate(selectedFamilyWorkspace.keepCandidate.id, { scrollIntoView: false })}
+                              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            >
+                              Open suggested keep
+                              <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">{getDisplayTitle(selectedFamilyWorkspace.keepCandidate)}</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!selectedFamilyWorkspace.nextMergeCandidate}
+                              onClick={() =>
+                                selectedFamilyWorkspace.nextMergeCandidate
+                                  ? selectCandidate(selectedFamilyWorkspace.nextMergeCandidate.id, { scrollIntoView: false })
+                                  : null
+                              }
+                              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              Open next merge row
+                              <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                                {selectedFamilyWorkspace.nextMergeCandidate ? getDisplayTitle(selectedFamilyWorkspace.nextMergeCandidate) : 'No pending merge row left'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!selectedFamilyWorkspace.nextRejectCandidate}
+                              onClick={() =>
+                                selectedFamilyWorkspace.nextRejectCandidate
+                                  ? selectCandidate(selectedFamilyWorkspace.nextRejectCandidate.id, { scrollIntoView: false })
+                                  : null
+                              }
+                              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              Open next reject row
+                              <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                                {selectedFamilyWorkspace.nextRejectCandidate ? getDisplayTitle(selectedFamilyWorkspace.nextRejectCandidate) : 'No pending reject row left'}
+                              </span>
+                            </button>
                           </div>
 
                           <div className="mt-4 space-y-3">
