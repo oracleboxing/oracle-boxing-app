@@ -36,6 +36,7 @@ type TriageLevel = 'act-now' | 'worth-a-look' | 'low-signal' | 'already-reviewed
 type CompletenessBand = 'thin' | 'usable' | 'rich'
 type SuggestedActionFilter = 'all' | FamilyDecision
 type DuplicateShapeFilter = 'all' | 'solo' | 'pair' | 'small-family' | 'large-family'
+type ReviewRouteKey = 'approve-ready' | 'merge-sweep' | 'thin-cleanup'
 
 const DUPLICATE_SHAPE_LABELS: Record<DuplicateShapeFilter, string> = {
   all: 'All family shapes',
@@ -322,6 +323,17 @@ function getGradeSortValue(value: string | null) {
       return 3
     default:
       return 99
+  }
+}
+
+function getReviewRouteTone(route: ReviewRouteKey) {
+  switch (route) {
+    case 'approve-ready':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300'
+    case 'merge-sweep':
+      return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300'
+    case 'thin-cleanup':
+      return 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300'
   }
 }
 
@@ -846,6 +858,16 @@ export function ReviewQueueClient({
     setSortMode('triage')
   }, [])
 
+  const applyReviewRoute = useCallback((route: ReviewRouteKey) => {
+    setStatusFilter('pending')
+    setTriageFilter('all')
+    setCompletenessFilter(route === 'thin-cleanup' ? 'thin' : 'all')
+    setSuggestedActionFilter(route === 'approve-ready' ? 'keep' : route === 'merge-sweep' ? 'merge' : 'reject')
+    setFamilyShapeFilter('all')
+    setFamilyFilter(null)
+    setSortMode(route === 'approve-ready' ? 'completeness' : route === 'merge-sweep' ? 'duplicate-pressure' : 'triage')
+  }, [])
+
   const focusFamilyShape = useCallback((shape: Exclude<DuplicateShapeFilter, 'all'>) => {
     setFamilyShapeFilter((current) => (current === shape ? 'all' : shape))
     setFamilyFilter(null)
@@ -856,9 +878,12 @@ export function ReviewQueueClient({
     setGradeFilter((current) => (current === grade ? 'all' : grade))
   }, [])
 
-  const toggleCategoryFocus = useCallback((category: string) => {
+  const toggleCategoryFocus = useCallback((category: string, candidateId?: string) => {
     setCategoryFilter((current) => (current === category ? 'all' : category))
-  }, [])
+    if (candidateId) {
+      selectCandidate(candidateId, { scrollIntoView: false })
+    }
+  }, [selectCandidate])
 
   const toggleDifficultyFocus = useCallback((difficulty: string) => {
     setDifficultyFilter((current) => (current === difficulty ? 'all' : difficulty))
@@ -1200,6 +1225,38 @@ export function ReviewQueueClient({
     return summary
   }, [candidateInsights, pendingCandidates])
 
+  const categorySummaries = useMemo(() => {
+    const summary = new Map<
+      string,
+      {
+        count: number
+        leadCandidate: RawDrillCandidate | null
+        leadInsight: CandidateInsight | null
+        leadDecision: FamilyDecision | null
+      }
+    >()
+
+    for (const candidate of pendingCandidates) {
+      const key = candidate.category ?? 'uncategorised'
+      const existing = summary.get(key)
+
+      if (!existing) {
+        const leadInsight = candidateInsights.get(candidate.id) ?? null
+        summary.set(key, {
+          count: 1,
+          leadCandidate: candidate,
+          leadInsight,
+          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null,
+        })
+        continue
+      }
+
+      existing.count += 1
+    }
+
+    return summary
+  }, [candidateInsights, pendingCandidates])
+
   const aiDecisionCounts = pendingCandidates.reduce<Record<Exclude<AiDecisionFilter, 'all'>, number>>(
     (acc, candidate) => {
       const key = getAiDecisionFilterValue(candidate.ai_decision ?? null)
@@ -1412,6 +1469,67 @@ export function ReviewQueueClient({
       handoffText: lines.join('\n'),
     }
   }, [candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, missingSummaryCount, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
+
+  const reviewRoutes = useMemo(() => {
+    const routeDefinitions: Array<{
+      key: ReviewRouteKey
+      label: string
+      description: string
+      countLabel: string
+      isActive: boolean
+      matches: (candidate: RawDrillCandidate, insight: CandidateInsight) => boolean
+      rank: (candidate: RawDrillCandidate, insight: CandidateInsight) => number
+    }> = [
+      {
+        key: 'approve-ready',
+        label: 'Approve-ready',
+        description: 'Likely canonical seeds with enough structure to turn into drills without extra queue wrangling.',
+        countLabel: 'ready keeps',
+        isActive: suggestedActionFilter === 'keep' && sortMode === 'completeness' && completenessFilter === 'all' && triageFilter === 'all' && familyShapeFilter === 'all' && !familyFilter,
+        matches: (candidate, insight) => getCandidateDecisionHint(candidate, insight) === 'keep' && insight.completenessScore >= 3,
+        rank: (candidate, insight) => insight.completenessScore * 100 + insight.triageScore * 10 - getCreatedAtTimestamp(candidate.created_at),
+      },
+      {
+        key: 'merge-sweep',
+        label: 'Merge sweep',
+        description: 'Supporting duplicates grouped into one pass, so reviewers can collapse overlap instead of treating rows as isolated.',
+        countLabel: 'merge rows',
+        isActive: suggestedActionFilter === 'merge' && sortMode === 'duplicate-pressure' && completenessFilter === 'all' && triageFilter === 'all' && familyShapeFilter === 'all' && !familyFilter,
+        matches: (candidate, insight) => getCandidateDecisionHint(candidate, insight) === 'merge' && insight.familySize >= 2,
+        rank: (candidate, insight) => insight.familySize * 100 + insight.triageScore * 10 + insight.completenessScore,
+      },
+      {
+        key: 'thin-cleanup',
+        label: 'Thin cleanup',
+        description: 'Low-information rows that are probably rejects, bundled into a fast cleanup lane.',
+        countLabel: 'thin rejects',
+        isActive: suggestedActionFilter === 'reject' && completenessFilter === 'thin' && sortMode === 'triage' && triageFilter === 'all' && familyShapeFilter === 'all' && !familyFilter,
+        matches: (candidate, insight) => getCandidateDecisionHint(candidate, insight) === 'reject' && getCompletenessBand(insight) === 'thin',
+        rank: (candidate, insight) => insight.triageScore * 10 - insight.completenessScore,
+      },
+    ]
+
+    return routeDefinitions.map((route) => {
+      const candidatesInRoute = basePendingCandidates
+        .map((candidate) => ({ candidate, insight: candidateInsights.get(candidate.id) ?? null }))
+        .filter((item): item is { candidate: RawDrillCandidate; insight: CandidateInsight } => Boolean(item.insight))
+        .filter((item) => route.matches(item.candidate, item.insight))
+        .sort((left, right) => route.rank(right.candidate, right.insight) - route.rank(left.candidate, left.insight))
+
+      const lead = candidatesInRoute[0] ?? null
+
+      return {
+        key: route.key,
+        label: route.label,
+        description: route.description,
+        countLabel: route.countLabel,
+        count: candidatesInRoute.length,
+        isActive: route.isActive,
+        leadCandidate: lead?.candidate ?? null,
+        leadInsight: lead?.insight ?? null,
+      }
+    })
+  }, [basePendingCandidates, candidateInsights, completenessFilter, familyFilter, familyShapeFilter, sortMode, suggestedActionFilter, triageFilter])
 
   const duplicateFamilySummary = useMemo(() => {
     const leadFamily = duplicateFamilies[0] ?? null
@@ -2307,6 +2425,84 @@ export function ReviewQueueClient({
         </div>
       </section>
 
+      <section className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Review routes</h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">One-click queue presets that combine the existing filters into practical review passes.</p>
+          </div>
+          <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
+            Uses current search, source, grade, and scope context
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3 xl:grid-cols-3">
+          {reviewRoutes.map((route) => (
+            <div
+              key={route.key}
+              className={`rounded-3xl border px-5 py-5 transition-colors ${
+                route.isActive ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm' : 'border-[var(--border)] bg-[var(--surface-primary)]'
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getReviewRouteTone(route.key)}`}>
+                  {route.label}
+                </span>
+                {route.isActive ? (
+                  <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                    Active
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{route.description}</p>
+              <p className="mt-4 text-3xl font-bold text-[var(--text-primary)]">{route.count}</p>
+              <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">{route.countLabel} in the current context</p>
+              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Lead row</p>
+                <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">
+                  {route.leadCandidate ? getDisplayTitle(route.leadCandidate) : 'No matching row in this slice'}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
+                  {route.leadCandidate && route.leadInsight ? getReviewerNextMove(route.leadCandidate, route.leadInsight) : 'Try a broader search or clear a source/grade filter.'}
+                </p>
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  disabled={route.count === 0}
+                  onClick={() => applyReviewRoute(route.key)}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {route.isActive ? 'Current route' : 'Apply route'}
+                  <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                    {route.key === 'approve-ready'
+                      ? 'Suggested keep + completeness ordering'
+                      : route.key === 'merge-sweep'
+                        ? 'Suggested merge + duplicate-pressure ordering'
+                        : 'Suggested reject + thin extracts'}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={!route.leadCandidate}
+                  onClick={() => {
+                    if (!route.leadCandidate) return
+                    applyReviewRoute(route.key)
+                    selectCandidate(route.leadCandidate.id, { scrollIntoView: false })
+                  }}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                >
+                  Open lead row
+                  <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                    {route.leadCandidate ? `${getSourceLabel(route.leadCandidate)} • applies this route first` : 'No matching row in this route'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="mb-8 grid gap-4 xl:grid-cols-3">
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 xl:col-span-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2837,36 +3033,77 @@ export function ReviewQueueClient({
                   .slice(0, 6)
                   .map(([category, count]) => {
                     const isFocusedCategory = categoryFilter === category
+                    const categorySummary = categorySummaries.get(category)
 
                     return (
-                      <button
+                      <div
                         key={category}
-                        type="button"
-                        onClick={() => toggleCategoryFocus(category)}
-                        className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        className={`rounded-2xl border px-4 py-4 transition-colors ${
                           isFocusedCategory
                             ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
                             : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
                         }`}
-                        aria-pressed={isFocusedCategory}
                       >
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium capitalize text-[var(--text-primary)]">{category === 'uncategorised' ? 'Uncategorised' : category}</span>
-                            {isFocusedCategory ? (
-                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                                Active
-                              </span>
-                            ) : null}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 pr-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-medium capitalize text-[var(--text-primary)]">{category === 'uncategorised' ? 'Uncategorised' : category}</span>
+                              {isFocusedCategory ? (
+                                <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                  Active
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                              {isFocusedCategory ? 'Click to clear this category filter' : 'Click to focus this drill type'}
+                            </p>
                           </div>
-                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                            {isFocusedCategory ? 'Click to clear this category filter' : 'Click to filter the queue to this category'}
-                          </p>
+                          <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                            {count} pending
+                          </span>
                         </div>
-                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                          {count} pending
-                        </span>
-                      </button>
+
+                        {categorySummary?.leadCandidate && categorySummary.leadInsight && categorySummary.leadDecision ? (
+                          <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getDecisionTone(categorySummary.leadDecision)}`}>
+                                {getDecisionLabel(categorySummary.leadDecision)}
+                              </span>
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getTriageTone(categorySummary.leadInsight.triageLevel)}`}>
+                                {getTriageLabel(categorySummary.leadInsight.triageLevel)}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">Start with {getDisplayTitle(categorySummary.leadCandidate)}</p>
+                            <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{getReviewerNextMove(categorySummary.leadCandidate, categorySummary.leadInsight)}</p>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleCategoryFocus(category)}
+                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            aria-pressed={isFocusedCategory}
+                          >
+                            {isFocusedCategory ? 'Current category focus' : 'Focus this category'}
+                            <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                              Narrow the queue to this drill type.
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={!categorySummary?.leadCandidate}
+                            onClick={() => (categorySummary?.leadCandidate ? toggleCategoryFocus(category, categorySummary.leadCandidate.id) : null)}
+                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                          >
+                            Open lead row
+                            <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                              {categorySummary?.leadCandidate ? getDisplayTitle(categorySummary.leadCandidate) : 'No lead row available in this category'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
                     )
                   })
               )}
