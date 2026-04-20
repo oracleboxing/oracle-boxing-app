@@ -703,6 +703,10 @@ export function ReviewQueueClient({
     setGradeFilter((current) => (current === grade ? 'all' : grade))
   }, [])
 
+  const toggleCategoryFocus = useCallback((category: string) => {
+    setCategoryFilter((current) => (current === category ? 'all' : category))
+  }, [])
+
   const toggleStatusFocus = useCallback((status: ReviewStatus) => {
     setStatusFilter((current) => (current === status ? 'all' : status))
   }, [])
@@ -926,6 +930,12 @@ export function ReviewQueueClient({
 
   const gradeCounts = pendingCandidates.reduce<Record<string, number>>((acc, candidate) => {
     const key = candidate.grade_level ?? 'unassigned'
+    acc[key] = (acc[key] ?? 0) + 1
+    return acc
+  }, {})
+
+  const categoryCounts = pendingCandidates.reduce<Record<string, number>>((acc, candidate) => {
+    const key = candidate.category ?? 'uncategorised'
     acc[key] = (acc[key] ?? 0) + 1
     return acc
   }, {})
@@ -1607,8 +1617,8 @@ export function ReviewQueueClient({
         </div>
       </section>
 
-      <section className="mb-8 grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+      <section className="mb-8 grid gap-4 xl:grid-cols-3">
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 xl:col-span-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Queue by review status</h2>
@@ -1654,59 +1664,118 @@ export function ReviewQueueClient({
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by grade</h2>
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">Helpful when scanning current graduation imports. Click a row to jump into that grade.</p>
+        <div className="grid gap-4">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by grade</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Helpful when scanning current graduation imports. Click a row to jump into that grade.</p>
+              </div>
+              {gradeFilter !== 'all' ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                  Focused on {formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}
+                </span>
+              ) : null}
             </div>
-            {gradeFilter !== 'all' ? (
-              <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                Focused on {formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}
-              </span>
-            ) : null}
-          </div>
-          <div className="mt-5 space-y-3">
-            {Object.keys(gradeCounts).length === 0 ? (
-              <p className="text-sm text-[var(--text-secondary)]">No pending candidates in the current filter set.</p>
-            ) : (
-              Object.entries(gradeCounts)
-                .sort(([left], [right]) => left.localeCompare(right))
-                .map(([grade, count]) => {
-                  const isFocusedGrade = gradeFilter === grade
+            <div className="mt-5 space-y-3">
+              {Object.keys(gradeCounts).length === 0 ? (
+                <p className="text-sm text-[var(--text-secondary)]">No pending candidates in the current filter set.</p>
+              ) : (
+                Object.entries(gradeCounts)
+                  .sort(([left], [right]) => left.localeCompare(right))
+                  .map(([grade, count]) => {
+                    const isFocusedGrade = gradeFilter === grade
 
-                  return (
-                    <button
-                      key={grade}
-                      type="button"
-                      onClick={() => toggleGradeFocus(grade)}
-                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
-                        isFocusedGrade
-                          ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
-                          : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
-                      }`}
-                      aria-pressed={isFocusedGrade}
-                    >
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-[var(--text-primary)]">{formatGradeLevel(grade === 'unassigned' ? null : grade)}</span>
-                          {isFocusedGrade ? (
-                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                              Active
-                            </span>
-                          ) : null}
+                    return (
+                      <button
+                        key={grade}
+                        type="button"
+                        onClick={() => toggleGradeFocus(grade)}
+                        className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                          isFocusedGrade
+                            ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                            : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                        }`}
+                        aria-pressed={isFocusedGrade}
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium text-[var(--text-primary)]">{formatGradeLevel(grade === 'unassigned' ? null : grade)}</span>
+                            {isFocusedGrade ? (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                            {isFocusedGrade ? 'Click to clear this grade filter' : 'Click to filter the queue to this grade'}
+                          </p>
                         </div>
-                        <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                          {isFocusedGrade ? 'Click to clear this grade filter' : 'Click to filter the queue to this grade'}
-                        </p>
-                      </div>
-                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                        {count} pending
-                      </span>
-                    </button>
-                  )
-                })
-            )}
+                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                          {count} pending
+                        </span>
+                      </button>
+                    )
+                  })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by category</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Useful when you want to clear one drill type at a time instead of mixing stance, footwork, and defence rows together.</p>
+              </div>
+              {categoryFilter !== 'all' ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                  Focused on {categoryFilter === 'uncategorised' ? 'Uncategorised' : categoryFilter}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-5 space-y-3">
+              {Object.keys(categoryCounts).length === 0 ? (
+                <p className="text-sm text-[var(--text-secondary)]">No pending categories in the current filter set.</p>
+              ) : (
+                Object.entries(categoryCounts)
+                  .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+                  .slice(0, 6)
+                  .map(([category, count]) => {
+                    const isFocusedCategory = categoryFilter === category
+
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => toggleCategoryFocus(category)}
+                        className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                          isFocusedCategory
+                            ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                            : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                        }`}
+                        aria-pressed={isFocusedCategory}
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium capitalize text-[var(--text-primary)]">{category === 'uncategorised' ? 'Uncategorised' : category}</span>
+                            {isFocusedCategory ? (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                            {isFocusedCategory ? 'Click to clear this category filter' : 'Click to filter the queue to this category'}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                          {count} pending
+                        </span>
+                      </button>
+                    )
+                  })
+              )}
+            </div>
           </div>
         </div>
       </section>
