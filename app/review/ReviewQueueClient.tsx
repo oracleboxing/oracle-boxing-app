@@ -34,6 +34,7 @@ const SORT_MODE_LABELS: Record<SortMode, string> = {
 
 type TriageLevel = 'act-now' | 'worth-a-look' | 'low-signal' | 'already-reviewed'
 type CompletenessBand = 'thin' | 'usable' | 'rich'
+type SuggestedActionFilter = 'all' | FamilyDecision
 
 const COMPLETENESS_BAND_LABELS: Record<CompletenessBand, string> = {
   thin: 'Thin extract',
@@ -189,6 +190,14 @@ function getDecisionLabel(decision: FamilyDecision) {
     case 'reject':
       return 'Reject as duplicate/noisy'
   }
+}
+
+function isSuggestedActionFilter(value: string | null): value is SuggestedActionFilter {
+  return value === 'all' || value === 'keep' || value === 'merge' || value === 'reject'
+}
+
+function getSuggestedActionFilterLabel(value: SuggestedActionFilter) {
+  return value === 'all' ? 'All suggested actions' : getDecisionLabel(value)
 }
 
 function getCandidateReadinessGaps(candidate: RawDrillCandidate, insight: CandidateInsight) {
@@ -606,6 +615,10 @@ export function ReviewQueueClient({
     const value = searchParams.get('completeness')
     return value === 'all' || value === 'thin' || value === 'usable' || value === 'rich' ? ((value as 'all' | CompletenessBand) ?? 'all') : 'all'
   })
+  const [suggestedActionFilter, setSuggestedActionFilter] = useState<SuggestedActionFilter>(() => {
+    const value = searchParams.get('action')
+    return isSuggestedActionFilter(value) ? value : 'all'
+  })
   const [familyFilter, setFamilyFilter] = useState<string | null>(() => {
     const value = searchParams.get('family')
     return value?.trim() ? value : null
@@ -631,6 +644,7 @@ export function ReviewQueueClient({
     const nextAiDecision = searchParams.get('ai')
     const nextTriage = searchParams.get('triage')
     const nextCompleteness = searchParams.get('completeness')
+    const nextSuggestedAction = searchParams.get('action')
     const nextFamily = searchParams.get('family')
     const nextSort = searchParams.get('sort')
     const nextSelected = searchParams.get('selected')
@@ -660,6 +674,10 @@ export function ReviewQueueClient({
         nextCompleteness === 'all' || nextCompleteness === 'thin' || nextCompleteness === 'usable' || nextCompleteness === 'rich'
           ? ((nextCompleteness as 'all' | CompletenessBand) ?? 'all')
           : 'all'
+      return current === resolved ? current : resolved
+    })
+    setSuggestedActionFilter((current) => {
+      const resolved = isSuggestedActionFilter(nextSuggestedAction) ? nextSuggestedAction : 'all'
       return current === resolved ? current : resolved
     })
     setFamilyFilter((current) => {
@@ -706,6 +724,9 @@ export function ReviewQueueClient({
     if (completenessFilter !== 'all') nextParams.set('completeness', completenessFilter)
     else nextParams.delete('completeness')
 
+    if (suggestedActionFilter !== 'all') nextParams.set('action', suggestedActionFilter)
+    else nextParams.delete('action')
+
     if (familyFilter) nextParams.set('family', familyFilter)
     else nextParams.delete('family')
 
@@ -721,7 +742,7 @@ export function ReviewQueueClient({
     if (next !== current) {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
     }
-  }, [aiDecisionFilter, categoryFilter, completenessFilter, difficultyFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
+  }, [aiDecisionFilter, categoryFilter, completenessFilter, suggestedActionFilter, difficultyFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
   const copyFamilyHandoff = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
@@ -787,6 +808,7 @@ export function ReviewQueueClient({
     setAiDecisionFilter('all')
     setTriageFilter('all')
     setCompletenessFilter('all')
+    setSuggestedActionFilter('all')
     setFamilyFilter(null)
     setSortMode('triage')
   }, [])
@@ -813,6 +835,10 @@ export function ReviewQueueClient({
 
   const toggleCompletenessFocus = useCallback((band: CompletenessBand) => {
     setCompletenessFilter((current) => (current === band ? 'all' : band))
+  }, [])
+
+  const toggleSuggestedActionFocus = useCallback((decision: FamilyDecision) => {
+    setSuggestedActionFilter((current) => (current === decision ? 'all' : decision))
   }, [])
 
   const toggleStatusFocus = useCallback((status: ReviewStatus) => {
@@ -912,9 +938,10 @@ export function ReviewQueueClient({
       if (!insight) return false
       if (triageFilter !== 'all' && insight.triageLevel !== triageFilter) return false
       if (completenessFilter !== 'all' && getCompletenessBand(insight) !== completenessFilter) return false
+      if (suggestedActionFilter !== 'all' && getCandidateDecisionHint(candidate, insight) !== suggestedActionFilter) return false
       return true
     })
-  }, [baseFilteredCandidates, candidateInsights, completenessFilter, triageFilter])
+  }, [baseFilteredCandidates, candidateInsights, completenessFilter, suggestedActionFilter, triageFilter])
 
   const sortedCandidates = useMemo(() => {
     return [...filteredCandidates].sort((left, right) => {
@@ -1112,6 +1139,20 @@ export function ReviewQueueClient({
       thin: 0,
       usable: 0,
       rich: 0,
+    }
+  )
+
+  const suggestedActionCounts = basePendingCandidates.reduce<Record<FamilyDecision, number>>(
+    (acc, candidate) => {
+      const insight = candidateInsights.get(candidate.id)
+      if (!insight) return acc
+      acc[getCandidateDecisionHint(candidate, insight)] += 1
+      return acc
+    },
+    {
+      keep: 0,
+      merge: 0,
+      reject: 0,
     }
   )
 
@@ -1592,6 +1633,13 @@ export function ReviewQueueClient({
             key: 'completeness',
             label: `Completeness: ${COMPLETENESS_BAND_LABELS[completenessFilter]}`,
             onClear: () => setCompletenessFilter('all'),
+          }
+        : null,
+      suggestedActionFilter !== 'all'
+        ? {
+            key: 'action',
+            label: `Suggested action: ${getSuggestedActionFilterLabel(suggestedActionFilter)}`,
+            onClear: () => setSuggestedActionFilter('all'),
           }
         : null,
       familyFilter
@@ -2204,6 +2252,74 @@ export function ReviewQueueClient({
                         </p>
                       </div>
                       <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                        {count} pending
+                      </span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by suggested action</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Jump straight into likely keeps, merges, or rejects instead of working that out row by row.</p>
+              </div>
+              {suggestedActionFilter !== 'all' ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                  Focused on {getSuggestedActionFilterLabel(suggestedActionFilter)}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-5 space-y-3">
+              {(Object.values(suggestedActionCounts) as number[]).every((count) => count === 0) ? (
+                <p className="text-sm text-[var(--text-secondary)]">No pending suggested-action lanes in the current filter set.</p>
+              ) : (
+                (['keep', 'merge', 'reject'] as FamilyDecision[]).map((decision) => {
+                  const count = suggestedActionCounts[decision]
+                  const isFocusedDecision = suggestedActionFilter === decision
+
+                  return (
+                    <button
+                      key={decision}
+                      type="button"
+                      onClick={() => toggleSuggestedActionFocus(decision)}
+                      disabled={count === 0}
+                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        isFocusedDecision
+                          ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                          : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                      } ${count === 0 ? 'cursor-not-allowed opacity-50' : ''}`}
+                      aria-pressed={isFocusedDecision}
+                    >
+                      <div className="pr-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDecisionTone(decision)}`}>
+                            {getDecisionLabel(decision)}
+                          </span>
+                          {isFocusedDecision ? (
+                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                              Active
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                          {decision === 'keep'
+                            ? isFocusedDecision
+                              ? 'Click to clear this canonical-seed lane'
+                              : 'Click to focus the likely canonical seeds'
+                            : decision === 'merge'
+                              ? isFocusedDecision
+                                ? 'Click to clear this merge lane'
+                                : 'Click to focus the supporting duplicates'
+                              : isFocusedDecision
+                                ? 'Click to clear this reject lane'
+                                : 'Click to focus the likely reject rows'}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
                         {count} pending
                       </span>
                     </button>
