@@ -1591,6 +1591,29 @@ export function ReviewQueueClient({
         return
       }
 
+      if (key === 'f') {
+        event.preventDefault()
+
+        if (!selectedCandidate?.dedupe_key) {
+          return
+        }
+
+        if (familyFilter === selectedCandidate.dedupe_key) {
+          clearFamilyFocus()
+        } else {
+          focusFamily(selectedCandidate.dedupe_key, selectedCandidate.id)
+        }
+        return
+      }
+
+      if (event.key === ']') {
+        event.preventDefault()
+        if (nextDuplicateFamily) {
+          focusFamily(nextDuplicateFamily.dedupeKey, nextDuplicateFamily.leadCandidate?.id ?? null)
+        }
+        return
+      }
+
       if (key === 'a') {
         event.preventDefault()
         if (selectedCandidateId) {
@@ -1631,7 +1654,21 @@ export function ReviewQueueClient({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [nextPendingCandidate, preferredMergeTargetId, previousPendingCandidate, runReviewAction, selectCandidate, selectedCandidateId, sortedCandidates, toggleSelected])
+  }, [
+    clearFamilyFocus,
+    familyFilter,
+    focusFamily,
+    nextDuplicateFamily,
+    nextPendingCandidate,
+    preferredMergeTargetId,
+    previousPendingCandidate,
+    runReviewAction,
+    selectCandidate,
+    selectedCandidate,
+    selectedCandidateId,
+    sortedCandidates,
+    toggleSelected,
+  ])
 
   const allVisiblePendingSelected =
     pendingCandidates.length > 0 && pendingCandidates.every((candidate) => visibleSelectedIds.includes(candidate.id))
@@ -1773,6 +1810,8 @@ export function ReviewQueueClient({
               <span className="mr-2">Keyboard:</span>
               <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> navigate visible •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">f</kbd> toggle family focus •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">]</kbd> next family •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> select •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> approve •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
@@ -3210,6 +3249,37 @@ export function ReviewQueueClient({
                       </span>
                     </button>
                   </div>
+
+                  {selectedCandidate.dedupe_key ? (
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          familyFilter === selectedCandidate.dedupe_key
+                            ? clearFamilyFocus()
+                            : focusFamily(selectedCandidate.dedupe_key!, selectedCandidate.id)
+                        }
+                        className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        {familyFilter === selectedCandidate.dedupe_key ? 'Clear family focus' : 'Focus this family'}
+                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                          Shortcut F • {selectedCandidate.dedupe_key}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!nextDuplicateFamily || nextDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
+                        onClick={() => nextDuplicateFamily ? focusFamily(nextDuplicateFamily.dedupeKey, nextDuplicateFamily.leadCandidate?.id ?? null) : null}
+                        className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        Next duplicate family
+                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                          {nextDuplicateFamily ? `Shortcut ] • ${nextDuplicateFamily.dedupeKey} • ${nextDuplicateFamily.count} rows` : 'No other pending family visible'}
+                        </span>
+                      </button>
+                    </div>
+                  ) : null}
 
                   {nextFamilyCandidate ? (
                     <button
