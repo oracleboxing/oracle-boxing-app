@@ -202,6 +202,30 @@ function getDecisionLabel(decision: FamilyDecision) {
   }
 }
 
+function getSuggestedActionShortcutLabel(decision: FamilyDecision) {
+  switch (decision) {
+    case 'keep':
+      return 'Approve candidate'
+    case 'merge':
+      return 'Merge candidate'
+    case 'reject':
+      return 'Reject candidate'
+  }
+}
+
+function getSuggestedActionShortcutHint(decision: FamilyDecision, hasMergeTarget: boolean) {
+  switch (decision) {
+    case 'keep':
+      return 'Shortcut S, uses the queue recommendation and advances selection.'
+    case 'merge':
+      return hasMergeTarget
+        ? 'Shortcut S, uses the queue recommendation and the selected merge target.'
+        : 'Shortcut S, select a merge target first.'
+    case 'reject':
+      return 'Shortcut S, uses the queue recommendation and advances selection.'
+  }
+}
+
 function isSuggestedActionFilter(value: string | null): value is SuggestedActionFilter {
   return value === 'all' || value === 'keep' || value === 'merge' || value === 'reject'
 }
@@ -1816,6 +1840,46 @@ export function ReviewQueueClient({
         }
         return
       }
+
+      if (key === 's') {
+        event.preventDefault()
+        if (!selectedCandidate) return
+
+        const insight = candidateInsights.get(selectedCandidate.id)
+        if (!insight) return
+
+        const suggestedAction = getCandidateDecisionHint(selectedCandidate, insight)
+
+        if (suggestedAction === 'keep') {
+          runReviewAction({
+            action: 'approve',
+            candidateIds: [selectedCandidate.id],
+            successLabel: 'Applied suggested action and approved candidate into the drill library.',
+          })
+          return
+        }
+
+        if (suggestedAction === 'reject') {
+          runReviewAction({
+            action: 'reject',
+            candidateIds: [selectedCandidate.id],
+            successLabel: 'Applied suggested action and rejected candidate.',
+          })
+          return
+        }
+
+        if (!preferredMergeTargetId) {
+          setActionError('Pick a merge target first to apply the suggested action for this candidate.')
+          return
+        }
+
+        runReviewAction({
+          action: 'merge',
+          candidateIds: [selectedCandidate.id],
+          canonicalDrillId: preferredMergeTargetId,
+          successLabel: 'Applied suggested action and merged candidate into the selected drill.',
+        })
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -1826,6 +1890,7 @@ export function ReviewQueueClient({
     focusFamily,
     nextDuplicateFamily,
     nextPendingCandidate,
+    candidateInsights,
     preferredMergeTargetId,
     previousPendingCandidate,
     runReviewAction,
@@ -1981,7 +2046,8 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> select •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> approve •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> merge
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> merge •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">s</kbd> suggested action
             </p>
           </div>
 
@@ -3675,6 +3741,60 @@ export function ReviewQueueClient({
                         </div>
 
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            disabled={isSubmitting || (suggestedAction === 'merge' && !preferredMergeTargetId)}
+                            onClick={() => {
+                              if (suggestedAction === 'keep') {
+                                runReviewAction({
+                                  action: 'approve',
+                                  candidateIds: [selectedCandidate.id],
+                                  successLabel: 'Applied suggested action and approved candidate into the drill library.',
+                                })
+                                return
+                              }
+
+                              if (suggestedAction === 'reject') {
+                                runReviewAction({
+                                  action: 'reject',
+                                  candidateIds: [selectedCandidate.id],
+                                  successLabel: 'Applied suggested action and rejected candidate.',
+                                })
+                                return
+                              }
+
+                              if (!preferredMergeTargetId) {
+                                setActionError('Pick a merge target first to apply the suggested action for this candidate.')
+                                return
+                              }
+
+                              runReviewAction({
+                                action: 'merge',
+                                candidateIds: [selectedCandidate.id],
+                                canonicalDrillId: preferredMergeTargetId,
+                                successLabel: 'Applied suggested action and merged candidate into the selected drill.',
+                              })
+                            }}
+                            className={`sm:col-span-2 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${
+                              suggestedAction === 'keep'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/30'
+                                : suggestedAction === 'merge'
+                                  ? 'border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300 dark:hover:bg-sky-950/30'
+                                  : 'border-rose-200 bg-rose-50 text-rose-900 hover:bg-rose-100 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-950/30'
+                            }`}
+                          >
+                            Apply suggested action
+                            <span className={`mt-1 block text-xs font-normal ${
+                              suggestedAction === 'keep'
+                                ? 'text-emerald-700 dark:text-emerald-400'
+                                : suggestedAction === 'merge'
+                                  ? 'text-sky-700 dark:text-sky-400'
+                                  : 'text-rose-700 dark:text-rose-400'
+                            }`}>
+                              {getSuggestedActionShortcutLabel(suggestedAction)} • {getSuggestedActionShortcutHint(suggestedAction, Boolean(preferredMergeTargetId))}
+                            </span>
+                          </button>
+
                           <button
                             type="button"
                             disabled={isSubmitting}
