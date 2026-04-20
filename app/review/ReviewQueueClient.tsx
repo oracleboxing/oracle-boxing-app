@@ -864,9 +864,12 @@ export function ReviewQueueClient({
     setDifficultyFilter((current) => (current === difficulty ? 'all' : difficulty))
   }, [])
 
-  const toggleSourceFocus = useCallback((source: string) => {
+  const toggleSourceFocus = useCallback((source: string, candidateId?: string) => {
     setSourceFilter((current) => (current === source ? 'all' : source))
-  }, [])
+    if (candidateId) {
+      selectCandidate(candidateId, { scrollIntoView: false })
+    }
+  }, [selectCandidate])
 
   const toggleAiDecisionFocus = useCallback((decision: Exclude<AiDecisionFilter, 'all'>) => {
     setAiDecisionFilter((current) => (current === decision ? 'all' : decision))
@@ -1164,6 +1167,38 @@ export function ReviewQueueClient({
     acc[key] = (acc[key] ?? 0) + 1
     return acc
   }, {})
+
+  const sourceSummaries = useMemo(() => {
+    const summary = new Map<
+      string,
+      {
+        count: number
+        leadCandidate: RawDrillCandidate | null
+        leadInsight: CandidateInsight | null
+        leadDecision: FamilyDecision | null
+      }
+    >()
+
+    for (const candidate of pendingCandidates) {
+      const key = getSourceLabel(candidate)
+      const existing = summary.get(key)
+
+      if (!existing) {
+        const leadInsight = candidateInsights.get(candidate.id) ?? null
+        summary.set(key, {
+          count: 1,
+          leadCandidate: candidate,
+          leadInsight,
+          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null,
+        })
+        continue
+      }
+
+      existing.count += 1
+    }
+
+    return summary
+  }, [candidateInsights, pendingCandidates])
 
   const aiDecisionCounts = pendingCandidates.reduce<Record<Exclude<AiDecisionFilter, 'all'>, number>>(
     (acc, candidate) => {
@@ -2648,36 +2683,77 @@ export function ReviewQueueClient({
                   .slice(0, 6)
                   .map(([source, count]) => {
                     const isFocusedSource = sourceFilter === source
+                    const sourceSummary = sourceSummaries.get(source)
 
                     return (
-                      <button
+                      <div
                         key={source}
-                        type="button"
-                        onClick={() => toggleSourceFocus(source)}
-                        className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        className={`rounded-2xl border px-4 py-4 transition-colors ${
                           isFocusedSource
                             ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
                             : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
                         }`}
-                        aria-pressed={isFocusedSource}
                       >
-                        <div className="min-w-0 pr-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="truncate text-sm font-medium text-[var(--text-primary)]">{source}</span>
-                            {isFocusedSource ? (
-                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                                Active
-                              </span>
-                            ) : null}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 pr-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="truncate text-sm font-medium text-[var(--text-primary)]">{source}</span>
+                              {isFocusedSource ? (
+                                <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                  Active
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                              {isFocusedSource ? 'Click to clear this source filter' : 'Click to focus this import/source batch'}
+                            </p>
                           </div>
-                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                            {isFocusedSource ? 'Click to clear this source filter' : 'Click to filter the queue to this source'}
-                          </p>
+                          <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                            {count} pending
+                          </span>
                         </div>
-                        <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                          {count} pending
-                        </span>
-                      </button>
+
+                        {sourceSummary?.leadCandidate && sourceSummary.leadInsight && sourceSummary.leadDecision ? (
+                          <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getDecisionTone(sourceSummary.leadDecision)}`}>
+                                {getDecisionLabel(sourceSummary.leadDecision)}
+                              </span>
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getTriageTone(sourceSummary.leadInsight.triageLevel)}`}>
+                                {getTriageLabel(sourceSummary.leadInsight.triageLevel)}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">Start with {getDisplayTitle(sourceSummary.leadCandidate)}</p>
+                            <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{getReviewerNextMove(sourceSummary.leadCandidate, sourceSummary.leadInsight)}</p>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleSourceFocus(source)}
+                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            aria-pressed={isFocusedSource}
+                          >
+                            {isFocusedSource ? 'Current source focus' : 'Focus this source'}
+                            <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                              Narrow the queue to this source batch.
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={!sourceSummary?.leadCandidate}
+                            onClick={() => (sourceSummary?.leadCandidate ? toggleSourceFocus(source, sourceSummary.leadCandidate.id) : null)}
+                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                          >
+                            Open lead row
+                            <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                              {sourceSummary?.leadCandidate ? getDisplayTitle(sourceSummary.leadCandidate) : 'No lead row available in this source'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
                     )
                   })
               )}
