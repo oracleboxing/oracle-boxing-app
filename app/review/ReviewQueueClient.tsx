@@ -395,6 +395,26 @@ function getNextPendingReviewSelection(
   )
 }
 
+function getAdjacentPendingDuplicateFamily<T extends { dedupeKey: string; statuses: ReviewStatus[] }>(
+  duplicateFamilies: T[],
+  currentFamilyKey: string | null,
+  direction: 'next' | 'previous'
+) {
+  if (!currentFamilyKey || duplicateFamilies.length === 0) return null
+
+  const currentIndex = duplicateFamilies.findIndex((family) => family.dedupeKey === currentFamilyKey)
+  if (currentIndex === -1) {
+    return duplicateFamilies.find((family) => family.statuses.includes('pending')) ?? duplicateFamilies[0] ?? null
+  }
+
+  const orderedFamilies =
+    direction === 'next'
+      ? [...duplicateFamilies.slice(currentIndex + 1), ...duplicateFamilies.slice(0, currentIndex)]
+      : [...duplicateFamilies.slice(0, currentIndex).reverse(), ...duplicateFamilies.slice(currentIndex + 1).reverse()]
+
+  return orderedFamilies.find((family) => family.statuses.includes('pending')) ?? null
+}
+
 function shouldIgnoreShortcutTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
 
@@ -1602,17 +1622,12 @@ export function ReviewQueueClient({
 
   const nextDuplicateFamily = useMemo(() => {
     const currentFamilyKey = familyFilter ?? selectedCandidate?.dedupe_key ?? null
-    if (!currentFamilyKey || duplicateFamilies.length === 0) return null
+    return getAdjacentPendingDuplicateFamily(duplicateFamilies, currentFamilyKey, 'next')
+  }, [duplicateFamilies, familyFilter, selectedCandidate])
 
-    const currentIndex = duplicateFamilies.findIndex((family) => family.dedupeKey === currentFamilyKey)
-    if (currentIndex === -1) {
-      return duplicateFamilies.find((family) => family.statuses.includes('pending')) ?? duplicateFamilies[0] ?? null
-    }
-
-    const laterPendingFamily = duplicateFamilies.slice(currentIndex + 1).find((family) => family.statuses.includes('pending'))
-    if (laterPendingFamily) return laterPendingFamily
-
-    return duplicateFamilies.slice(0, currentIndex).find((family) => family.statuses.includes('pending')) ?? null
+  const previousDuplicateFamily = useMemo(() => {
+    const currentFamilyKey = familyFilter ?? selectedCandidate?.dedupe_key ?? null
+    return getAdjacentPendingDuplicateFamily(duplicateFamilies, currentFamilyKey, 'previous')
   }, [duplicateFamilies, familyFilter, selectedCandidate])
 
   useEffect(() => {
@@ -1804,6 +1819,14 @@ export function ReviewQueueClient({
         return
       }
 
+      if (event.key === '[') {
+        event.preventDefault()
+        if (previousDuplicateFamily) {
+          focusFamily(previousDuplicateFamily.dedupeKey, previousDuplicateFamily.leadCandidate?.id ?? null)
+        }
+        return
+      }
+
       if (key === 'a') {
         event.preventDefault()
         if (selectedCandidateId) {
@@ -1890,6 +1913,7 @@ export function ReviewQueueClient({
     focusFamily,
     nextDuplicateFamily,
     nextPendingCandidate,
+    previousDuplicateFamily,
     candidateInsights,
     preferredMergeTargetId,
     previousPendingCandidate,
@@ -2042,7 +2066,7 @@ export function ReviewQueueClient({
               <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> navigate visible •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">f</kbd> toggle family focus •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">]</kbd> next family •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">[</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">]</kbd> family hop •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> select •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> approve •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
@@ -3669,7 +3693,7 @@ export function ReviewQueueClient({
                   </div>
 
                   {selectedCandidate.dedupe_key ? (
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <div className="mt-2 grid gap-2 sm:grid-cols-3">
                       <button
                         type="button"
                         onClick={() =>
@@ -3682,6 +3706,18 @@ export function ReviewQueueClient({
                         {familyFilter === selectedCandidate.dedupe_key ? 'Clear family focus' : 'Focus this family'}
                         <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                           Shortcut F • {selectedCandidate.dedupe_key}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!previousDuplicateFamily || previousDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
+                        onClick={() => previousDuplicateFamily ? focusFamily(previousDuplicateFamily.dedupeKey, previousDuplicateFamily.leadCandidate?.id ?? null) : null}
+                        className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        Previous duplicate family
+                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                          {previousDuplicateFamily ? `Shortcut [ • ${previousDuplicateFamily.dedupeKey} • ${previousDuplicateFamily.count} rows` : 'No earlier pending family visible'}
                         </span>
                       </button>
 
@@ -4178,6 +4214,19 @@ export function ReviewQueueClient({
                               Open next reject row
                               <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                                 {selectedFamilyWorkspace.nextRejectCandidate ? getDisplayTitle(selectedFamilyWorkspace.nextRejectCandidate) : 'No pending reject row left'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!previousDuplicateFamily || previousDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
+                              onClick={() => focusFamily(previousDuplicateFamily!.dedupeKey, previousDuplicateFamily!.leadCandidate?.id ?? null)}
+                              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              Open previous family
+                              <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                                {previousDuplicateFamily
+                                  ? `${previousDuplicateFamily.dedupeKey} • ${previousDuplicateFamily.count} rows`
+                                  : 'No earlier pending duplicate family visible'}
                               </span>
                             </button>
                             <button
