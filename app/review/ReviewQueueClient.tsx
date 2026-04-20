@@ -3363,8 +3363,34 @@ export function ReviewQueueClient({
                         />
                         <InfoBlock label="Grade" value={formatGradeLevel(selectedCandidate.grade_level)} />
                         <InfoBlock label="Duration" value={selectedCandidate.estimated_duration_seconds ? `${selectedCandidate.estimated_duration_seconds}s` : 'Unknown'} />
-                        <InfoBlock label="Source file" value={selectedCandidate.source_file || 'Missing'} subdued={selectedCandidate.source_type || undefined} />
                         <InfoBlock label="Canonical link" value={selectedCandidate.canonical_drill_id || 'Not linked yet'} />
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4 sm:col-span-2">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Source file</p>
+                              <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">{selectedCandidate.source_file || 'Missing'}</p>
+                              <p className="mt-1 text-xs text-[var(--text-secondary)]">{selectedCandidate.source_type || 'Unknown source type'}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setSourceFilter(getSourceLabel(selectedCandidate))}
+                                className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                              >
+                                Focus this source
+                              </button>
+                              {sourceFilter === getSourceLabel(selectedCandidate) ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setSourceFilter('all')}
+                                  className="inline-flex rounded-xl border border-[var(--accent-primary)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                >
+                                  Clear source focus
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
                         <InfoBlock label="Suggested action" value={getDecisionLabel(suggestedAction)} subdued={getReviewerNextMove(selectedCandidate, insight)} />
                         <InfoBlock label="Completeness" value={`${insight.completenessScore}/6`} subdued={insight.completenessLabel} />
                         <InfoBlock
