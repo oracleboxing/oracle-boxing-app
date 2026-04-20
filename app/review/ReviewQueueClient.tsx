@@ -703,6 +703,10 @@ export function ReviewQueueClient({
     setGradeFilter((current) => (current === grade ? 'all' : grade))
   }, [])
 
+  const toggleStatusFocus = useCallback((status: ReviewStatus) => {
+    setStatusFilter((current) => (current === status ? 'all' : status))
+  }, [])
+
   const familySizeByKey = useMemo(() => {
     const counts = new Map<string, number>()
 
@@ -1605,15 +1609,48 @@ export function ReviewQueueClient({
 
       <section className="mb-8 grid gap-4 xl:grid-cols-[1.5fr_1fr]">
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Queue by review status</h2>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">Quick signal for where the visible backlog is actually sitting.</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Queue by review status</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">Quick signal for where the visible backlog is actually sitting. Click a card to jump into that status.</p>
+            </div>
+            {statusFilter !== 'all' ? (
+              <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                Focused on {REVIEW_STATUS_LABELS[statusFilter]}
+              </span>
+            ) : null}
+          </div>
           <div className="mt-5 grid gap-3 md:grid-cols-4">
-            {statusCounts.map(({ status, count }) => (
-              <div key={status} className={`rounded-2xl border px-4 py-4 ${getStatusTone(status)}`}>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em]">{REVIEW_STATUS_LABELS[status]}</p>
-                <p className="mt-2 text-2xl font-bold">{count}</p>
-              </div>
-            ))}
+            {statusCounts.map(({ status, count }) => {
+              const isFocusedStatus = statusFilter === status
+
+              return (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => toggleStatusFocus(status)}
+                  className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                    isFocusedStatus
+                      ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                      : `${getStatusTone(status)} hover:opacity-90`
+                  }`}
+                  aria-pressed={isFocusedStatus}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-current">{REVIEW_STATUS_LABELS[status]}</p>
+                    {isFocusedStatus ? (
+                      <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                        Active
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 text-2xl font-bold text-current">{count}</p>
+                  <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
+                    {isFocusedStatus ? 'Click to clear this status filter' : 'Click to filter the queue to this status'}
+                  </p>
+                </button>
+              )
+            })}
           </div>
         </div>
 
