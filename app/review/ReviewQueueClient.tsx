@@ -1428,6 +1428,16 @@ export function ReviewQueueClient({
       .slice(0, 5)
   }, [drills, selectedCandidate])
 
+  useEffect(() => {
+    if (!selectedCanonicalDrillId) return
+
+    const stillMatchesSelectedCandidate = matchedDrills.some((drill) => drill.id === selectedCanonicalDrillId)
+
+    if (!stillMatchesSelectedCandidate) {
+      setSelectedCanonicalDrillId(null)
+    }
+  }, [matchedDrills, selectedCanonicalDrillId])
+
   const preferredMergeTargetId = selectedCanonicalDrillId ?? matchedDrills[0]?.id ?? null
 
   const selectedFamilyCandidates = selectedCandidate?.dedupe_key
