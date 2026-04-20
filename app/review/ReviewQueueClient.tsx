@@ -687,6 +687,10 @@ export function ReviewQueueClient({
     setFamilyFilter(null)
   }, [])
 
+  const toggleGradeFocus = useCallback((grade: string) => {
+    setGradeFilter((current) => (current === grade ? 'all' : grade))
+  }, [])
+
   const familySizeByKey = useMemo(() => {
     const counts = new Map<string, number>()
 
@@ -1599,20 +1603,57 @@ export function ReviewQueueClient({
         </div>
 
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by grade</h2>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">Helpful when scanning current graduation imports.</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by grade</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">Helpful when scanning current graduation imports. Click a row to jump into that grade.</p>
+            </div>
+            {gradeFilter !== 'all' ? (
+              <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                Focused on {formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}
+              </span>
+            ) : null}
+          </div>
           <div className="mt-5 space-y-3">
             {Object.keys(gradeCounts).length === 0 ? (
               <p className="text-sm text-[var(--text-secondary)]">No pending candidates in the current filter set.</p>
             ) : (
               Object.entries(gradeCounts)
                 .sort(([left], [right]) => left.localeCompare(right))
-                .map(([grade, count]) => (
-                  <div key={grade} className="flex items-center justify-between rounded-2xl border border-[var(--border)] px-4 py-3">
-                    <span className="text-sm font-medium text-[var(--text-primary)]">{formatGradeLevel(grade === 'unassigned' ? null : grade)}</span>
-                    <span className="text-sm text-[var(--text-secondary)]">{count}</span>
-                  </div>
-                ))
+                .map(([grade, count]) => {
+                  const isFocusedGrade = gradeFilter === grade
+
+                  return (
+                    <button
+                      key={grade}
+                      type="button"
+                      onClick={() => toggleGradeFocus(grade)}
+                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        isFocusedGrade
+                          ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                          : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                      }`}
+                      aria-pressed={isFocusedGrade}
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium text-[var(--text-primary)]">{formatGradeLevel(grade === 'unassigned' ? null : grade)}</span>
+                          {isFocusedGrade ? (
+                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                              Active
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                          {isFocusedGrade ? 'Click to clear this grade filter' : 'Click to filter the queue to this grade'}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                        {count} pending
+                      </span>
+                    </button>
+                  )
+                })
             )}
           </div>
         </div>
