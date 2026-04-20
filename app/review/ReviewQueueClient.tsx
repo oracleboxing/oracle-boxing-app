@@ -1102,6 +1102,7 @@ export function ReviewQueueClient({
   const previousVisibleCandidate = selectedCandidateIndex > 0 ? sortedCandidates[selectedCandidateIndex - 1] : null
   const nextVisibleCandidate = selectedCandidateIndex >= 0 && selectedCandidateIndex < sortedCandidates.length - 1 ? sortedCandidates[selectedCandidateIndex + 1] : null
   const leadVisibleCandidate = currentSliceSummary.leadCandidate
+  const previousPendingCandidate = selectedPendingIndex > 0 ? pendingCandidates[selectedPendingIndex - 1] : null
   const nextPendingCandidate = selectedPendingIndex >= 0 ? pendingCandidates[selectedPendingIndex + 1] ?? null : pendingCandidates[0] ?? null
 
   const nextFamilyCandidate = useMemo(() => {
@@ -1272,6 +1273,22 @@ export function ReviewQueueClient({
         return
       }
 
+      if (key === 'n') {
+        event.preventDefault()
+        if (nextPendingCandidate) {
+          selectCandidate(nextPendingCandidate.id, { scrollIntoView: false })
+        }
+        return
+      }
+
+      if (key === 'p') {
+        event.preventDefault()
+        if (previousPendingCandidate) {
+          selectCandidate(previousPendingCandidate.id, { scrollIntoView: false })
+        }
+        return
+      }
+
       if (key === 'x') {
         event.preventDefault()
         if (selectedCandidateId) {
@@ -1320,7 +1337,7 @@ export function ReviewQueueClient({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [preferredMergeTargetId, runReviewAction, selectCandidate, selectedCandidateId, sortedCandidates, toggleSelected])
+  }, [nextPendingCandidate, preferredMergeTargetId, previousPendingCandidate, runReviewAction, selectCandidate, selectedCandidateId, sortedCandidates, toggleSelected])
 
   const allVisiblePendingSelected =
     pendingCandidates.length > 0 && pendingCandidates.every((candidate) => visibleSelectedIds.includes(candidate.id))
@@ -1348,7 +1365,8 @@ export function ReviewQueueClient({
             </p>
             <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
               <span className="mr-2">Keyboard:</span>
-              <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> navigate • 
+              <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> navigate visible •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> select •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> approve •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
@@ -2232,7 +2250,7 @@ export function ReviewQueueClient({
                     </span>
                   </div>
 
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     <button
                       type="button"
                       disabled={!previousVisibleCandidate}
@@ -2254,6 +2272,18 @@ export function ReviewQueueClient({
                       Next visible
                       <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                         {nextVisibleCandidate ? getDisplayTitle(nextVisibleCandidate) : 'End of the visible queue'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!previousPendingCandidate}
+                      onClick={() => previousPendingCandidate ? selectCandidate(previousPendingCandidate.id, { scrollIntoView: false }) : null}
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      Previous pending
+                      <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                        {previousPendingCandidate ? getDisplayTitle(previousPendingCandidate) : 'Start of the pending slice'}
                       </span>
                     </button>
 
