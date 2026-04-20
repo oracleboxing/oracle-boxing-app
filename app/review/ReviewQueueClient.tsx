@@ -33,6 +33,13 @@ const SORT_MODE_LABELS: Record<SortMode, string> = {
 }
 
 type TriageLevel = 'act-now' | 'worth-a-look' | 'low-signal' | 'already-reviewed'
+type CompletenessBand = 'thin' | 'usable' | 'rich'
+
+const COMPLETENESS_BAND_LABELS: Record<CompletenessBand, string> = {
+  thin: 'Thin extract',
+  usable: 'Usable extract',
+  rich: 'Rich extract',
+}
 
 type CandidateInsight = {
   familySize: number
@@ -268,6 +275,12 @@ function getTriageLabel(level: TriageLevel) {
     case 'already-reviewed':
       return 'Already reviewed'
   }
+}
+
+function getCompletenessBand(insight: CandidateInsight): CompletenessBand {
+  if (insight.completenessScore >= 5) return 'rich'
+  if (insight.completenessScore >= 3) return 'usable'
+  return 'thin'
 }
 
 function getGradeSortValue(value: string | null) {
@@ -589,6 +602,10 @@ export function ReviewQueueClient({
       ? ((value as 'all' | TriageLevel) ?? 'all')
       : 'all'
   })
+  const [completenessFilter, setCompletenessFilter] = useState<'all' | CompletenessBand>(() => {
+    const value = searchParams.get('completeness')
+    return value === 'all' || value === 'thin' || value === 'usable' || value === 'rich' ? ((value as 'all' | CompletenessBand) ?? 'all') : 'all'
+  })
   const [familyFilter, setFamilyFilter] = useState<string | null>(() => {
     const value = searchParams.get('family')
     return value?.trim() ? value : null
@@ -613,6 +630,7 @@ export function ReviewQueueClient({
     const nextSource = searchParams.get('source') ?? 'all'
     const nextAiDecision = searchParams.get('ai')
     const nextTriage = searchParams.get('triage')
+    const nextCompleteness = searchParams.get('completeness')
     const nextFamily = searchParams.get('family')
     const nextSort = searchParams.get('sort')
     const nextSelected = searchParams.get('selected')
@@ -634,6 +652,13 @@ export function ReviewQueueClient({
       const resolved =
         nextTriage === 'all' || nextTriage === 'act-now' || nextTriage === 'worth-a-look' || nextTriage === 'low-signal' || nextTriage === 'already-reviewed'
           ? ((nextTriage as 'all' | TriageLevel) ?? 'all')
+          : 'all'
+      return current === resolved ? current : resolved
+    })
+    setCompletenessFilter((current) => {
+      const resolved =
+        nextCompleteness === 'all' || nextCompleteness === 'thin' || nextCompleteness === 'usable' || nextCompleteness === 'rich'
+          ? ((nextCompleteness as 'all' | CompletenessBand) ?? 'all')
           : 'all'
       return current === resolved ? current : resolved
     })
@@ -678,6 +703,9 @@ export function ReviewQueueClient({
     if (triageFilter !== 'all') nextParams.set('triage', triageFilter)
     else nextParams.delete('triage')
 
+    if (completenessFilter !== 'all') nextParams.set('completeness', completenessFilter)
+    else nextParams.delete('completeness')
+
     if (familyFilter) nextParams.set('family', familyFilter)
     else nextParams.delete('family')
 
@@ -693,7 +721,7 @@ export function ReviewQueueClient({
     if (next !== current) {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false })
     }
-  }, [aiDecisionFilter, categoryFilter, difficultyFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
+  }, [aiDecisionFilter, categoryFilter, completenessFilter, difficultyFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
   const copyFamilyHandoff = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
@@ -753,6 +781,7 @@ export function ReviewQueueClient({
     setSourceFilter('all')
     setAiDecisionFilter('all')
     setTriageFilter('all')
+    setCompletenessFilter('all')
     setFamilyFilter(null)
     setSortMode('triage')
   }, [])
@@ -775,6 +804,10 @@ export function ReviewQueueClient({
 
   const toggleAiDecisionFocus = useCallback((decision: Exclude<AiDecisionFilter, 'all'>) => {
     setAiDecisionFilter((current) => (current === decision ? 'all' : decision))
+  }, [])
+
+  const toggleCompletenessFocus = useCallback((band: CompletenessBand) => {
+    setCompletenessFilter((current) => (current === band ? 'all' : band))
   }, [])
 
   const toggleStatusFocus = useCallback((status: ReviewStatus) => {
@@ -869,13 +902,14 @@ export function ReviewQueueClient({
   }, [aiDecisionFilter, candidates, query, statusFilter, gradeFilter, difficultyFilter, categoryFilter, sourceFilter, familyFilter, scopedCandidateIds])
 
   const filteredCandidates = useMemo(() => {
-    if (triageFilter === 'all') return baseFilteredCandidates
-
     return baseFilteredCandidates.filter((candidate) => {
       const insight = candidateInsights.get(candidate.id)
-      return insight?.triageLevel === triageFilter
+      if (!insight) return false
+      if (triageFilter !== 'all' && insight.triageLevel !== triageFilter) return false
+      if (completenessFilter !== 'all' && getCompletenessBand(insight) !== completenessFilter) return false
+      return true
     })
-  }, [baseFilteredCandidates, candidateInsights, triageFilter])
+  }, [baseFilteredCandidates, candidateInsights, completenessFilter, triageFilter])
 
   const sortedCandidates = useMemo(() => {
     return [...filteredCandidates].sort((left, right) => {
@@ -1062,6 +1096,20 @@ export function ReviewQueueClient({
     }
   )
 
+  const completenessCounts = basePendingCandidates.reduce<Record<CompletenessBand, number>>(
+    (acc, candidate) => {
+      const insight = candidateInsights.get(candidate.id)
+      if (!insight) return acc
+      acc[getCompletenessBand(insight)] += 1
+      return acc
+    },
+    {
+      thin: 0,
+      usable: 0,
+      rich: 0,
+    }
+  )
+
   const visiblePendingTriageCounts = pendingCandidates.reduce<Record<TriageLevel, number>>(
     (acc, candidate) => {
       const triageLevel = candidateInsights.get(candidate.id)?.triageLevel ?? 'low-signal'
@@ -1145,6 +1193,10 @@ export function ReviewQueueClient({
       .filter(([, count]) => count > 0 && count)
       .sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
 
+    const dominantVisibleCompleteness = (Object.entries(completenessCounts) as Array<[CompletenessBand, number]>)
+      .filter(([, count]) => count > 0)
+      .sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
+
     const topVisibleSource = (() => {
       const counts = new Map<string, number>()
 
@@ -1162,6 +1214,7 @@ export function ReviewQueueClient({
       `Pending rows: ${pendingCandidates.length}`,
       `Current sort: ${SORT_MODE_LABELS[sortMode]}`,
       `Active triage slice: ${triageFilter === 'all' ? 'All visible pending' : getTriageLabel(triageFilter)}`,
+      `Active completeness slice: ${completenessFilter === 'all' ? 'All extract levels' : COMPLETENESS_BAND_LABELS[completenessFilter]}`,
       `Family focus: ${familyFilter ?? 'None'}`,
       `Missing summary rows: ${missingSummaryCount}`,
       `Visible duplicate families: ${duplicateFamilies.length}`,
@@ -1169,6 +1222,10 @@ export function ReviewQueueClient({
 
     if (dominantVisibleTriage) {
       lines.push(`Dominant visible triage: ${getTriageLabel(dominantVisibleTriage)}`)
+    }
+
+    if (dominantVisibleCompleteness) {
+      lines.push(`Dominant visible completeness: ${COMPLETENESS_BAND_LABELS[dominantVisibleCompleteness]}`)
     }
 
     if (topVisibleSource) {
@@ -1190,10 +1247,11 @@ export function ReviewQueueClient({
       leadCandidate,
       leadInsight,
       dominantVisibleTriage,
+      dominantVisibleCompleteness,
       topVisibleSource,
       handoffText: lines.join('\n'),
     }
-  }, [candidateInsights, duplicateFamilies.length, familyFilter, missingSummaryCount, pendingCandidates, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
+  }, [candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, missingSummaryCount, pendingCandidates, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
 
   const selectedCandidateIndex = selectedCandidate ? sortedCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
   const selectedPendingIndex = selectedCandidate ? pendingCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
@@ -1498,6 +1556,13 @@ export function ReviewQueueClient({
             onClear: () => setTriageFilter('all'),
           }
         : null,
+      completenessFilter !== 'all'
+        ? {
+            key: 'completeness',
+            label: `Completeness: ${COMPLETENESS_BAND_LABELS[completenessFilter]}`,
+            onClear: () => setCompletenessFilter('all'),
+          }
+        : null,
       familyFilter
         ? {
             key: 'family',
@@ -1528,7 +1593,7 @@ export function ReviewQueueClient({
         onClear: () => void
       } => Boolean(chip)
     ),
-    [aiDecisionFilter, categoryFilter, clearScopedReview, difficultyFilter, familyFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
+    [aiDecisionFilter, categoryFilter, clearScopedReview, completenessFilter, difficultyFilter, familyFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
   )
 
   const copyCurrentSliceHandoff = useCallback(() => {
@@ -1693,6 +1758,15 @@ export function ReviewQueueClient({
                 Triage slice: {getTriageLabel(triageFilter)} • Clear
               </button>
             ) : null}
+            {completenessFilter !== 'all' ? (
+              <button
+                type="button"
+                onClick={() => setCompletenessFilter('all')}
+                className="rounded-full border border-[var(--accent-primary)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Completeness: {COMPLETENESS_BAND_LABELS[completenessFilter]} • Clear
+              </button>
+            ) : null}
             {isSubmitting ? (
               <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-900 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300">
                 Saving review action...
@@ -1772,7 +1846,7 @@ export function ReviewQueueClient({
           <p className="mt-2 text-4xl font-bold tracking-tight text-[var(--text-primary)]">{pendingCandidates.length}</p>
           <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
             Working subset after filters, currently sorted by <span className="font-medium text-[var(--text-primary)]">{SORT_MODE_LABELS[sortMode]}</span>.
-            Use the triage cards to jump straight into the right slice.
+            Use the triage and completeness cards to jump straight into the right slice.
           </p>
         </div>
 
@@ -1841,12 +1915,17 @@ export function ReviewQueueClient({
             </button>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <InfoBlock label="Visible pending" value={String(pendingCandidates.length)} subdued={`${sortedCandidates.length} total visible`} />
             <InfoBlock
               label="Dominant triage"
               value={currentSliceSummary.dominantVisibleTriage ? getTriageLabel(currentSliceSummary.dominantVisibleTriage) : 'No pending rows'}
               subdued={triageFilter === 'all' ? 'Across the current view' : 'Inside the active slice'}
+            />
+            <InfoBlock
+              label="Dominant completeness"
+              value={currentSliceSummary.dominantVisibleCompleteness ? COMPLETENESS_BAND_LABELS[currentSliceSummary.dominantVisibleCompleteness] : 'No pending rows'}
+              subdued={completenessFilter === 'all' ? 'Across the current view' : 'Inside the active slice'}
             />
             <InfoBlock
               label="Main source"
@@ -2034,6 +2113,63 @@ export function ReviewQueueClient({
                         </div>
                         <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
                           {isFocusedDecision ? 'Click to clear this AI recommendation filter' : 'Click to filter the queue to this AI recommendation'}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                        {count} pending
+                      </span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by completeness</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Jump straight into thin, usable, or rich extracts without losing the rest of the current queue context.</p>
+              </div>
+              {completenessFilter !== 'all' ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                  Focused on {COMPLETENESS_BAND_LABELS[completenessFilter]}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-5 space-y-3">
+              {(Object.values(completenessCounts) as number[]).every((count) => count === 0) ? (
+                <p className="text-sm text-[var(--text-secondary)]">No pending completeness bands in the current filter set.</p>
+              ) : (
+                (['thin', 'usable', 'rich'] as CompletenessBand[]).map((band) => {
+                  const count = completenessCounts[band]
+                  if (count === 0) return null
+
+                  const isFocusedBand = completenessFilter === band
+
+                  return (
+                    <button
+                      key={band}
+                      type="button"
+                      onClick={() => toggleCompletenessFocus(band)}
+                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        isFocusedBand
+                          ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                          : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                      }`}
+                      aria-pressed={isFocusedBand}
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium text-[var(--text-primary)]">{COMPLETENESS_BAND_LABELS[band]}</span>
+                          {isFocusedBand ? (
+                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                              Active
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                          {isFocusedBand ? 'Click to clear this completeness filter' : 'Click to filter the queue to this completeness band'}
                         </p>
                       </div>
                       <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
