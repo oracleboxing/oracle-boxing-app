@@ -82,11 +82,13 @@ function formatDateTime(value: string | null) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'UTC',
-  }).format(date)
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  const month = date.toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' })
+  const year = date.getUTCFullYear()
+  const hours = String(date.getUTCHours()).padStart(2, '0')
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+
+  return `${day} ${month} ${year}, ${hours}:${minutes} UTC`
 }
 
 function getSourceLabel(candidate: RawDrillCandidate) {
@@ -879,6 +881,20 @@ export function ReviewQueueClient({
     }
   )
 
+  const visiblePendingTriageCounts = pendingCandidates.reduce<Record<TriageLevel, number>>(
+    (acc, candidate) => {
+      const triageLevel = candidateInsights.get(candidate.id)?.triageLevel ?? 'low-signal'
+      acc[triageLevel] += 1
+      return acc
+    },
+    {
+      'act-now': 0,
+      'worth-a-look': 0,
+      'low-signal': 0,
+      'already-reviewed': 0,
+    }
+  )
+
   const missingSummaryCount = basePendingCandidates.filter(
     (candidate) => !candidate.summary && !candidate.what_it_trains && !candidate.description
   ).length
@@ -931,6 +947,63 @@ export function ReviewQueueClient({
   const selectedFamilyCandidates = selectedCandidate?.dedupe_key
     ? sortedCandidates.filter((candidate) => candidate.dedupe_key === selectedCandidate.dedupe_key)
     : []
+
+  const currentSliceSummary = useMemo(() => {
+    const leadCandidate = pendingCandidates[0] ?? sortedCandidates[0] ?? null
+    const leadInsight = leadCandidate ? candidateInsights.get(leadCandidate.id) ?? null : null
+    const dominantVisibleTriage = (Object.entries(visiblePendingTriageCounts) as Array<[TriageLevel, number]>)
+      .filter(([, count]) => count > 0 && count)
+      .sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
+
+    const topVisibleSource = (() => {
+      const counts = new Map<string, number>()
+
+      for (const candidate of pendingCandidates) {
+        const source = getSourceLabel(candidate)
+        counts.set(source, (counts.get(source) ?? 0) + 1)
+      }
+
+      return Array.from(counts.entries()).sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0] ?? null
+    })()
+
+    const lines = [
+      'Review queue handoff',
+      `Visible rows: ${sortedCandidates.length}`,
+      `Pending rows: ${pendingCandidates.length}`,
+      `Current sort: ${SORT_MODE_LABELS[sortMode]}`,
+      `Active triage slice: ${triageFilter === 'all' ? 'All visible pending' : getTriageLabel(triageFilter)}`,
+      `Family focus: ${familyFilter ?? 'None'}`,
+      `Missing summary rows: ${missingSummaryCount}`,
+      `Visible duplicate families: ${duplicateFamilies.length}`,
+    ]
+
+    if (dominantVisibleTriage) {
+      lines.push(`Dominant visible triage: ${getTriageLabel(dominantVisibleTriage)}`)
+    }
+
+    if (topVisibleSource) {
+      lines.push(`Main visible source: ${topVisibleSource[0]} (${topVisibleSource[1]})`)
+    }
+
+    if (leadCandidate && leadInsight) {
+      lines.push('')
+      lines.push(`Lead visible candidate: ${getDisplayTitle(leadCandidate)}`)
+      lines.push(`Lead status: ${REVIEW_STATUS_LABELS[leadCandidate.review_status]} • ${getTriageLabel(leadInsight.triageLevel)}`)
+      lines.push(`Lead next move: ${getReviewerNextMove(leadCandidate, leadInsight)}`)
+      lines.push(`Lead source: ${getSourceLabel(leadCandidate)}`)
+      if (leadCandidate.dedupe_key) {
+        lines.push(`Lead family: ${leadCandidate.dedupe_key} (${leadInsight.familySize} rows)`)
+      }
+    }
+
+    return {
+      leadCandidate,
+      leadInsight,
+      dominantVisibleTriage,
+      topVisibleSource,
+      handoffText: lines.join('\n'),
+    }
+  }, [candidateInsights, duplicateFamilies.length, familyFilter, missingSummaryCount, pendingCandidates, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
 
   useEffect(() => {
     if (!selectedCandidate) {
@@ -1122,6 +1195,12 @@ export function ReviewQueueClient({
 
   const allVisiblePendingSelected =
     pendingCandidates.length > 0 && pendingCandidates.every((candidate) => visibleSelectedIds.includes(candidate.id))
+
+  const copyCurrentSliceHandoff = useCallback(() => {
+    navigator.clipboard.writeText(currentSliceSummary.handoffText)
+    setCopyFeedback('Copied review queue handoff')
+    window.setTimeout(() => setCopyFeedback(null), 3000)
+  }, [currentSliceSummary.handoffText])
 
   return (
     <>
@@ -1361,6 +1440,64 @@ export function ReviewQueueClient({
         </div>
       </section>
 
+      <section className="mb-8 grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Current review slice</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">Shows what the visible queue is mostly about, plus the first row worth touching.</p>
+            </div>
+            <button
+              type="button"
+              onClick={copyCurrentSliceHandoff}
+              className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+            >
+              Copy queue handoff
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <InfoBlock label="Visible pending" value={String(pendingCandidates.length)} subdued={`${sortedCandidates.length} total visible`} />
+            <InfoBlock
+              label="Dominant triage"
+              value={currentSliceSummary.dominantVisibleTriage ? getTriageLabel(currentSliceSummary.dominantVisibleTriage) : 'No pending rows'}
+              subdued={triageFilter === 'all' ? 'Across the current view' : 'Inside the active slice'}
+            />
+            <InfoBlock
+              label="Main source"
+              value={currentSliceSummary.topVisibleSource?.[0] ?? 'Mixed'}
+              subdued={currentSliceSummary.topVisibleSource ? `${currentSliceSummary.topVisibleSource[1]} pending rows` : 'No dominant source'}
+            />
+            <InfoBlock label="Visible families" value={String(duplicateFamilies.length)} subdued={`${missingSummaryCount} rows still need a summary`} />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Lead visible candidate</h2>
+          {!currentSliceSummary.leadCandidate || !currentSliceSummary.leadInsight ? (
+            <p className="mt-4 text-sm text-[var(--text-secondary)]">No visible candidate in the current filter set.</p>
+          ) : (
+            <div className="mt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-[var(--text-primary)]">{getDisplayTitle(currentSliceSummary.leadCandidate)}</p>
+                <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(currentSliceSummary.leadInsight.triageLevel)}`}>
+                  {getTriageLabel(currentSliceSummary.leadInsight.triageLevel)}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{getReviewerNextMove(currentSliceSummary.leadCandidate, currentSliceSummary.leadInsight)}</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <InfoBlock label="Source" value={getSourceLabel(currentSliceSummary.leadCandidate)} />
+                <InfoBlock
+                  label="Duplicate pressure"
+                  value={`${currentSliceSummary.leadInsight.familySize} row${currentSliceSummary.leadInsight.familySize === 1 ? '' : 's'}`}
+                  subdued={currentSliceSummary.leadCandidate.dedupe_key || 'No family yet'}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="mb-8 grid gap-4 xl:grid-cols-[1.5fr_1fr]">
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Queue by review status</h2>
@@ -1549,7 +1686,7 @@ export function ReviewQueueClient({
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.9fr)]">
         <div>
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
@@ -1592,6 +1729,10 @@ export function ReviewQueueClient({
             <EmptyState title="No matching candidates" body="Nothing in raw_drill_candidates matches the current filter combination." />
           ) : (
             <div className="space-y-4">
+              <div className="hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] lg:flex lg.items-center lg:justify-between">
+                <span>Sorted by <span className="font-medium text-[var(--text-primary)]">{SORT_MODE_LABELS[sortMode]}</span></span>
+                <span>{sortedCandidates.length} visible candidates</span>
+              </div>
               {sortedCandidates.map((candidate) => {
                 const insight = candidateInsights.get(candidate.id)
                 const isSelected = selectedCandidate?.id === candidate.id
@@ -1702,7 +1843,7 @@ export function ReviewQueueClient({
                       </div>
                     </div>
 
-                    <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+                    <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
                       <InfoBlock label="Category" value={candidate.category || 'Uncategorised'} />
                       <InfoBlock label="Grade" value={formatGradeLevel(candidate.grade_level)} />
                       <InfoBlock label="Source" value={getSourceLabel(candidate)} subdued={candidate.source_type || undefined} />
@@ -1729,8 +1870,8 @@ export function ReviewQueueClient({
           )}
         </div>
 
-        <aside className="xl:sticky xl:top-6 xl:self-start">
-          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+        <aside className="xl:sticky xl:top-6 xl:self-start max-xl:order-first">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Review detail</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Honest prep for approve, reject, and merge, with the service-role write path finally wired instead of mocked.
@@ -2060,10 +2201,10 @@ export function ReviewQueueClient({
 
 function InfoBlock({ label, value, subdued }: { label: string; value: string; subdued?: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{label}</p>
-      <p className="mt-2 break-words text-sm font-medium text-[var(--text-primary)]">{value}</p>
-      {subdued ? <p className="mt-1 text-xs text-[var(--text-tertiary)]">{subdued}</p> : null}
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 shadow-sm">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{label}</p>
+      <p className="mt-2 break-words text-sm leading-6 font-medium text-[var(--text-primary)]">{value}</p>
+      {subdued ? <p className="mt-1 text-xs leading-5 text-[var(--text-tertiary)]">{subdued}</p> : null}
     </div>
   )
 }
