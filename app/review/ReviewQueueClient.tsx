@@ -2563,6 +2563,73 @@ export function ReviewQueueClient({
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by duplicate lane</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Jump straight into solo rows, pairs, or bigger duplicate families without rebuilding the queue by hand.</p>
+              </div>
+              {familyShapeFilter !== 'all' ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                  Focused on {DUPLICATE_SHAPE_LABELS[familyShapeFilter]}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-5 space-y-3">
+              {(['solo', 'pair', 'small-family', 'large-family'] as Array<Exclude<DuplicateShapeFilter, 'all'>>).every(
+                (shape) => pendingFamilyShapeSummary[shape].rows === 0
+              ) ? (
+                <p className="text-sm text-[var(--text-secondary)]">No pending duplicate lanes in the current filter set.</p>
+              ) : (
+                (['solo', 'pair', 'small-family', 'large-family'] as Array<Exclude<DuplicateShapeFilter, 'all'>>).map((shape) => {
+                  const summary = pendingFamilyShapeSummary[shape]
+                  const isFocusedShape = familyShapeFilter === shape
+                  const familyCount = summary.families.size
+
+                  return (
+                    <button
+                      key={shape}
+                      type="button"
+                      onClick={() => focusFamilyShape(shape)}
+                      disabled={summary.rows === 0}
+                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        isFocusedShape
+                          ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                          : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                      } ${summary.rows === 0 ? 'cursor-not-allowed opacity-50' : ''}`}
+                      aria-pressed={isFocusedShape}
+                    >
+                      <div className="pr-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium text-[var(--text-primary)]">{DUPLICATE_SHAPE_LABELS[shape]}</span>
+                          {isFocusedShape ? (
+                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                              Active
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                          {summary.rows === 0
+                            ? 'Nothing pending in this lane right now'
+                            : shape === 'solo'
+                              ? isFocusedShape
+                                ? 'Click to clear this solo lane'
+                                : `Click to focus ${familyCount} standalone candidate${familyCount === 1 ? '' : 's'}`
+                              : isFocusedShape
+                                ? 'Click to clear this duplicate lane'
+                                : `Click to focus ${familyCount} famil${familyCount === 1 ? 'y' : 'ies'} waiting`}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                        {summary.rows} pending
+                      </span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by source</h2>
                 <p className="mt-1 text-sm text-[var(--text-secondary)]">Useful when you want to clear one import batch at a time instead of mixing different transcript drops together.</p>
               </div>
@@ -2729,61 +2796,6 @@ export function ReviewQueueClient({
               )}
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Batch duplicate lanes</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">Jump straight into solos, pairs, or heavier duplicate clusters without rebuilding the view by hand.</p>
-          </div>
-          {familyShapeFilter !== 'all' ? (
-            <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-              Focused on {DUPLICATE_SHAPE_LABELS[familyShapeFilter]}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {(['solo', 'pair', 'small-family', 'large-family'] as Array<Exclude<DuplicateShapeFilter, 'all'>>).map((shape) => {
-            const summary = pendingFamilyShapeSummary[shape]
-            const isFocusedShape = familyShapeFilter === shape
-            const familyCount = summary.families.size
-            const leadCandidate = summary.leadCandidate
-
-            return (
-              <button
-                key={shape}
-                type="button"
-                onClick={() => focusFamilyShape(shape)}
-                className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
-                  isFocusedShape
-                    ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
-                    : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
-                }`}
-                aria-pressed={isFocusedShape}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-[var(--text-primary)]">{DUPLICATE_SHAPE_LABELS[shape]}</span>
-                  {isFocusedShape ? (
-                    <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                      Active
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-3 text-3xl font-bold text-[var(--text-primary)]">{summary.rows}</p>
-                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                  {shape === 'solo'
-                    ? `${familyCount} standalone candidate${familyCount === 1 ? '' : 's'}`
-                    : `${familyCount} famil${familyCount === 1 ? 'y' : 'ies'} waiting`}
-                </p>
-                <p className="mt-3 text-xs leading-5 text-[var(--text-secondary)]">
-                  {leadCandidate ? `Start with ${getDisplayTitle(leadCandidate)}.` : 'Nothing pending in this lane right now.'}
-                </p>
-              </button>
-            )
-          })}
         </div>
       </section>
 
