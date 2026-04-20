@@ -498,6 +498,7 @@ export function ReviewQueueClient({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [selectedCanonicalDrillId, setSelectedCanonicalDrillId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -877,11 +878,26 @@ export function ReviewQueueClient({
       .slice(0, 5)
   }, [drills, selectedCandidate])
 
-  const preferredMergeTargetId = matchedDrills[0]?.id ?? null
+  const preferredMergeTargetId = selectedCanonicalDrillId ?? matchedDrills[0]?.id ?? null
 
   const selectedFamilyCandidates = selectedCandidate?.dedupe_key
     ? sortedCandidates.filter((candidate) => candidate.dedupe_key === selectedCandidate.dedupe_key)
     : []
+
+  useEffect(() => {
+    if (!selectedCandidate) {
+      setSelectedCanonicalDrillId(null)
+      return
+    }
+
+    setSelectedCanonicalDrillId((current) => {
+      if (current && matchedDrills.some((drill) => drill.id === current)) {
+        return current
+      }
+
+      return matchedDrills[0]?.id ?? null
+    })
+  }, [matchedDrills, selectedCandidate])
 
   const selectedFamilyWorkspace = useMemo(() => {
     if (!selectedCandidate || !selectedCandidate.dedupe_key || selectedFamilyCandidates.length === 0) {
@@ -1454,6 +1470,22 @@ export function ReviewQueueClient({
               <span className="text-xs text-[var(--text-tertiary)]">Mark rejected</span>
             </button>
 
+            <label className="block text-sm text-[var(--text-secondary)]">
+              <span className="mb-1 block">Merge target</span>
+              <select
+                value={preferredMergeTargetId ?? ''}
+                onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+              >
+                <option value="">No target selected</option>
+                {matchedDrills.map((drill) => (
+                  <option key={drill.id} value={drill.id}>
+                    {drill.title} · Match {drill.matchScore}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <button
               type="button"
               disabled={visibleSelectedIds.length === 0 || !preferredMergeTargetId || isSubmitting}
@@ -1470,7 +1502,7 @@ export function ReviewQueueClient({
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
             >
               <span>Merge selected</span>
-              <span className="text-xs text-[var(--text-tertiary)]">{preferredMergeTargetId ? 'Use top library match' : 'Pick a candidate with a target first'}</span>
+              <span className="text-xs text-[var(--text-tertiary)]">{preferredMergeTargetId ? 'Use chosen library match' : 'Pick a candidate with a target first'}</span>
             </button>
           </div>
         </div>
@@ -1621,10 +1653,10 @@ export function ReviewQueueClient({
                               : null
                           }
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
-                          title={isSelected ? 'Merge this candidate into the top likely canonical target.' : 'Select this candidate first to choose a merge target.'}
+                          title={isSelected ? 'Merge this candidate into the chosen canonical target.' : 'Select this candidate first to choose a merge target.'}
                         >
                           Merge
-                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">{isSelected ? (preferredMergeTargetId ? 'Use top match' : 'No target yet') : 'Select first'}</span>
+                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">{isSelected ? (preferredMergeTargetId ? 'Use chosen target' : 'No target yet') : 'Select first'}</span>
                         </button>
                       </div>
                     </div>
@@ -1788,6 +1820,17 @@ export function ReviewQueueClient({
                                   <div className="flex flex-wrap gap-2">
                                     <button
                                       type="button"
+                                      onClick={() => setSelectedCanonicalDrillId(drill.id)}
+                                      className={`inline-flex shrink-0 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
+                                        preferredMergeTargetId === drill.id
+                                          ? 'border-[var(--accent-primary)] bg-[var(--surface-secondary)] text-[var(--text-primary)]'
+                                          : 'border-[var(--border)] bg-[var(--surface-primary)] text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
+                                      }`}
+                                    >
+                                      {preferredMergeTargetId === drill.id ? 'Merge target selected' : 'Use as merge target'}
+                                    </button>
+                                    <button
+                                      type="button"
                                       disabled={isSubmitting}
                                       onClick={() =>
                                         runReviewAction({
@@ -1799,7 +1842,7 @@ export function ReviewQueueClient({
                                       }
                                       className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
                                     >
-                                      Merge into this drill
+                                      Merge now
                                     </button>
                                     <Link
                                       href={returnToLibraryHref ? `${returnToLibraryHref}${returnToLibraryHref.includes('?') ? '&' : '?'}selected=${drill.id}` : `/drills?selected=${drill.id}`}
