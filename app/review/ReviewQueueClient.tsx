@@ -1655,6 +1655,8 @@ export function ReviewQueueClient({
   }, [matchedDrills, selectedCanonicalDrillId])
 
   const preferredMergeTargetId = selectedCanonicalDrillId ?? matchedDrills[0]?.id ?? null
+  const preferredMergeTarget = matchedDrills.find((drill) => drill.id === preferredMergeTargetId) ?? null
+  const isUsingAutoMergeTarget = !selectedCanonicalDrillId && Boolean(preferredMergeTarget)
 
   const selectedFamilyCandidates = selectedCandidate?.dedupe_key
     ? sortedCandidates.filter((candidate) => candidate.dedupe_key === selectedCandidate.dedupe_key)
@@ -4637,6 +4639,11 @@ export function ReviewQueueClient({
                   </option>
                 ))}
               </select>
+              <span className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
+                {preferredMergeTarget
+                  ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
+                  : 'Select a candidate with likely library matches to enable merge actions.'}
+              </span>
             </label>
 
             <button
@@ -5170,6 +5177,11 @@ export function ReviewQueueClient({
                                 </option>
                               ))}
                             </select>
+                            <span className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
+                              {preferredMergeTarget
+                                ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
+                                : 'No likely canonical target yet for this candidate.'}
+                            </span>
                           </label>
 
                           <button
