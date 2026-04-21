@@ -1978,6 +1978,7 @@ export function ReviewQueueClient({
       isActive: boolean
       onClick: () => void
       openLeadRow: () => void
+      handoffText: string
     }
 
     const buildRelatedSlice = (
@@ -1987,21 +1988,50 @@ export function ReviewQueueClient({
       isActive: boolean,
       onClick: () => void,
       matchingCandidates: RawDrillCandidate[]
-    ): RelatedQueueSlice => ({
-      key,
-      label,
-      count: matchingCandidates.length,
-      detail,
-      leadCandidate: matchingCandidates[0] ?? null,
-      isActive,
-      onClick,
-      openLeadRow: () => {
-        onClick()
-        if (matchingCandidates[0]) {
-          selectCandidate(matchingCandidates[0].id)
+    ): RelatedQueueSlice => {
+      const leadCandidate = matchingCandidates[0] ?? null
+      const handoffLines = [
+        `Related queue slice: ${label}`,
+        `Matched detail: ${detail}`,
+        `Selected candidate: ${getDisplayTitle(selectedCandidate)}`,
+        `Pending rows in slice: ${matchingCandidates.length}`,
+        `Slice state: ${isActive ? 'Already active in review queue' : 'Not active in review queue'}`,
+      ]
+
+      if (leadCandidate) {
+        const leadInsight = candidateInsights.get(leadCandidate.id)
+
+        handoffLines.push(`Lead row: ${getDisplayTitle(leadCandidate)}`)
+        handoffLines.push(`Lead source: ${getSourceLabel(leadCandidate)}`)
+
+        if (leadInsight) {
+          handoffLines.push(`Lead status: ${REVIEW_STATUS_LABELS[leadCandidate.review_status]} • ${getTriageLabel(leadInsight.triageLevel)}`)
+        } else {
+          handoffLines.push(`Lead status: ${REVIEW_STATUS_LABELS[leadCandidate.review_status]}`)
         }
-      },
-    })
+      } else {
+        handoffLines.push('Lead row: No pending row in this slice yet')
+      }
+
+      handoffLines.push(isActive ? 'Reviewer move: clear this slice to return to the wider queue.' : 'Reviewer move: focus this slice and open the lead row.')
+
+      return {
+        key,
+        label,
+        count: matchingCandidates.length,
+        detail,
+        leadCandidate,
+        isActive,
+        onClick,
+        openLeadRow: () => {
+          onClick()
+          if (leadCandidate) {
+            selectCandidate(leadCandidate.id)
+          }
+        },
+        handoffText: handoffLines.join('\n'),
+      }
+    }
 
     const relatedSlices = [
       buildRelatedSlice(
@@ -4916,16 +4946,13 @@ export function ReviewQueueClient({
 
                           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                             {selectedCandidateRelatedSlices.map((slice) => (
-                              <button
+                              <div
                                 key={slice.key}
-                                type="button"
-                                disabled={slice.count === 0}
-                                onClick={slice.openLeadRow}
-                                className={`rounded-2xl border px-4 py-4 text-left transition-colors disabled:pointer-events-none disabled:opacity-50 ${
+                                className={`rounded-2xl border px-4 py-4 transition-colors ${
                                   slice.isActive
                                     ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)] shadow-sm'
                                     : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
-                                }`}
+                                } ${slice.count === 0 ? 'opacity-50' : ''}`}
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0 flex-1">
@@ -4940,12 +4967,29 @@ export function ReviewQueueClient({
                                 </div>
                                 <p className="mt-3 text-2xl font-bold text-[var(--text-primary)]">{slice.count}</p>
                                 <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                                  pending row{slice.count === 1 ? '' : 's'} in this slice • {slice.isActive ? 'Click to clear' : 'Click to focus and open the lead row'}
+                                  pending row{slice.count === 1 ? '' : 's'} in this slice • {slice.isActive ? 'Clear or copy handoff' : 'Focus, open lead row, or copy handoff'}
                                 </p>
                                 <p className="mt-1 truncate text-xs text-[var(--text-tertiary)]">
                                   {slice.leadCandidate ? `Lead row: ${getDisplayTitle(slice.leadCandidate)}` : 'No pending row in this slice yet'}
                                 </p>
-                              </button>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={slice.count === 0}
+                                    onClick={slice.openLeadRow}
+                                    className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none"
+                                  >
+                                    {slice.isActive ? 'Clear focus + open lead' : 'Focus + open lead'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyText(slice.handoffText, `Copied ${slice.label.toLowerCase()} handoff`)}
+                                    className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                  >
+                                    Copy handoff
+                                  </button>
+                                </div>
+                              </div>
                             ))}
                           </div>
                         </div>
