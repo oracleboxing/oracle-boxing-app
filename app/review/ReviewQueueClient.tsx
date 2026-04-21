@@ -2011,6 +2011,14 @@ export function ReviewQueueClient({
         basePendingCandidates.filter((candidate) => (candidate.difficulty || 'unassigned') === (selectedCandidate.difficulty || 'unassigned'))
       ),
       buildRelatedSlice(
+        'status',
+        'Review status slice',
+        REVIEW_STATUS_LABELS[selectedCandidate.review_status],
+        statusFilter === selectedCandidate.review_status,
+        () => toggleStatusFocus(selectedCandidate.review_status),
+        basePendingCandidates.filter((candidate) => candidate.review_status === selectedCandidate.review_status)
+      ),
+      buildRelatedSlice(
         'ai',
         'AI recommendation lane',
         getAiDecisionFilterLabel(selectedAiDecision),
@@ -2052,6 +2060,7 @@ export function ReviewQueueClient({
     selectCandidate,
     selectedCandidate,
     sourceFilter,
+    statusFilter,
     suggestedActionFilter,
     toggleAiDecisionFocus,
     toggleCategoryFocus,
@@ -2059,6 +2068,7 @@ export function ReviewQueueClient({
     toggleDifficultyFocus,
     toggleGradeFocus,
     toggleSourceFocus,
+    toggleStatusFocus,
     toggleSuggestedActionFocus,
   ])
 
