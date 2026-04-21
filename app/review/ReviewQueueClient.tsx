@@ -1937,116 +1937,108 @@ export function ReviewQueueClient({
     const selectedAiDecision = getAiDecisionFilterValue(selectedCandidate.ai_decision ?? null)
     const gradeValue = selectedCandidate.grade_level ?? 'unassigned'
 
-    const buildRelatedSlice = ({
-      key,
-      label,
-      detail,
-      isActive,
-      matches,
-      apply,
-    }: {
-      key: string
-      label: string
-      detail: string
-      isActive: boolean
-      matches: (candidate: RawDrillCandidate) => boolean
-      apply: () => void
-    }) => {
-      const matchingCandidates = basePendingCandidates.filter(matches)
-      const leadCandidate = matchingCandidates[0] ?? null
-
-      return {
-        key,
-        label,
-        count: matchingCandidates.length,
-        detail,
-        isActive,
-        leadCandidate,
-        onClick: () => {
-          apply()
-          if (!isActive && leadCandidate) {
-            selectCandidate(leadCandidate.id, { scrollIntoView: false })
-          }
-        },
-      }
-    }
-
-    const relatedSlices = [
-      buildRelatedSlice({
-        key: 'action',
-        label: 'Suggested action lane',
-        detail: getDecisionLabel(suggestedAction),
-        isActive: suggestedActionFilter === suggestedAction,
-        matches: (candidate) => {
-          const relatedInsight = candidateInsights.get(candidate.id)
-          return relatedInsight ? getCandidateDecisionHint(candidate, relatedInsight) === suggestedAction : false
-        },
-        apply: () => toggleSuggestedActionFocus(suggestedAction),
-      }),
-      buildRelatedSlice({
-        key: 'completeness',
-        label: 'Completeness slice',
-        detail: COMPLETENESS_BAND_LABELS[completenessBand],
-        isActive: completenessFilter === completenessBand,
-        matches: (candidate) => {
-          const relatedInsight = candidateInsights.get(candidate.id)
-          return relatedInsight ? getCompletenessBand(relatedInsight) === completenessBand : false
-        },
-        apply: () => toggleCompletenessFocus(completenessBand),
-      }),
-      buildRelatedSlice({
-        key: 'grade',
-        label: 'Grade slice',
-        detail: formatGradeLevel(selectedCandidate.grade_level),
-        isActive: gradeFilter === gradeValue,
-        matches: (candidate) => (candidate.grade_level ?? 'unassigned') === gradeValue,
-        apply: () => toggleGradeFocus(gradeValue),
-      }),
-      buildRelatedSlice({
-        key: 'difficulty',
-        label: 'Difficulty slice',
-        detail: formatDifficultyLabel(selectedCandidate.difficulty),
-        isActive: difficultyFilter === (selectedCandidate.difficulty || 'unassigned'),
-        matches: (candidate) => (candidate.difficulty || 'unassigned') === (selectedCandidate.difficulty || 'unassigned'),
-        apply: () => toggleDifficultyFocus(selectedCandidate.difficulty || 'unassigned'),
-      }),
-      buildRelatedSlice({
-        key: 'ai',
-        label: 'AI recommendation lane',
-        detail: getAiDecisionFilterLabel(selectedAiDecision),
-        isActive: aiDecisionFilter === selectedAiDecision,
-        matches: (candidate) => getAiDecisionFilterValue(candidate.ai_decision ?? null) === selectedAiDecision,
-        apply: () => toggleAiDecisionFocus(selectedAiDecision),
-      }),
-      selectedCandidate.category
-        ? buildRelatedSlice({
-            key: 'category',
-            label: 'Category slice',
-            detail: selectedCandidate.category,
-            isActive: categoryFilter === selectedCandidate.category,
-            matches: (candidate) => candidate.category === selectedCandidate.category,
-            apply: () => toggleCategoryFocus(selectedCandidate.category!, selectedCandidate.id),
-          })
-        : null,
-      selectedCandidate.source_file
-        ? buildRelatedSlice({
-            key: 'source',
-            label: 'Source slice',
-            detail: selectedCandidate.source_file,
-            isActive: sourceFilter === selectedCandidate.source_file,
-            matches: (candidate) => candidate.source_file === selectedCandidate.source_file,
-            apply: () => toggleSourceFocus(selectedCandidate.source_file!, selectedCandidate.id),
-          })
-        : null,
-    ].filter(Boolean) as Array<{
+    type RelatedQueueSlice = {
       key: string
       label: string
       count: number
       detail: string
-      isActive: boolean
       leadCandidate: RawDrillCandidate | null
+      isActive: boolean
       onClick: () => void
-    }>
+      openLeadRow: () => void
+    }
+
+    const buildRelatedSlice = (
+      key: string,
+      label: string,
+      detail: string,
+      isActive: boolean,
+      onClick: () => void,
+      matchingCandidates: RawDrillCandidate[]
+    ): RelatedQueueSlice => ({
+      key,
+      label,
+      count: matchingCandidates.length,
+      detail,
+      leadCandidate: matchingCandidates[0] ?? null,
+      isActive,
+      onClick,
+      openLeadRow: () => {
+        onClick()
+        if (matchingCandidates[0]) {
+          selectCandidate(matchingCandidates[0].id)
+        }
+      },
+    })
+
+    const relatedSlices = [
+      buildRelatedSlice(
+        'action',
+        'Suggested action lane',
+        getDecisionLabel(suggestedAction),
+        suggestedActionFilter === suggestedAction,
+        () => toggleSuggestedActionFocus(suggestedAction),
+        basePendingCandidates.filter((candidate) => {
+          const relatedInsight = candidateInsights.get(candidate.id)
+          return relatedInsight ? getCandidateDecisionHint(candidate, relatedInsight) === suggestedAction : false
+        })
+      ),
+      buildRelatedSlice(
+        'completeness',
+        'Completeness slice',
+        COMPLETENESS_BAND_LABELS[completenessBand],
+        completenessFilter === completenessBand,
+        () => toggleCompletenessFocus(completenessBand),
+        basePendingCandidates.filter((candidate) => {
+          const relatedInsight = candidateInsights.get(candidate.id)
+          return relatedInsight ? getCompletenessBand(relatedInsight) === completenessBand : false
+        })
+      ),
+      buildRelatedSlice(
+        'grade',
+        'Grade slice',
+        formatGradeLevel(selectedCandidate.grade_level),
+        gradeFilter === gradeValue,
+        () => toggleGradeFocus(gradeValue),
+        basePendingCandidates.filter((candidate) => (candidate.grade_level ?? 'unassigned') === gradeValue)
+      ),
+      buildRelatedSlice(
+        'difficulty',
+        'Difficulty slice',
+        formatDifficultyLabel(selectedCandidate.difficulty),
+        difficultyFilter === (selectedCandidate.difficulty || 'unassigned'),
+        () => toggleDifficultyFocus(selectedCandidate.difficulty || 'unassigned'),
+        basePendingCandidates.filter((candidate) => (candidate.difficulty || 'unassigned') === (selectedCandidate.difficulty || 'unassigned'))
+      ),
+      buildRelatedSlice(
+        'ai',
+        'AI recommendation lane',
+        getAiDecisionFilterLabel(selectedAiDecision),
+        aiDecisionFilter === selectedAiDecision,
+        () => toggleAiDecisionFocus(selectedAiDecision),
+        basePendingCandidates.filter((candidate) => getAiDecisionFilterValue(candidate.ai_decision ?? null) === selectedAiDecision)
+      ),
+      selectedCandidate.category
+        ? buildRelatedSlice(
+            'category',
+            'Category slice',
+            selectedCandidate.category,
+            categoryFilter === selectedCandidate.category,
+            () => toggleCategoryFocus(selectedCandidate.category!, selectedCandidate.id),
+            basePendingCandidates.filter((candidate) => candidate.category === selectedCandidate.category)
+          )
+        : null,
+      selectedCandidate.source_file
+        ? buildRelatedSlice(
+            'source',
+            'Source slice',
+            selectedCandidate.source_file,
+            sourceFilter === selectedCandidate.source_file,
+            () => toggleSourceFocus(selectedCandidate.source_file!, selectedCandidate.id),
+            basePendingCandidates.filter((candidate) => candidate.source_file === selectedCandidate.source_file)
+          )
+        : null,
+    ].filter((item): item is RelatedQueueSlice => Boolean(item))
 
     return relatedSlices.sort((left, right) => right.count - left.count || left.label.localeCompare(right.label))
   }, [
@@ -2057,8 +2049,8 @@ export function ReviewQueueClient({
     completenessFilter,
     difficultyFilter,
     gradeFilter,
-    selectedCandidate,
     selectCandidate,
+    selectedCandidate,
     sourceFilter,
     suggestedActionFilter,
     toggleAiDecisionFocus,
@@ -4777,7 +4769,7 @@ export function ReviewQueueClient({
                                 key={slice.key}
                                 type="button"
                                 disabled={slice.count === 0}
-                                onClick={slice.onClick}
+                                onClick={slice.openLeadRow}
                                 className={`rounded-2xl border px-4 py-4 text-left transition-colors disabled:pointer-events-none disabled:opacity-50 ${
                                   slice.isActive
                                     ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)] shadow-sm'
