@@ -2312,6 +2312,22 @@ export function ReviewQueueClient({
         return
       }
 
+      if (event.key === '.') {
+        event.preventDefault()
+        if (nextFamilyCandidate) {
+          selectCandidate(nextFamilyCandidate.id, { scrollIntoView: false })
+        }
+        return
+      }
+
+      if (event.key === ',') {
+        event.preventDefault()
+        if (previousFamilyCandidate) {
+          selectCandidate(previousFamilyCandidate.id, { scrollIntoView: false })
+        }
+        return
+      }
+
       const requestedRoute =
         key === REVIEW_ROUTE_SHORTCUTS['approve-ready']
           ? 'approve-ready'
@@ -2419,8 +2435,10 @@ export function ReviewQueueClient({
     familyFilter,
     focusFamily,
     nextDuplicateFamily,
+    nextFamilyCandidate,
     nextPendingCandidate,
     previousDuplicateFamily,
+    previousFamilyCandidate,
     candidateInsights,
     preferredMergeTargetId,
     previousPendingCandidate,
@@ -2586,6 +2604,7 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">f</kbd> toggle family focus •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">[</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">]</kbd> family hop •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">,</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">.</kbd> family row •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> select •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> approve •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
@@ -4668,7 +4687,7 @@ export function ReviewQueueClient({
                       >
                         Previous family row
                         <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                          {previousFamilyCandidate ? getDisplayTitle(previousFamilyCandidate) : 'Start of this visible family cluster'}
+                          {previousFamilyCandidate ? `Shortcut , • ${getDisplayTitle(previousFamilyCandidate)}` : 'Shortcut , • Start of this visible family cluster'}
                         </span>
                       </button>
 
@@ -4680,7 +4699,7 @@ export function ReviewQueueClient({
                       >
                         Next family row
                         <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                          {nextFamilyCandidate ? getDisplayTitle(nextFamilyCandidate) : 'End of this visible family cluster'}
+                          {nextFamilyCandidate ? `Shortcut . • ${getDisplayTitle(nextFamilyCandidate)}` : 'Shortcut . • End of this visible family cluster'}
                         </span>
                       </button>
                     </div>
