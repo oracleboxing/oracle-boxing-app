@@ -2104,6 +2104,18 @@ export function ReviewQueueClient({
     }
   }, [candidateInsights, selectedCandidate, selectedFamilyCandidates])
 
+  const selectedFamilyPendingCandidates = useMemo(
+    () => selectedFamilyCandidates.filter((candidate) => candidate.review_status === 'pending'),
+    [selectedFamilyCandidates]
+  )
+  const selectedFamilyPendingIndex =
+    selectedCandidate && selectedCandidate.review_status === 'pending'
+      ? selectedFamilyPendingCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id)
+      : -1
+  const pendingRowsAfterCurrent = selectedPendingIndex >= 0 ? Math.max(pendingCandidates.length - selectedPendingIndex - 1, 0) : pendingCandidates.length
+  const familyPendingRowsAfterCurrent =
+    selectedFamilyPendingIndex >= 0 ? Math.max(selectedFamilyPendingCandidates.length - selectedFamilyPendingIndex - 1, 0) : selectedFamilyPendingCandidates.length
+
   const selectedCandidateRelatedSlices = useMemo(() => {
     if (!selectedCandidate) return []
 
@@ -4972,6 +4984,25 @@ export function ReviewQueueClient({
                     <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
                       {SORT_MODE_LABELS[sortMode]}
                     </span>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                      {selectedPendingIndex >= 0
+                        ? `Pending progress: ${selectedPendingIndex + 1}/${pendingCandidates.length} • ${pendingRowsAfterCurrent} left after this row`
+                        : pendingCandidates.length > 0
+                          ? `Pending progress: current row already reviewed • ${pendingCandidates.length} pending left in this view`
+                          : 'Pending progress: queue slice is clear'}
+                    </span>
+                    {selectedCandidate.dedupe_key ? (
+                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                        {selectedFamilyPendingIndex >= 0
+                          ? `Family progress: ${selectedFamilyPendingIndex + 1}/${selectedFamilyPendingCandidates.length} pending • ${familyPendingRowsAfterCurrent} left in family`
+                          : selectedFamilyPendingCandidates.length > 0
+                            ? `Family progress: ${selectedFamilyPendingCandidates.length} pending left in ${selectedCandidate.dedupe_key}`
+                            : 'Family progress: no pending rows left in this family'}
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
