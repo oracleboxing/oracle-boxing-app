@@ -20,6 +20,12 @@ const STATUS_SORT_ORDER: Record<ReviewStatus, number> = {
   rejected: 3,
 }
 
+const REVIEW_ROUTE_SHORTCUTS: Record<ReviewRouteKey, '1' | '2' | '3'> = {
+  'approve-ready': '1',
+  'merge-sweep': '2',
+  'thin-cleanup': '3',
+}
+
 type SortMode = 'triage' | 'pending-first' | 'duplicate-pressure' | 'completeness' | 'newest' | 'grade'
 type AiDecisionFilter = 'all' | AiDecision | 'none'
 
@@ -2038,6 +2044,27 @@ export function ReviewQueueClient({
         return
       }
 
+      const requestedRoute =
+        key === REVIEW_ROUTE_SHORTCUTS['approve-ready']
+          ? 'approve-ready'
+          : key === REVIEW_ROUTE_SHORTCUTS['merge-sweep']
+            ? 'merge-sweep'
+            : key === REVIEW_ROUTE_SHORTCUTS['thin-cleanup']
+              ? 'thin-cleanup'
+              : null
+
+      if (requestedRoute) {
+        event.preventDefault()
+        const route = reviewRoutes.find((item) => item.key === requestedRoute)
+        if (!route || route.count === 0) return
+
+        applyReviewRoute(route.key)
+        if (route.leadCandidate) {
+          selectCandidate(route.leadCandidate.id, { scrollIntoView: false })
+        }
+        return
+      }
+
       if (key === 'a') {
         event.preventDefault()
         if (selectedCandidateId) {
@@ -2119,6 +2146,7 @@ export function ReviewQueueClient({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
+    applyReviewRoute,
     clearFamilyFocus,
     familyFilter,
     focusFamily,
@@ -2128,6 +2156,7 @@ export function ReviewQueueClient({
     candidateInsights,
     preferredMergeTargetId,
     previousPendingCandidate,
+    reviewRoutes,
     runReviewAction,
     selectCandidate,
     selectedCandidate,
@@ -2282,7 +2311,8 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> approve •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> merge •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">s</kbd> suggested action
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">s</kbd> suggested action •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">1</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">2</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">3</kbd> route jump
             </p>
           </div>
 
@@ -2749,6 +2779,9 @@ export function ReviewQueueClient({
                 <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getReviewRouteTone(route.key)}`}>
                   {route.label}
                 </span>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
+                  Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}
+                </span>
                 {route.isActive ? (
                   <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
                     Active
@@ -2775,6 +2808,7 @@ export function ReviewQueueClient({
                   className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                 >
                   {route.isActive ? 'Current route' : 'Apply route'}
+                  <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}</span>
                   <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                     {route.key === 'approve-ready'
                       ? 'Suggested keep + completeness ordering'
