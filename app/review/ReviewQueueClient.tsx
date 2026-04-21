@@ -1970,6 +1970,55 @@ export function ReviewQueueClient({
 
       const key = event.key.toLowerCase()
 
+      if (event.shiftKey && key === 'x') {
+        event.preventDefault()
+        toggleSelectAllVisiblePending()
+        return
+      }
+
+      if (event.shiftKey && key === 'a') {
+        event.preventDefault()
+        if (visibleSelectedIds.length === 0) return
+
+        runReviewAction({
+          action: 'approve',
+          candidateIds: visibleSelectedIds,
+          successLabel:
+            visibleSelectedIds.length === 1
+              ? 'Approved candidate into the drill library.'
+              : `Approved ${visibleSelectedIds.length} candidates into the drill library.`,
+        })
+        return
+      }
+
+      if (event.shiftKey && key === 'r') {
+        event.preventDefault()
+        if (visibleSelectedIds.length === 0) return
+
+        runReviewAction({
+          action: 'reject',
+          candidateIds: visibleSelectedIds,
+          successLabel: visibleSelectedIds.length === 1 ? 'Rejected candidate.' : `Rejected ${visibleSelectedIds.length} candidates.`,
+        })
+        return
+      }
+
+      if (event.shiftKey && key === 'm') {
+        event.preventDefault()
+        if (visibleSelectedIds.length === 0 || !preferredMergeTargetId) return
+
+        runReviewAction({
+          action: 'merge',
+          candidateIds: visibleSelectedIds,
+          canonicalDrillId: preferredMergeTargetId,
+          successLabel:
+            visibleSelectedIds.length === 1
+              ? 'Merged candidate into the selected drill.'
+              : `Merged ${visibleSelectedIds.length} candidates into the selected drill.`,
+        })
+        return
+      }
+
       if (key === 'j' || key === 'k') {
         event.preventDefault()
         if (sortedCandidates.length === 0) return
@@ -2162,7 +2211,9 @@ export function ReviewQueueClient({
     selectedCandidate,
     selectedCandidateId,
     sortedCandidates,
+    toggleSelectAllVisiblePending,
     toggleSelected,
+    visibleSelectedIds,
   ])
 
   const allVisiblePendingSelected =
@@ -2312,6 +2363,7 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> merge •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">s</kbd> suggested action •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Shift</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> bulk select + act •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">1</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">2</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">3</kbd> route jump
             </p>
           </div>
@@ -3757,6 +3809,9 @@ export function ReviewQueueClient({
               </div>
               <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                 Pending {bulkSelectionCounts.pending} • Approved {bulkSelectionCounts.approved} • Merged {bulkSelectionCounts.merged} • Rejected {bulkSelectionCounts.rejected}
+              </p>
+              <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                Shortcuts: <span className="font-medium text-[var(--text-secondary)]">Shift + X</span> selects visible pending, then <span className="font-medium text-[var(--text-secondary)]">Shift + A / R / M</span> runs the bulk action.
               </p>
             </div>
 
