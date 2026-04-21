@@ -737,6 +737,7 @@ export function ReviewQueueClient({
   const [selectedCanonicalDrillId, setSelectedCanonicalDrillId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const detailPanelRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') ?? ''
@@ -870,6 +871,18 @@ export function ReviewQueueClient({
     }
 
     document.getElementById(`candidate-${candidateId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [])
+
+  const focusCandidateDetailPanel = useCallback((candidateId: string) => {
+    setSelectedCandidateId(candidateId)
+
+    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1279px)').matches) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }, [])
 
   const copyText = useCallback((value: string, label: string) => {
@@ -4932,7 +4945,7 @@ export function ReviewQueueClient({
 
                           <button
                             type="button"
-                            onClick={() => setSelectedCandidateId(candidate.id)}
+                            onClick={() => focusCandidateDetailPanel(candidate.id)}
                             className="min-w-0 flex-1 text-left"
                           >
                             <div className="flex flex-wrap items-center gap-2">
@@ -5051,7 +5064,7 @@ export function ReviewQueueClient({
           )}
         </div>
 
-        <aside className="xl:sticky xl:top-6 xl:self-start max-xl:order-first">
+        <aside ref={detailPanelRef} className="xl:sticky xl:top-6 xl:self-start max-xl:order-first">
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Review detail</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
