@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AiDecision, Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
 const REVIEW_STATUSES: ReviewStatus[] = ['pending', 'approved', 'merged', 'rejected']
@@ -719,6 +719,7 @@ export function ReviewQueueClient({
   const [actionError, setActionError] = useState<string | null>(null)
   const [selectedCanonicalDrillId, setSelectedCanonicalDrillId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') ?? ''
@@ -1717,6 +1718,37 @@ export function ReviewQueueClient({
     }
   }, [duplicateFamilies, familyFilter])
 
+  const selectedCandidateHandoff = useMemo(() => {
+    if (!selectedCandidate) return null
+
+    const insight = candidateInsights.get(selectedCandidate.id)
+    if (!insight) return null
+
+    const suggestedAction = getCandidateDecisionHint(selectedCandidate, insight)
+    const lines = [
+      'Selected candidate handoff',
+      `Candidate: ${getDisplayTitle(selectedCandidate)}`,
+      `Status: ${REVIEW_STATUS_LABELS[selectedCandidate.review_status]} • ${getTriageLabel(insight.triageLevel)}`,
+      `Suggested action: ${getDecisionLabel(suggestedAction)}`,
+      `Reviewer next move: ${getReviewerNextMove(selectedCandidate, insight)}`,
+      `Source: ${getSourceLabel(selectedCandidate)}`,
+      `Completeness: ${insight.completenessLabel}`,
+      `Difficulty: ${formatDifficultyLabel(selectedCandidate.difficulty)}`,
+      `Grade: ${formatGradeLevel(selectedCandidate.grade_level)}`,
+      `Duplicate lane: ${DUPLICATE_SHAPE_LABELS[getDuplicateShape(insight.familySize)]}`,
+    ]
+
+    if (selectedCandidate.dedupe_key) {
+      lines.push(`Family: ${selectedCandidate.dedupe_key} (${insight.familySize} rows)`)
+    }
+
+    if (selectedCandidate.ai_decision) {
+      lines.push(`AI recommendation: ${getAiDecisionLabel(selectedCandidate.ai_decision)}`)
+    }
+
+    return lines.join('\n')
+  }, [candidateInsights, selectedCandidate])
+
   const selectedCandidateIndex = selectedCandidate ? sortedCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
   const selectedPendingIndex = selectedCandidate ? pendingCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
   const previousVisibleCandidate = selectedCandidateIndex > 0 ? sortedCandidates[selectedCandidateIndex - 1] : null
@@ -1980,6 +2012,13 @@ export function ReviewQueueClient({
 
       const key = event.key.toLowerCase()
 
+      if (key === '/') {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+        return
+      }
+
       if (event.shiftKey && key === 'x') {
         event.preventDefault()
         toggleSelectAllVisiblePending()
@@ -2217,6 +2256,7 @@ export function ReviewQueueClient({
     previousPendingCandidate,
     reviewRoutes,
     runReviewAction,
+    searchInputRef,
     selectCandidate,
     selectedCandidate,
     selectedCandidateId,
@@ -2347,6 +2387,13 @@ export function ReviewQueueClient({
     window.setTimeout(() => setCopyFeedback(null), 3000)
   }, [currentSliceSummary.handoffText])
 
+  const copySelectedCandidateHandoff = useCallback(() => {
+    if (!selectedCandidateHandoff) return
+    navigator.clipboard.writeText(selectedCandidateHandoff)
+    setCopyFeedback('Copied selected candidate handoff')
+    window.setTimeout(() => setCopyFeedback(null), 3000)
+  }, [selectedCandidateHandoff])
+
   return (
     <>
       {copyFeedback && (
@@ -2364,7 +2411,8 @@ export function ReviewQueueClient({
             </p>
             <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
               <span className="mr-2">Keyboard:</span>
-              <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> navigate visible •
+              <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">/</kbd> focus search •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> navigate visible •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">f</kbd> toggle family focus •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">[</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">]</kbd> family hop •
@@ -2380,8 +2428,14 @@ export function ReviewQueueClient({
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-7">
             <label className="text-sm text-[var(--text-secondary)]">
-              <span className="mb-1 block">Search</span>
+              <span className="mb-1 flex items-center gap-2">
+                <span>Search</span>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                  Shortcut /
+                </span>
+              </span>
               <input
+                ref={searchInputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Title, source, summary, dedupe key"
@@ -4270,15 +4324,26 @@ export function ReviewQueueClient({
                               Review this row from the detail panel, then keep moving through the pending queue without bouncing back to the list.
                             </p>
                           </div>
-                          {nextPendingCandidate && nextPendingCandidate.id !== selectedCandidate.id ? (
-                            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                              Next pending: {getDisplayTitle(nextPendingCandidate)}
-                            </span>
-                          ) : (
-                            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                              No later pending row in this view
-                            </span>
-                          )}
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            {selectedCandidateHandoff ? (
+                              <button
+                                type="button"
+                                onClick={copySelectedCandidateHandoff}
+                                className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                              >
+                                Copy candidate handoff
+                              </button>
+                            ) : null}
+                            {nextPendingCandidate && nextPendingCandidate.id !== selectedCandidate.id ? (
+                              <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                                Next pending: {getDisplayTitle(nextPendingCandidate)}
+                              </span>
+                            ) : (
+                              <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                                No later pending row in this view
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
