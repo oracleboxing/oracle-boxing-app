@@ -1951,6 +1951,28 @@ export function ReviewQueueClient({
     return lines.join('\n')
   }, [candidateInsights, selectedCandidate])
 
+  const selectedMergeHandoff = useMemo(() => {
+    if (!selectedCandidate || !preferredMergeTarget) return null
+
+    const insight = candidateInsights.get(selectedCandidate.id)
+    if (!insight) return null
+
+    const lines = [
+      'Selected merge handoff',
+      `Candidate: ${getDisplayTitle(selectedCandidate)} (${selectedCandidate.id})`,
+      `Candidate status: ${REVIEW_STATUS_LABELS[selectedCandidate.review_status]} • ${getTriageLabel(insight.triageLevel)}`,
+      `Suggested action: ${getDecisionLabel(getCandidateDecisionHint(selectedCandidate, insight))}`,
+      `Merge target: ${preferredMergeTarget.title} (${preferredMergeTarget.id})`,
+      `Target selection: ${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Reviewer-selected target'}`,
+      `Match score: ${preferredMergeTarget.matchScore}`,
+      `Match reasons: ${preferredMergeTarget.matchReasons.slice(0, 3).join(' • ') || 'No reasons surfaced'}`,
+      `Target summary: ${preferredMergeTarget.summary || 'No library summary yet.'}`,
+      `Reviewer next move: Merge this row into the selected canonical drill if the overlap holds up on inspection.`,
+    ]
+
+    return lines.join('\n')
+  }, [candidateInsights, isUsingAutoMergeTarget, preferredMergeTarget, selectedCandidate])
+
   const selectedCandidateIndex = selectedCandidate ? sortedCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
   const selectedPendingIndex = selectedCandidate ? pendingCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
   const previousVisibleCandidate = selectedCandidateIndex > 0 ? sortedCandidates[selectedCandidateIndex - 1] : null
@@ -2766,6 +2788,13 @@ export function ReviewQueueClient({
     setCopyFeedback('Copied selected candidate handoff')
     window.setTimeout(() => setCopyFeedback(null), 3000)
   }, [selectedCandidateHandoff])
+
+  const copySelectedMergeHandoff = useCallback(() => {
+    if (!selectedMergeHandoff) return
+    navigator.clipboard.writeText(selectedMergeHandoff)
+    setCopyFeedback('Copied selected merge handoff')
+    window.setTimeout(() => setCopyFeedback(null), 3000)
+  }, [selectedMergeHandoff])
 
   return (
     <>
@@ -5206,26 +5235,38 @@ export function ReviewQueueClient({
                         </div>
 
                         <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                          <label className="text-sm text-[var(--text-secondary)]">
-                            <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Merge target</span>
-                            <select
-                              value={preferredMergeTargetId ?? ''}
-                              onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
-                              className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
-                            >
-                              <option value="">No target selected</option>
-                              {matchedDrills.map((drill) => (
-                                <option key={drill.id} value={drill.id}>
-                                  {drill.title} · Match {drill.matchScore}
-                                </option>
-                              ))}
-                            </select>
-                            <span className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
-                              {preferredMergeTarget
-                                ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
-                                : 'No likely canonical target yet for this candidate.'}
-                            </span>
-                          </label>
+                          <div className="space-y-3 text-sm text-[var(--text-secondary)]">
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Merge target</span>
+                              <select
+                                value={preferredMergeTargetId ?? ''}
+                                onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
+                                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+                              >
+                                <option value="">No target selected</option>
+                                {matchedDrills.map((drill) => (
+                                  <option key={drill.id} value={drill.id}>
+                                    {drill.title} · Match {drill.matchScore}
+                                  </option>
+                                ))}
+                              </select>
+                              <span className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
+                                {preferredMergeTarget
+                                  ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
+                                  : 'No likely canonical target yet for this candidate.'}
+                              </span>
+                            </label>
+
+                            {selectedMergeHandoff ? (
+                              <button
+                                type="button"
+                                onClick={copySelectedMergeHandoff}
+                                className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                              >
+                                Copy merge handoff
+                              </button>
+                            ) : null}
+                          </div>
 
                           <button
                             type="button"
