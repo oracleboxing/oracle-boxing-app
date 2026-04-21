@@ -421,6 +421,23 @@ function getAdjacentPendingDuplicateFamily<T extends { dedupeKey: string; status
   return orderedFamilies.find((family) => family.statuses.includes('pending')) ?? null
 }
 
+function getAdjacentCandidate<T extends { id: string }>(candidates: T[], currentCandidateId: string | null, direction: 'next' | 'previous') {
+  if (candidates.length === 0) return null
+  if (candidates.length === 1) return candidates[0] ?? null
+
+  const currentIndex = currentCandidateId ? candidates.findIndex((candidate) => candidate.id === currentCandidateId) : -1
+
+  if (currentIndex === -1) {
+    return direction === 'next' ? candidates[0] ?? null : candidates[candidates.length - 1] ?? null
+  }
+
+  if (direction === 'next') {
+    return candidates[(currentIndex + 1) % candidates.length] ?? null
+  }
+
+  return candidates[(currentIndex - 1 + candidates.length) % candidates.length] ?? null
+}
+
 function shouldIgnoreShortcutTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
 
@@ -1258,7 +1275,7 @@ export function ReviewQueueClient({
           count: 1,
           leadCandidate: candidate,
           leadInsight,
-          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null,
+          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null
         })
         continue
       }
@@ -1308,13 +1325,14 @@ export function ReviewQueueClient({
           count: 1,
           leadCandidate: candidate,
           leadInsight,
-          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null,
+          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null
         })
         continue
       }
 
       existing.count += 1
     }
+
 
     return summary
   }, [candidateInsights, pendingCandidates])
@@ -1340,13 +1358,14 @@ export function ReviewQueueClient({
           count: 1,
           leadCandidate: candidate,
           leadInsight,
-          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null,
+          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null
         })
         continue
       }
 
       existing.count += 1
     }
+
 
     return summary
   }, [candidateInsights, pendingCandidates])
@@ -1372,13 +1391,14 @@ export function ReviewQueueClient({
           count: 1,
           leadCandidate: candidate,
           leadInsight,
-          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null,
+          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null
         })
         continue
       }
 
       existing.count += 1
     }
+
 
     return summary
   }, [candidateInsights, pendingCandidates])
@@ -1625,6 +1645,15 @@ export function ReviewQueueClient({
     () => selectedIds.filter((id) => sortedCandidates.some((candidate) => candidate.id === id)),
     [selectedIds, sortedCandidates]
   )
+  const actionableSelectedIds = useMemo(
+    () =>
+      visibleSelectedIds.filter((id) => {
+        const candidate = sortedCandidates.find((item) => item.id === id)
+        return candidate?.review_status === 'pending'
+      }),
+    [sortedCandidates, visibleSelectedIds]
+  )
+  const skippedSelectedCount = visibleSelectedIds.length - actionableSelectedIds.length
 
   const selectedCandidate =
     (selectedCandidateFromUrl
@@ -1994,33 +2023,29 @@ export function ReviewQueueClient({
 
   const selectedCandidateIndex = selectedCandidate ? sortedCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
   const selectedPendingIndex = selectedCandidate ? pendingCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
-  const previousVisibleCandidate = selectedCandidateIndex > 0 ? sortedCandidates[selectedCandidateIndex - 1] : null
-  const nextVisibleCandidate = selectedCandidateIndex >= 0 && selectedCandidateIndex < sortedCandidates.length - 1 ? sortedCandidates[selectedCandidateIndex + 1] : null
+  const previousVisibleCandidate = getAdjacentCandidate(sortedCandidates, selectedCandidate?.id ?? null, 'previous')
+  const nextVisibleCandidate = getAdjacentCandidate(sortedCandidates, selectedCandidate?.id ?? null, 'next')
   const leadVisibleCandidate = currentSliceSummary.leadCandidate
-  const previousPendingCandidate = selectedPendingIndex > 0 ? pendingCandidates[selectedPendingIndex - 1] : null
-  const nextPendingCandidate = selectedPendingIndex >= 0 ? pendingCandidates[selectedPendingIndex + 1] ?? null : pendingCandidates[0] ?? null
+  const previousPendingCandidate = getAdjacentCandidate(pendingCandidates, selectedCandidate?.id ?? null, 'previous')
+  const nextPendingCandidate = getAdjacentCandidate(pendingCandidates, selectedCandidate?.id ?? null, 'next')
+  const previousVisibleWraps = selectedCandidateIndex === 0 && sortedCandidates.length > 1
+  const nextVisibleWraps = selectedCandidateIndex === sortedCandidates.length - 1 && sortedCandidates.length > 1
+  const previousPendingWraps = selectedPendingIndex === 0 && pendingCandidates.length > 1
+  const nextPendingWraps = selectedPendingIndex === pendingCandidates.length - 1 && pendingCandidates.length > 1
 
   const previousFamilyCandidate = useMemo(() => {
     if (!selectedCandidate?.dedupe_key) return null
-
-    const currentIndex = selectedFamilyCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id)
-    if (currentIndex <= 0) {
-      return null
-    }
-
-    return selectedFamilyCandidates[currentIndex - 1] ?? null
+    return getAdjacentCandidate(selectedFamilyCandidates, selectedCandidate.id, 'previous')
   }, [selectedCandidate, selectedFamilyCandidates])
 
   const nextFamilyCandidate = useMemo(() => {
     if (!selectedCandidate?.dedupe_key) return null
-
-    const currentIndex = selectedFamilyCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id)
-    if (currentIndex === -1) {
-      return selectedFamilyCandidates[0] ?? null
-    }
-
-    return selectedFamilyCandidates[currentIndex + 1] ?? null
+    return getAdjacentCandidate(selectedFamilyCandidates, selectedCandidate.id, 'next')
   }, [selectedCandidate, selectedFamilyCandidates])
+
+  const selectedFamilyIndex = selectedCandidate ? selectedFamilyCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
+  const previousFamilyWraps = selectedFamilyIndex === 0 && selectedFamilyCandidates.length > 1
+  const nextFamilyWraps = selectedFamilyIndex === selectedFamilyCandidates.length - 1 && selectedFamilyCandidates.length > 1
 
   const nextDuplicateFamily = useMemo(() => {
     const currentFamilyKey = familyFilter ?? selectedCandidate?.dedupe_key ?? null
@@ -2080,7 +2105,15 @@ export function ReviewQueueClient({
       { keep: 0, merge: 0, reject: 0 }
     )
 
-    const pendingCount = ranked.filter(({ candidate }) => candidate.review_status === 'pending').length
+    const pendingRanked = ranked.filter(({ candidate }) => candidate.review_status === 'pending')
+    const pendingCount = pendingRanked.length
+    const pendingFamilyIds = pendingRanked.map(({ candidate }) => candidate.id)
+    const pendingMergeIds = pendingRanked
+      .filter(({ candidate, insight }) => getCandidateDecisionHint(candidate, insight) === 'merge')
+      .map(({ candidate }) => candidate.id)
+    const pendingRejectIds = pendingRanked
+      .filter(({ candidate, insight }) => getCandidateDecisionHint(candidate, insight) === 'reject')
+      .map(({ candidate }) => candidate.id)
     const nextMergeCandidate =
       ranked.find(
         ({ candidate, insight }) =>
@@ -2119,6 +2152,9 @@ export function ReviewQueueClient({
       nextRejectCandidate,
       decisionCounts,
       pendingCount,
+      pendingFamilyIds,
+      pendingMergeIds,
+      pendingRejectIds,
       handoffText: handoffLines.join('\n'),
     }
   }, [candidateInsights, selectedCandidate, selectedFamilyCandidates])
@@ -2338,6 +2374,21 @@ export function ReviewQueueClient({
     setSelectedIds((current) => (current.includes(id) ? current.filter((value) => value !== id) : [...current, id]))
   }, [])
 
+  const toggleSelectedBatch = useCallback((ids: string[]) => {
+    if (ids.length === 0) return
+
+    const uniqueIds = Array.from(new Set(ids))
+    setSelectedIds((current) => {
+      const allSelected = uniqueIds.every((id) => current.includes(id))
+
+      if (allSelected) {
+        return current.filter((id) => !uniqueIds.includes(id))
+      }
+
+      return Array.from(new Set([...current, ...uniqueIds]))
+    })
+  }, [])
+
   const toggleSelectAllVisiblePending = useCallback(() => {
     const pendingIds = pendingCandidates.map((candidate) => candidate.id)
     const allSelected = pendingIds.length > 0 && pendingIds.every((id) => visibleSelectedIds.includes(id))
@@ -2419,43 +2470,43 @@ export function ReviewQueueClient({
 
       if (event.shiftKey && key === 'a') {
         event.preventDefault()
-        if (visibleSelectedIds.length === 0) return
+        if (actionableSelectedIds.length === 0) return
 
         runReviewAction({
           action: 'approve',
-          candidateIds: visibleSelectedIds,
+          candidateIds: actionableSelectedIds,
           successLabel:
-            visibleSelectedIds.length === 1
+            actionableSelectedIds.length === 1
               ? 'Approved candidate into the drill library.'
-              : `Approved ${visibleSelectedIds.length} candidates into the drill library.`,
+              : `Approved ${actionableSelectedIds.length} candidates into the drill library.`,
         })
         return
       }
 
       if (event.shiftKey && key === 'r') {
         event.preventDefault()
-        if (visibleSelectedIds.length === 0) return
+        if (actionableSelectedIds.length === 0) return
 
         runReviewAction({
           action: 'reject',
-          candidateIds: visibleSelectedIds,
-          successLabel: visibleSelectedIds.length === 1 ? 'Rejected candidate.' : `Rejected ${visibleSelectedIds.length} candidates.`,
+          candidateIds: actionableSelectedIds,
+          successLabel: actionableSelectedIds.length === 1 ? 'Rejected candidate.' : `Rejected ${actionableSelectedIds.length} candidates.`,
         })
         return
       }
 
       if (event.shiftKey && key === 'm') {
         event.preventDefault()
-        if (visibleSelectedIds.length === 0 || !preferredMergeTargetId) return
+        if (actionableSelectedIds.length === 0 || !preferredMergeTargetId) return
 
         runReviewAction({
           action: 'merge',
-          candidateIds: visibleSelectedIds,
+          candidateIds: actionableSelectedIds,
           canonicalDrillId: preferredMergeTargetId,
           successLabel:
-            visibleSelectedIds.length === 1
+            actionableSelectedIds.length === 1
               ? 'Merged candidate into the selected drill.'
-              : `Merged ${visibleSelectedIds.length} candidates into the selected drill.`,
+              : `Merged ${actionableSelectedIds.length} candidates into the selected drill.`,
         })
         return
       }
@@ -2464,18 +2515,11 @@ export function ReviewQueueClient({
         event.preventDefault()
         if (sortedCandidates.length === 0) return
 
-        const currentIndex = sortedCandidates.findIndex((c) => c.id === selectedCandidateId)
         const shouldMoveForward = key === 'j' || event.key === 'ArrowDown'
+        const adjacentCandidate = getAdjacentCandidate(sortedCandidates, selectedCandidateId, shouldMoveForward ? 'next' : 'previous')
 
-        if (currentIndex === -1) {
-          selectCandidate(sortedCandidates[0].id)
-          return
-        }
-
-        if (shouldMoveForward && currentIndex < sortedCandidates.length - 1) {
-          selectCandidate(sortedCandidates[currentIndex + 1].id)
-        } else if (!shouldMoveForward && currentIndex > 0) {
-          selectCandidate(sortedCandidates[currentIndex - 1].id)
+        if (adjacentCandidate && adjacentCandidate.id !== selectedCandidateId) {
+          selectCandidate(adjacentCandidate.id)
         }
         return
       }
@@ -2711,7 +2755,7 @@ export function ReviewQueueClient({
     toggleSelectAllVisiblePending,
     toggleSelected,
     triageFilter,
-    visibleSelectedIds,
+    actionableSelectedIds,
   ])
 
   const allVisiblePendingSelected =
@@ -4707,6 +4751,10 @@ export function ReviewQueueClient({
                 Pending {bulkSelectionCounts.pending} • Approved {bulkSelectionCounts.approved} • Merged {bulkSelectionCounts.merged} • Rejected {bulkSelectionCounts.rejected}
               </p>
               <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                Bulk actions only apply to pending rows, so already-reviewed selections stay visible for comparison but are skipped.
+                {skippedSelectedCount > 0 ? ` ${skippedSelectedCount} selected row${skippedSelectedCount === 1 ? '' : 's'} will be ignored.` : ''}
+              </p>
+              <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                 Shortcuts: <span className="font-medium text-[var(--text-secondary)]">Shift + X</span> selects visible pending, then <span className="font-medium text-[var(--text-secondary)]">Shift + A / R / M</span> runs the bulk action.
               </p>
             </div>
@@ -4721,12 +4769,15 @@ export function ReviewQueueClient({
 
             <button
               type="button"
-              disabled={visibleSelectedIds.length === 0 || isSubmitting}
+              disabled={actionableSelectedIds.length === 0 || isSubmitting}
               onClick={() =>
                 runReviewAction({
                   action: 'approve',
-                  candidateIds: visibleSelectedIds,
-                  successLabel: visibleSelectedIds.length === 1 ? 'Approved candidate into the drill library.' : `Approved ${visibleSelectedIds.length} candidates into the drill library.`,
+                  candidateIds: actionableSelectedIds,
+                  successLabel:
+                    actionableSelectedIds.length === 1
+                      ? 'Approved candidate into the drill library.'
+                      : `Approved ${actionableSelectedIds.length} candidates into the drill library.`,
                 })
               }
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
@@ -4737,12 +4788,12 @@ export function ReviewQueueClient({
 
             <button
               type="button"
-              disabled={visibleSelectedIds.length === 0 || isSubmitting}
+              disabled={actionableSelectedIds.length === 0 || isSubmitting}
               onClick={() =>
                 runReviewAction({
                   action: 'reject',
-                  candidateIds: visibleSelectedIds,
-                  successLabel: visibleSelectedIds.length === 1 ? 'Rejected candidate.' : `Rejected ${visibleSelectedIds.length} candidates.`,
+                  candidateIds: actionableSelectedIds,
+                  successLabel: actionableSelectedIds.length === 1 ? 'Rejected candidate.' : `Rejected ${actionableSelectedIds.length} candidates.`,
                 })
               }
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
@@ -4774,14 +4825,17 @@ export function ReviewQueueClient({
 
             <button
               type="button"
-              disabled={visibleSelectedIds.length === 0 || !preferredMergeTargetId || isSubmitting}
+              disabled={actionableSelectedIds.length === 0 || !preferredMergeTargetId || isSubmitting}
               onClick={() =>
                 preferredMergeTargetId
                   ? runReviewAction({
                       action: 'merge',
-                      candidateIds: visibleSelectedIds,
+                      candidateIds: actionableSelectedIds,
                       canonicalDrillId: preferredMergeTargetId,
-                      successLabel: visibleSelectedIds.length === 1 ? 'Merged candidate into the selected drill.' : `Merged ${visibleSelectedIds.length} candidates into the selected drill.`,
+                      successLabel:
+                        actionableSelectedIds.length === 1
+                          ? 'Merged candidate into the selected drill.'
+                          : `Merged ${actionableSelectedIds.length} candidates into the selected drill.`,
                     })
                   : null
               }
@@ -5040,37 +5094,43 @@ export function ReviewQueueClient({
                   <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     <button
                       type="button"
-                      disabled={!previousVisibleCandidate}
+                      disabled={!previousVisibleCandidate || previousVisibleCandidate.id === selectedCandidate.id}
                       onClick={() => previousVisibleCandidate ? selectCandidate(previousVisibleCandidate.id, { scrollIntoView: false }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Previous visible
                       <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                        {previousVisibleCandidate ? getDisplayTitle(previousVisibleCandidate) : 'Start of the visible queue'}
+                        {previousVisibleCandidate
+                          ? `${previousVisibleWraps ? 'Wrap to' : 'Shortcut K •'} ${getDisplayTitle(previousVisibleCandidate)}`
+                          : 'No other visible rows in this slice'}
                       </span>
                     </button>
 
                     <button
                       type="button"
-                      disabled={!nextVisibleCandidate}
+                      disabled={!nextVisibleCandidate || nextVisibleCandidate.id === selectedCandidate.id}
                       onClick={() => nextVisibleCandidate ? selectCandidate(nextVisibleCandidate.id, { scrollIntoView: false }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Next visible
                       <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                        {nextVisibleCandidate ? getDisplayTitle(nextVisibleCandidate) : 'End of the visible queue'}
+                        {nextVisibleCandidate
+                          ? `${nextVisibleWraps ? 'Wrap to' : 'Shortcut J •'} ${getDisplayTitle(nextVisibleCandidate)}`
+                          : 'No other visible rows in this slice'}
                       </span>
                     </button>
 
                     <button
                       type="button"
-                      disabled={!previousPendingCandidate}
+                      disabled={!previousPendingCandidate || previousPendingCandidate.id === selectedCandidate.id}
                       onClick={() => previousPendingCandidate ? selectCandidate(previousPendingCandidate.id, { scrollIntoView: false }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Previous pending
                       <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                        {previousPendingCandidate ? getDisplayTitle(previousPendingCandidate) : 'Start of the pending slice'}
+                        {previousPendingCandidate
+                          ? `${previousPendingWraps ? 'Wrap to' : 'Shortcut P •'} ${getDisplayTitle(previousPendingCandidate)}`
+                          : 'No pending rows in this view'}
                       </span>
                     </button>
 
@@ -5083,10 +5143,8 @@ export function ReviewQueueClient({
                       Next pending
                       <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                         {nextPendingCandidate
-                          ? nextPendingCandidate.id === selectedCandidate.id
-                            ? 'Already on the next pending review item'
-                            : getDisplayTitle(nextPendingCandidate)
-                          : 'No more pending rows in this view'}
+                          ? `${nextPendingWraps ? 'Wrap to' : 'Shortcut N •'} ${getDisplayTitle(nextPendingCandidate)}`
+                          : 'No pending rows in this view'}
                       </span>
                     </button>
 
@@ -5154,25 +5212,29 @@ export function ReviewQueueClient({
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       <button
                         type="button"
-                        disabled={!previousFamilyCandidate}
+                        disabled={!previousFamilyCandidate || previousFamilyCandidate.id === selectedCandidate.id}
                         onClick={() => previousFamilyCandidate ? selectCandidate(previousFamilyCandidate.id, { scrollIntoView: false }) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         Previous family row
                         <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                          {previousFamilyCandidate ? `Shortcut , • ${getDisplayTitle(previousFamilyCandidate)}` : 'Shortcut , • Start of this visible family cluster'}
+                          {previousFamilyCandidate
+                            ? `${previousFamilyWraps ? 'Wrap to' : 'Shortcut , •'} ${getDisplayTitle(previousFamilyCandidate)}`
+                            : 'No other rows in this visible family cluster'}
                         </span>
                       </button>
 
                       <button
                         type="button"
-                        disabled={!nextFamilyCandidate}
+                        disabled={!nextFamilyCandidate || nextFamilyCandidate.id === selectedCandidate.id}
                         onClick={() => nextFamilyCandidate ? selectCandidate(nextFamilyCandidate.id, { scrollIntoView: false }) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         Next family row
                         <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                          {nextFamilyCandidate ? `Shortcut . • ${getDisplayTitle(nextFamilyCandidate)}` : 'Shortcut . • End of this visible family cluster'}
+                          {nextFamilyCandidate
+                            ? `${nextFamilyWraps ? 'Wrap to' : 'Shortcut . •'} ${getDisplayTitle(nextFamilyCandidate)}`
+                            : 'No other rows in this visible family cluster'}
                         </span>
                       </button>
                     </div>
@@ -5728,6 +5790,48 @@ export function ReviewQueueClient({
                             <InfoBlock label="Suggested keep" value={String(selectedFamilyWorkspace.decisionCounts.keep)} subdued={getDisplayTitle(selectedFamilyWorkspace.keepCandidate)} />
                             <InfoBlock label="Suggested merge" value={String(selectedFamilyWorkspace.decisionCounts.merge)} subdued="Useful supporting duplicates" />
                             <InfoBlock label="Suggested reject" value={String(selectedFamilyWorkspace.decisionCounts.reject)} subdued="Thin or noisy overlap" />
+                          </div>
+
+                          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                            <button
+                              type="button"
+                              disabled={selectedFamilyWorkspace.pendingFamilyIds.length === 0}
+                              onClick={() => toggleSelectedBatch(selectedFamilyWorkspace.pendingFamilyIds)}
+                              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              {selectedFamilyWorkspace.pendingFamilyIds.every((id) => visibleSelectedIds.includes(id)) ? 'Deselect pending family rows' : 'Select pending family rows'}
+                              <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                                {selectedFamilyWorkspace.pendingFamilyIds.length > 0
+                                  ? `${selectedFamilyWorkspace.pendingFamilyIds.length} pending row${selectedFamilyWorkspace.pendingFamilyIds.length === 1 ? '' : 's'} ready for bulk actions`
+                                  : 'No pending family rows left'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={selectedFamilyWorkspace.pendingMergeIds.length === 0}
+                              onClick={() => toggleSelectedBatch(selectedFamilyWorkspace.pendingMergeIds)}
+                              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              {selectedFamilyWorkspace.pendingMergeIds.every((id) => visibleSelectedIds.includes(id)) ? 'Deselect suggested merges' : 'Select suggested merges'}
+                              <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                                {selectedFamilyWorkspace.pendingMergeIds.length > 0
+                                  ? `${selectedFamilyWorkspace.pendingMergeIds.length} merge row${selectedFamilyWorkspace.pendingMergeIds.length === 1 ? '' : 's'} can be bulk-merged once the target looks right`
+                                  : 'No pending merge rows left'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={selectedFamilyWorkspace.pendingRejectIds.length === 0}
+                              onClick={() => toggleSelectedBatch(selectedFamilyWorkspace.pendingRejectIds)}
+                              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              {selectedFamilyWorkspace.pendingRejectIds.every((id) => visibleSelectedIds.includes(id)) ? 'Deselect suggested rejects' : 'Select suggested rejects'}
+                              <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                                {selectedFamilyWorkspace.pendingRejectIds.length > 0
+                                  ? `${selectedFamilyWorkspace.pendingRejectIds.length} reject row${selectedFamilyWorkspace.pendingRejectIds.length === 1 ? '' : 's'} ready for a cleanup pass`
+                                  : 'No pending reject rows left'}
+                              </span>
+                            </button>
                           </div>
 
                           <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
