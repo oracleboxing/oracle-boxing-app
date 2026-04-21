@@ -1240,6 +1240,38 @@ export function ReviewQueueClient({
     return acc
   }, {})
 
+  const gradeSummaries = useMemo(() => {
+    const summary = new Map<
+      string,
+      {
+        count: number
+        leadCandidate: RawDrillCandidate | null
+        leadInsight: CandidateInsight | null
+        leadDecision: FamilyDecision | null
+      }
+    >()
+
+    for (const candidate of pendingCandidates) {
+      const key = candidate.grade_level ?? 'unassigned'
+      const existing = summary.get(key)
+
+      if (!existing) {
+        const leadInsight = candidateInsights.get(candidate.id) ?? null
+        summary.set(key, {
+          count: 1,
+          leadCandidate: candidate,
+          leadInsight,
+          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null,
+        })
+        continue
+      }
+
+      existing.count += 1
+    }
+
+    return summary
+  }, [candidateInsights, pendingCandidates])
+
   const categoryCounts = pendingCandidates.reduce<Record<string, number>>((acc, candidate) => {
     const key = candidate.category ?? 'uncategorised'
     acc[key] = (acc[key] ?? 0) + 1
@@ -3111,39 +3143,87 @@ export function ReviewQueueClient({
                 <p className="text-sm text-[var(--text-secondary)]">No pending candidates in the current filter set.</p>
               ) : (
                 Object.entries(gradeCounts)
-                  .sort(([left], [right]) => left.localeCompare(right))
+                  .sort(([left], [right]) => {
+                    const sortDifference = getGradeSortValue(left === 'unassigned' ? null : left) - getGradeSortValue(right === 'unassigned' ? null : right)
+                    return sortDifference || left.localeCompare(right)
+                  })
                   .map(([grade, count]) => {
                     const isFocusedGrade = gradeFilter === grade
+                    const gradeSummary = gradeSummaries.get(grade)
 
                     return (
-                      <button
+                      <div
                         key={grade}
-                        type="button"
-                        onClick={() => toggleGradeFocus(grade)}
-                        className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        className={`rounded-2xl border px-4 py-4 transition-colors ${
                           isFocusedGrade
                             ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
                             : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
                         }`}
-                        aria-pressed={isFocusedGrade}
                       >
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium text-[var(--text-primary)]">{formatGradeLevel(grade === 'unassigned' ? null : grade)}</span>
-                            {isFocusedGrade ? (
-                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                                Active
-                              </span>
-                            ) : null}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 pr-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-medium text-[var(--text-primary)]">{formatGradeLevel(grade === 'unassigned' ? null : grade)}</span>
+                              {isFocusedGrade ? (
+                                <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                  Active
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                              {isFocusedGrade ? 'Click to clear this grade filter' : 'Click to focus this grade slice'}
+                            </p>
                           </div>
-                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                            {isFocusedGrade ? 'Click to clear this grade filter' : 'Click to filter the queue to this grade'}
-                          </p>
+                          <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                            {count} pending
+                          </span>
                         </div>
-                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                          {count} pending
-                        </span>
-                      </button>
+
+                        {gradeSummary?.leadCandidate && gradeSummary.leadInsight && gradeSummary.leadDecision ? (
+                          <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getDecisionTone(gradeSummary.leadDecision)}`}>
+                                {getDecisionLabel(gradeSummary.leadDecision)}
+                              </span>
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getTriageTone(gradeSummary.leadInsight.triageLevel)}`}>
+                                {getTriageLabel(gradeSummary.leadInsight.triageLevel)}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">Start with {getDisplayTitle(gradeSummary.leadCandidate)}</p>
+                            <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{getReviewerNextMove(gradeSummary.leadCandidate, gradeSummary.leadInsight)}</p>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleGradeFocus(grade)}
+                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            aria-pressed={isFocusedGrade}
+                          >
+                            {isFocusedGrade ? 'Current grade slice' : 'Focus this grade slice'}
+                            <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                              Narrow the queue to {formatGradeLevel(grade === 'unassigned' ? null : grade)} rows.
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={!gradeSummary?.leadCandidate}
+                            onClick={() => {
+                              if (!gradeSummary?.leadCandidate) return
+                              toggleGradeFocus(grade)
+                              selectCandidate(gradeSummary.leadCandidate.id, { scrollIntoView: false })
+                            }}
+                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                          >
+                            Open lead row
+                            <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                              {gradeSummary?.leadCandidate ? getDisplayTitle(gradeSummary.leadCandidate) : 'No lead row available in this grade'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
                     )
                   })
               )}
