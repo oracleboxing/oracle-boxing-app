@@ -2465,6 +2465,14 @@ export function ReviewQueueClient({
         return
       }
 
+      if (key === 'l') {
+        event.preventDefault()
+        if (leadVisibleCandidate) {
+          selectCandidate(leadVisibleCandidate.id, { scrollIntoView: false })
+        }
+        return
+      }
+
       if (key === 'x') {
         event.preventDefault()
         if (selectedCandidateId) {
@@ -2634,6 +2642,7 @@ export function ReviewQueueClient({
     focusFamily,
     gradeFilter,
     hasActiveViewModifiers,
+    leadVisibleCandidate,
     nextDuplicateFamily,
     nextFamilyCandidate,
     nextPendingCandidate,
@@ -2816,6 +2825,7 @@ export function ReviewQueueClient({
               <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">/</kbd> focus search •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↑</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↓</kbd> navigate visible •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">l</kbd> jump to lead row •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">f</kbd> toggle family focus •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">[</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">]</kbd> family hop •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">,</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">.</kbd> family row •
@@ -5027,9 +5037,9 @@ export function ReviewQueueClient({
                       <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                         {leadVisibleCandidate
                           ? leadVisibleCandidate.id === selectedCandidate.id
-                            ? 'Already on the lead visible candidate'
-                            : getDisplayTitle(leadVisibleCandidate)
-                          : 'No lead candidate in the current slice'}
+                            ? 'Shortcut L • Already on the lead visible candidate'
+                            : `Shortcut L • ${getDisplayTitle(leadVisibleCandidate)}`
+                          : 'Shortcut L • No lead candidate in the current slice'}
                       </span>
                     </button>
                   </div>
