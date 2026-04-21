@@ -1003,10 +1003,7 @@ export function ReviewQueueClient({
     [candidates]
   )
 
-  const availableSources = useMemo(
-    () => Array.from(new Set(candidates.map((candidate) => candidate.source_file).filter(Boolean) as string[])).sort(),
-    [candidates]
-  )
+  const availableSources = useMemo(() => Array.from(new Set(candidates.map((candidate) => getSourceLabel(candidate)))).sort(), [candidates])
 
   const baseFilteredCandidates = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -1030,7 +1027,7 @@ export function ReviewQueueClient({
       }
 
       if (categoryFilter !== 'all' && candidate.category !== categoryFilter) return false
-      if (sourceFilter !== 'all' && candidate.source_file !== sourceFilter) return false
+      if (sourceFilter !== 'all' && getSourceLabel(candidate) !== sourceFilter) return false
       if (aiDecisionFilter !== 'all' && getAiDecisionFilterValue(candidate.ai_decision ?? null) !== aiDecisionFilter) return false
       if (familyShapeFilter !== 'all' && getDuplicateShape(insight.familySize) !== familyShapeFilter) return false
       if (familyFilter && candidate.dedupe_key !== familyFilter) return false
@@ -2113,16 +2110,14 @@ export function ReviewQueueClient({
             basePendingCandidates.filter((candidate) => candidate.category === selectedCandidate.category)
           )
         : null,
-      selectedCandidate.source_file
-        ? buildRelatedSlice(
-            'source',
-            'Source slice',
-            selectedCandidate.source_file,
-            sourceFilter === selectedCandidate.source_file,
-            () => toggleSourceFocus(selectedCandidate.source_file!, selectedCandidate.id),
-            basePendingCandidates.filter((candidate) => candidate.source_file === selectedCandidate.source_file)
-          )
-        : null,
+      buildRelatedSlice(
+        'source',
+        'Source slice',
+        getSourceLabel(selectedCandidate),
+        sourceFilter === getSourceLabel(selectedCandidate),
+        () => toggleSourceFocus(getSourceLabel(selectedCandidate), selectedCandidate.id),
+        basePendingCandidates.filter((candidate) => getSourceLabel(candidate) === getSourceLabel(selectedCandidate))
+      ),
     ].filter((item): item is RelatedQueueSlice => Boolean(item))
 
     return relatedSlices.sort((left, right) => right.count - left.count || left.label.localeCompare(right.label))
