@@ -1705,6 +1705,17 @@ export function ReviewQueueClient({
       return Array.from(counts.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
     })()
 
+    const dominantVisibleGrade = (() => {
+      const counts = new Map<string, number>()
+
+      for (const candidate of pendingCandidates) {
+        const grade = candidate.grade_level ?? 'unassigned'
+        counts.set(grade, (counts.get(grade) ?? 0) + 1)
+      }
+
+      return Array.from(counts.entries()).sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0]?.[0] ?? null
+    })()
+
     const topVisibleSource = (() => {
       const counts = new Map<string, number>()
 
@@ -1754,6 +1765,7 @@ export function ReviewQueueClient({
       `Visible rows: ${sortedCandidates.length}`,
       `Pending rows: ${pendingCandidates.length}`,
       `Current sort: ${SORT_MODE_LABELS[sortMode]}`,
+      `Active grade slice: ${gradeFilter === 'all' ? 'All grades' : formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}`,
       `Active triage slice: ${triageFilter === 'all' ? 'All visible pending' : getTriageLabel(triageFilter)}`,
       `Active completeness slice: ${completenessFilter === 'all' ? 'All extract levels' : COMPLETENESS_BAND_LABELS[completenessFilter]}`,
       `Active duplicate lane: ${familyShapeFilter === 'all' ? 'All family shapes' : DUPLICATE_SHAPE_LABELS[familyShapeFilter]}`,
@@ -1783,6 +1795,10 @@ export function ReviewQueueClient({
       lines.push(`Dominant AI recommendation: ${getAiDecisionFilterLabel(dominantVisibleAiDecision)}`)
     }
 
+    if (dominantVisibleGrade) {
+      lines.push(`Dominant visible grade: ${formatGradeLevel(dominantVisibleGrade === 'unassigned' ? null : dominantVisibleGrade)}`)
+    }
+
     if (topVisibleSource) {
       lines.push(`Main visible source: ${topVisibleSource[0]} (${topVisibleSource[1]})`)
     }
@@ -1810,11 +1826,12 @@ export function ReviewQueueClient({
       dominantVisibleFamilyShape,
       dominantVisibleAction,
       dominantVisibleAiDecision,
+      dominantVisibleGrade,
       topVisibleSource,
       topVisibleFamily,
       handoffText: lines.join('\n'),
     }
-  }, [aiDecisionFilter, candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, missingSummaryCount, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
+  }, [aiDecisionFilter, candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, gradeFilter, missingSummaryCount, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
 
   const reviewRoutes = useMemo(() => {
     const routeDefinitions: Array<{
@@ -3161,8 +3178,13 @@ export function ReviewQueueClient({
             </button>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-9">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-10">
             <InfoBlock label="Visible pending" value={String(pendingCandidates.length)} subdued={`${sortedCandidates.length} total visible`} />
+            <InfoBlock
+              label="Dominant grade"
+              value={currentSliceSummary.dominantVisibleGrade ? formatGradeLevel(currentSliceSummary.dominantVisibleGrade === 'unassigned' ? null : currentSliceSummary.dominantVisibleGrade) : 'No pending rows'}
+              subdued={gradeFilter === 'all' ? 'Across the current view' : 'Inside the active slice'}
+            />
             <InfoBlock
               label="Dominant triage"
               value={currentSliceSummary.dominantVisibleTriage ? getTriageLabel(currentSliceSummary.dominantVisibleTriage) : 'No pending rows'}
@@ -3202,6 +3224,15 @@ export function ReviewQueueClient({
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
+            {currentSliceSummary.dominantVisibleGrade ? (
+              <button
+                type="button"
+                onClick={() => setGradeFilter(currentSliceSummary.dominantVisibleGrade!)}
+                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Focus dominant grade
+              </button>
+            ) : null}
             {currentSliceSummary.dominantVisibleTriage ? (
               <button
                 type="button"
@@ -3301,6 +3332,11 @@ export function ReviewQueueClient({
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
                       <InfoBlock label="Source" value={getSourceLabel(currentSliceSummary.leadCandidate)} />
                       <InfoBlock
+                        label="Grade"
+                        value={formatGradeLevel(currentSliceSummary.leadCandidate.grade_level)}
+                        subdued={currentSliceSummary.leadCandidate.category || 'No category yet'}
+                      />
+                      <InfoBlock
                         label="Suggested action"
                         value={getDecisionLabel(leadDecision)}
                         subdued={getSuggestedActionShortcutLabel(leadDecision)}
@@ -3308,7 +3344,7 @@ export function ReviewQueueClient({
                       <InfoBlock
                         label="Difficulty"
                         value={formatDifficultyLabel(currentSliceSummary.leadCandidate.difficulty)}
-                        subdued={currentSliceSummary.leadCandidate.category || 'No category yet'}
+                        subdued={currentSliceSummary.leadCandidate.dedupe_key || 'No family yet'}
                       />
                       <InfoBlock
                         label="Duplicate pressure"
@@ -3345,6 +3381,13 @@ export function ReviewQueueClient({
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this source
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleGradeFocus(currentSliceSummary.leadCandidate.grade_level ?? 'unassigned')}
+                        className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        Focus this grade
                       </button>
                       <button
                         type="button"
