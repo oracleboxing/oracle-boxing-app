@@ -3304,6 +3304,11 @@ export function ReviewQueueClient({
                         subdued={getSuggestedActionShortcutLabel(leadDecision)}
                       />
                       <InfoBlock
+                        label="Difficulty"
+                        value={formatDifficultyLabel(currentSliceSummary.leadCandidate.difficulty)}
+                        subdued={currentSliceSummary.leadCandidate.category || 'No category yet'}
+                      />
+                      <InfoBlock
                         label="Duplicate pressure"
                         value={`${currentSliceSummary.leadInsight.familySize} row${currentSliceSummary.leadInsight.familySize === 1 ? '' : 's'}`}
                         subdued={currentSliceSummary.leadCandidate.dedupe_key || 'No family yet'}
@@ -3341,10 +3346,24 @@ export function ReviewQueueClient({
                       </button>
                       <button
                         type="button"
+                        onClick={() => setTriageFilter(currentSliceSummary.leadInsight!.triageLevel)}
+                        className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        Focus this triage
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setSuggestedActionFilter(leadDecision)}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this action
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleDifficultyFocus(currentSliceSummary.leadCandidate.difficulty || 'unassigned', currentSliceSummary.leadCandidate.id)}
+                        className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        Focus this difficulty
                       </button>
                       <button
                         type="button"
