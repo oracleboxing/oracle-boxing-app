@@ -5255,18 +5255,27 @@ export function ReviewQueueClient({
                             <div className="flex flex-wrap gap-2">
                               <button
                                 type="button"
-                                onClick={() => setSourceFilter(getSourceLabel(selectedCandidate))}
+                                onClick={() => toggleSourceFocus(getSourceLabel(selectedCandidate), selectedCandidate.id)}
                                 className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
-                                Focus this source
+                                {sourceFilter === getSourceLabel(selectedCandidate) ? 'Clear source focus' : 'Focus this source'}
                               </button>
-                              {sourceFilter === getSourceLabel(selectedCandidate) ? (
+                              {selectedCandidate.category ? (
                                 <button
                                   type="button"
-                                  onClick={() => setSourceFilter('all')}
-                                  className="inline-flex rounded-xl border border-[var(--accent-primary)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                  onClick={() => toggleCategoryFocus(selectedCandidate.category, selectedCandidate.id)}
+                                  className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                                 >
-                                  Clear source focus
+                                  {categoryFilter === selectedCandidate.category ? 'Clear category focus' : 'Focus this category'}
+                                </button>
+                              ) : null}
+                              {selectedCandidate.difficulty ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleDifficultyFocus(selectedCandidate.difficulty, selectedCandidate.id)}
+                                  className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                >
+                                  {difficultyFilter === selectedCandidate.difficulty ? 'Clear difficulty focus' : 'Focus this difficulty'}
                                 </button>
                               ) : null}
                             </div>
