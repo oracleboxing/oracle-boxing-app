@@ -1132,11 +1132,20 @@ export function ReviewQueueClient({
   const basePendingCandidates = baseFilteredCandidates.filter((candidate) => candidate.review_status === 'pending')
 
   const pendingFamilyShapeSummary = useMemo(() => {
-    const summary: Record<Exclude<DuplicateShapeFilter, 'all'>, { rows: number; families: Set<string>; leadCandidate: RawDrillCandidate | null }> = {
-      solo: { rows: 0, families: new Set<string>(), leadCandidate: null },
-      pair: { rows: 0, families: new Set<string>(), leadCandidate: null },
-      'small-family': { rows: 0, families: new Set<string>(), leadCandidate: null },
-      'large-family': { rows: 0, families: new Set<string>(), leadCandidate: null },
+    const summary: Record<
+      Exclude<DuplicateShapeFilter, 'all'>,
+      {
+        rows: number
+        families: Set<string>
+        leadCandidate: RawDrillCandidate | null
+        leadInsight: CandidateInsight | null
+        leadDecision: FamilyDecision | null
+      }
+    > = {
+      solo: { rows: 0, families: new Set<string>(), leadCandidate: null, leadInsight: null, leadDecision: null },
+      pair: { rows: 0, families: new Set<string>(), leadCandidate: null, leadInsight: null, leadDecision: null },
+      'small-family': { rows: 0, families: new Set<string>(), leadCandidate: null, leadInsight: null, leadDecision: null },
+      'large-family': { rows: 0, families: new Set<string>(), leadCandidate: null, leadInsight: null, leadDecision: null },
     }
 
     for (const candidate of pendingCandidates) {
@@ -1148,6 +1157,8 @@ export function ReviewQueueClient({
       summary[shape].families.add(candidate.dedupe_key || candidate.id)
       if (!summary[shape].leadCandidate) {
         summary[shape].leadCandidate = candidate
+        summary[shape].leadInsight = insight
+        summary[shape].leadDecision = getCandidateDecisionHint(candidate, insight)
       }
     }
 
@@ -3507,43 +3518,88 @@ export function ReviewQueueClient({
                   const familyCount = summary.families.size
 
                   return (
-                    <button
+                    <div
                       key={shape}
-                      type="button"
-                      onClick={() => focusFamilyShape(shape)}
-                      disabled={summary.rows === 0}
-                      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                      className={`rounded-2xl border px-4 py-4 transition-colors ${
                         isFocusedShape
                           ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
-                          : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
-                      } ${summary.rows === 0 ? 'cursor-not-allowed opacity-50' : ''}`}
-                      aria-pressed={isFocusedShape}
+                          : 'border-[var(--border)] bg-[var(--surface-primary)]'
+                      } ${summary.rows === 0 ? 'opacity-50' : ''}`}
                     >
-                      <div className="pr-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-[var(--text-primary)]">{DUPLICATE_SHAPE_LABELS[shape]}</span>
-                          {isFocusedShape ? (
-                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                              Active
-                            </span>
-                          ) : null}
+                      <button
+                        type="button"
+                        onClick={() => focusFamilyShape(shape)}
+                        disabled={summary.rows === 0}
+                        className="flex w-full items-center justify-between text-left disabled:cursor-not-allowed"
+                        aria-pressed={isFocusedShape}
+                      >
+                        <div className="pr-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium text-[var(--text-primary)]">{DUPLICATE_SHAPE_LABELS[shape]}</span>
+                            {isFocusedShape ? (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                            {summary.rows === 0
+                              ? 'Nothing pending in this lane right now'
+                              : shape === 'solo'
+                                ? isFocusedShape
+                                  ? 'Click to clear this solo lane'
+                                  : `Click to focus ${familyCount} standalone candidate${familyCount === 1 ? '' : 's'}`
+                                : isFocusedShape
+                                  ? 'Click to clear this duplicate lane'
+                                  : `Click to focus ${familyCount} famil${familyCount === 1 ? 'y' : 'ies'} waiting`}
+                          </p>
                         </div>
-                        <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                          {summary.rows === 0
-                            ? 'Nothing pending in this lane right now'
-                            : shape === 'solo'
-                              ? isFocusedShape
-                                ? 'Click to clear this solo lane'
-                                : `Click to focus ${familyCount} standalone candidate${familyCount === 1 ? '' : 's'}`
-                              : isFocusedShape
-                                ? 'Click to clear this duplicate lane'
-                                : `Click to focus ${familyCount} famil${familyCount === 1 ? 'y' : 'ies'} waiting`}
-                        </p>
-                      </div>
-                      <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                        {summary.rows} pending
-                      </span>
-                    </button>
+                        <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                          {summary.rows} pending
+                        </span>
+                      </button>
+
+                      {summary.leadCandidate && summary.leadInsight && summary.leadDecision ? (
+                        <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getDecisionTone(summary.leadDecision)}`}>
+                              {getDecisionLabel(summary.leadDecision)}
+                            </span>
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getTriageTone(summary.leadInsight.triageLevel)}`}>
+                              {getTriageLabel(summary.leadInsight.triageLevel)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">Start with {getDisplayTitle(summary.leadCandidate)}</p>
+                          <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{getReviewerNextMove(summary.leadCandidate, summary.leadInsight)}</p>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <InfoBlock label="Source" value={getSourceLabel(summary.leadCandidate)} />
+                            <InfoBlock
+                              label="Family pressure"
+                              value={`${summary.leadInsight.familySize} row${summary.leadInsight.familySize === 1 ? '' : 's'}`}
+                              subdued={summary.leadCandidate.dedupe_key || 'No family yet'}
+                            />
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => selectCandidate(summary.leadCandidate!.id, { scrollIntoView: false })}
+                              className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            >
+                              Open lead row
+                            </button>
+                            {summary.leadCandidate.dedupe_key ? (
+                              <button
+                                type="button"
+                                onClick={() => focusFamily(summary.leadCandidate!.dedupe_key!, summary.leadCandidate!.id)}
+                                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                              >
+                                Focus this family
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   )
                 })
               )}
