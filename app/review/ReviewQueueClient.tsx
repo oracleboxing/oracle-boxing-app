@@ -2187,9 +2187,57 @@ export function ReviewQueueClient({
     })
   }, [pendingCandidates, visibleSelectedIds])
 
+  const hasActiveViewModifiers = Boolean(
+    query.trim() ||
+      statusFilter !== 'pending' ||
+      gradeFilter !== 'all' ||
+      difficultyFilter !== 'all' ||
+      categoryFilter !== 'all' ||
+      sourceFilter !== 'all' ||
+      aiDecisionFilter !== 'all' ||
+      triageFilter !== 'all' ||
+      completenessFilter !== 'all' ||
+      suggestedActionFilter !== 'all' ||
+      familyShapeFilter !== 'all' ||
+      familyFilter ||
+      sortMode !== 'triage' ||
+      scopedCandidateIds
+  )
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (shouldIgnoreShortcutTarget(event.target) || event.metaKey || event.ctrlKey || event.altKey) {
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return
+      }
+
+      if (event.key === 'Escape') {
+        const isSearchFocused = event.target === searchInputRef.current
+
+        if (isSearchFocused) {
+          event.preventDefault()
+          if (query) {
+            setQuery('')
+          } else {
+            searchInputRef.current?.blur()
+          }
+          return
+        }
+
+        if (familyFilter) {
+          event.preventDefault()
+          clearFamilyFocus()
+          return
+        }
+
+        if (hasActiveViewModifiers) {
+          event.preventDefault()
+          clearAllViewFilters()
+        }
+
+        return
+      }
+
+      if (shouldIgnoreShortcutTarget(event.target)) {
         return
       }
 
@@ -2444,10 +2492,18 @@ export function ReviewQueueClient({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
+    aiDecisionFilter,
     applyReviewRoute,
+    categoryFilter,
+    clearAllViewFilters,
     clearFamilyFocus,
+    completenessFilter,
+    difficultyFilter,
     familyFilter,
+    familyShapeFilter,
     focusFamily,
+    gradeFilter,
+    hasActiveViewModifiers,
     nextDuplicateFamily,
     nextFamilyCandidate,
     nextPendingCandidate,
@@ -2456,15 +2512,22 @@ export function ReviewQueueClient({
     candidateInsights,
     preferredMergeTargetId,
     previousPendingCandidate,
+    query,
     reviewRoutes,
     runReviewAction,
+    scopedCandidateIds,
     searchInputRef,
     selectCandidate,
     selectedCandidate,
     selectedCandidateId,
+    sortMode,
     sortedCandidates,
+    sourceFilter,
+    statusFilter,
+    suggestedActionFilter,
     toggleSelectAllVisiblePending,
     toggleSelected,
+    triageFilter,
     visibleSelectedIds,
   ])
 
@@ -2625,7 +2688,8 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> merge •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">s</kbd> suggested action •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Shift</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> bulk select + act •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">1</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">2</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">3</kbd> route jump
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">1</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">2</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">3</kbd> route jump •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> clear search, family focus, or reset view
             </p>
           </div>
 
