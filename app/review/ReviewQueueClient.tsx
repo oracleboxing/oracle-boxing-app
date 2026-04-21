@@ -2108,6 +2108,9 @@ export function ReviewQueueClient({
     const pendingRanked = ranked.filter(({ candidate }) => candidate.review_status === 'pending')
     const pendingCount = pendingRanked.length
     const pendingFamilyIds = pendingRanked.map(({ candidate }) => candidate.id)
+    const pendingKeepIds = pendingRanked
+      .filter(({ candidate, insight }) => getCandidateDecisionHint(candidate, insight) === 'keep')
+      .map(({ candidate }) => candidate.id)
     const pendingMergeIds = pendingRanked
       .filter(({ candidate, insight }) => getCandidateDecisionHint(candidate, insight) === 'merge')
       .map(({ candidate }) => candidate.id)
@@ -2153,6 +2156,7 @@ export function ReviewQueueClient({
       decisionCounts,
       pendingCount,
       pendingFamilyIds,
+      pendingKeepIds,
       pendingMergeIds,
       pendingRejectIds,
       handoffText: handoffLines.join('\n'),
@@ -5778,7 +5782,7 @@ export function ReviewQueueClient({
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Family review workspace</p>
                               <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                                Read-only guidance for cleaning one duplicate cluster without pretending the mutation buttons work yet.
+                                Queue up the right keep, merge, and reject rows for one duplicate cluster without losing the family context.
                               </p>
                             </div>
                             <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
@@ -5804,6 +5808,19 @@ export function ReviewQueueClient({
                                 {selectedFamilyWorkspace.pendingFamilyIds.length > 0
                                   ? `${selectedFamilyWorkspace.pendingFamilyIds.length} pending row${selectedFamilyWorkspace.pendingFamilyIds.length === 1 ? '' : 's'} ready for bulk actions`
                                   : 'No pending family rows left'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={selectedFamilyWorkspace.pendingKeepIds.length === 0}
+                              onClick={() => toggleSelectedBatch(selectedFamilyWorkspace.pendingKeepIds)}
+                              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              {selectedFamilyWorkspace.pendingKeepIds.every((id) => visibleSelectedIds.includes(id)) ? 'Deselect suggested keeps' : 'Select suggested keeps'}
+                              <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                                {selectedFamilyWorkspace.pendingKeepIds.length > 0
+                                  ? `${selectedFamilyWorkspace.pendingKeepIds.length} keep row${selectedFamilyWorkspace.pendingKeepIds.length === 1 ? '' : 's'} ready for a bulk approve pass`
+                                  : 'No pending keep rows left'}
                               </span>
                             </button>
                             <button
