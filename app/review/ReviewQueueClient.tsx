@@ -1975,9 +1975,11 @@ export function ReviewQueueClient({
       count: number
       detail: string
       leadCandidate: RawDrillCandidate | null
+      nextOtherCandidate: RawDrillCandidate | null
       isActive: boolean
       onClick: () => void
       openLeadRow: () => void
+      openNextOtherRow: () => void
       handoffText: string
     }
 
@@ -1990,6 +1992,7 @@ export function ReviewQueueClient({
       matchingCandidates: RawDrillCandidate[]
     ): RelatedQueueSlice => {
       const leadCandidate = matchingCandidates[0] ?? null
+      const nextOtherCandidate = matchingCandidates.find((candidate) => candidate.id !== selectedCandidate.id) ?? null
       const handoffLines = [
         `Related queue slice: ${label}`,
         `Matched detail: ${detail}`,
@@ -2013,6 +2016,11 @@ export function ReviewQueueClient({
         handoffLines.push('Lead row: No pending row in this slice yet')
       }
 
+      handoffLines.push(
+        nextOtherCandidate
+          ? `Next other row: ${getDisplayTitle(nextOtherCandidate)}`
+          : 'Next other row: No other pending row in this slice yet'
+      )
       handoffLines.push(isActive ? 'Reviewer move: clear this slice to return to the wider queue.' : 'Reviewer move: focus this slice and open the lead row.')
 
       return {
@@ -2021,12 +2029,19 @@ export function ReviewQueueClient({
         count: matchingCandidates.length,
         detail,
         leadCandidate,
+        nextOtherCandidate,
         isActive,
         onClick,
         openLeadRow: () => {
           onClick()
           if (leadCandidate) {
             selectCandidate(leadCandidate.id)
+          }
+        },
+        openNextOtherRow: () => {
+          onClick()
+          if (nextOtherCandidate) {
+            selectCandidate(nextOtherCandidate.id)
           }
         },
         handoffText: handoffLines.join('\n'),
@@ -4967,10 +4982,15 @@ export function ReviewQueueClient({
                                 </div>
                                 <p className="mt-3 text-2xl font-bold text-[var(--text-primary)]">{slice.count}</p>
                                 <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                                  pending row{slice.count === 1 ? '' : 's'} in this slice • {slice.isActive ? 'Clear or copy handoff' : 'Focus, open lead row, or copy handoff'}
+                                  pending row{slice.count === 1 ? '' : 's'} in this slice • {slice.isActive ? 'Clear, open next row, or copy handoff' : 'Focus, open lead row, open next row, or copy handoff'}
                                 </p>
                                 <p className="mt-1 truncate text-xs text-[var(--text-tertiary)]">
                                   {slice.leadCandidate ? `Lead row: ${getDisplayTitle(slice.leadCandidate)}` : 'No pending row in this slice yet'}
+                                </p>
+                                <p className="mt-1 truncate text-xs text-[var(--text-tertiary)]">
+                                  {slice.nextOtherCandidate
+                                    ? `Next other row: ${getDisplayTitle(slice.nextOtherCandidate)}`
+                                    : 'No other pending row in this slice yet'}
                                 </p>
                                 <div className="mt-4 flex flex-wrap gap-2">
                                   <button
@@ -4980,6 +5000,14 @@ export function ReviewQueueClient({
                                     className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none"
                                   >
                                     {slice.isActive ? 'Clear focus + open lead' : 'Focus + open lead'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={!slice.nextOtherCandidate}
+                                    onClick={slice.openNextOtherRow}
+                                    className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none"
+                                  >
+                                    {slice.isActive ? 'Clear focus + open next row' : 'Focus + open next row'}
                                   </button>
                                   <button
                                     type="button"
