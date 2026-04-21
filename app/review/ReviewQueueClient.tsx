@@ -1658,6 +1658,15 @@ export function ReviewQueueClient({
   const preferredMergeTarget = matchedDrills.find((drill) => drill.id === preferredMergeTargetId) ?? null
   const isUsingAutoMergeTarget = !selectedCanonicalDrillId && Boolean(preferredMergeTarget)
 
+  const cycleMergeTarget = useCallback(
+    (direction: 'next' | 'previous') => {
+      const nextTarget = getAdjacentCandidate(matchedDrills, preferredMergeTargetId, direction)
+      if (!nextTarget) return
+      setSelectedCanonicalDrillId(nextTarget.id)
+    },
+    [matchedDrills, preferredMergeTargetId]
+  )
+
   const selectedFamilyCandidates = selectedCandidate?.dedupe_key
     ? sortedCandidates.filter((candidate) => candidate.dedupe_key === selectedCandidate.dedupe_key)
     : []
@@ -2540,6 +2549,18 @@ export function ReviewQueueClient({
         return
       }
 
+      if (event.key === ';') {
+        event.preventDefault()
+        cycleMergeTarget('previous')
+        return
+      }
+
+      if (event.key === "'") {
+        event.preventDefault()
+        cycleMergeTarget('next')
+        return
+      }
+
       const requestedRoute =
         key === REVIEW_ROUTE_SHORTCUTS['approve-ready']
           ? 'approve-ready'
@@ -2648,6 +2669,7 @@ export function ReviewQueueClient({
     clearAllViewFilters,
     clearFamilyFocus,
     completenessFilter,
+    cycleMergeTarget,
     difficultyFilter,
     familyFilter,
     familyShapeFilter,
@@ -5296,6 +5318,9 @@ export function ReviewQueueClient({
                                   ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
                                   : 'No likely canonical target yet for this candidate.'}
                               </span>
+                              {matchedDrills.length > 1 ? (
+                                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts ; and ' cycle merge targets without leaving the keyboard.</span>
+                              ) : null}
                             </label>
 
                             {selectedMergeHandoff ? (
@@ -5534,6 +5559,9 @@ export function ReviewQueueClient({
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">
                           These are the strongest likely canonical targets from the curated drills table, so you can merge straight from here instead of juggling IDs by hand.
                         </p>
+                        {matchedDrills.length > 1 ? (
+                          <p className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use ; for the previous target and ' for the next target.</p>
+                        ) : null}
 
                         {matchedDrills.length === 0 ? (
                           <p className="mt-4 text-sm text-[var(--text-secondary)]">No likely drill matches surfaced yet from the current library.</p>
