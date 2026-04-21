@@ -3308,6 +3308,21 @@ export function ReviewQueueClient({
                         value={`${currentSliceSummary.leadInsight.familySize} row${currentSliceSummary.leadInsight.familySize === 1 ? '' : 's'}`}
                         subdued={currentSliceSummary.leadCandidate.dedupe_key || 'No family yet'}
                       />
+                      <InfoBlock
+                        label="AI recommendation"
+                        value={getAiDecisionLabel(currentSliceSummary.leadCandidate.ai_decision ?? null)}
+                        subdued={
+                          currentSliceSummary.leadCandidate.ai_reason ||
+                          (typeof currentSliceSummary.leadCandidate.ai_confidence === 'number'
+                            ? `${Math.round(currentSliceSummary.leadCandidate.ai_confidence * 100)}% confidence`
+                            : 'No AI recommendation yet')
+                        }
+                      />
+                      <InfoBlock
+                        label="Completeness"
+                        value={`${currentSliceSummary.leadInsight.completenessScore}/6`}
+                        subdued={currentSliceSummary.leadInsight.completenessLabel}
+                      />
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
@@ -3330,6 +3345,20 @@ export function ReviewQueueClient({
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this action
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCompletenessFilter(getCompletenessBand(currentSliceSummary.leadInsight!))}
+                        className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        Focus this completeness
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiDecisionFilter(getAiDecisionFilterValue(currentSliceSummary.leadCandidate.ai_decision ?? null))}
+                        className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        Focus this AI lane
                       </button>
                       {currentSliceSummary.leadCandidate.dedupe_key ? (
                         <button
