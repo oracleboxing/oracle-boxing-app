@@ -1658,6 +1658,17 @@ export function ReviewQueueClient({
       return Array.from(counts.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
     })()
 
+    const dominantVisibleAiDecision = (() => {
+      const counts = new Map<Exclude<AiDecisionFilter, 'all'>, number>()
+
+      for (const candidate of pendingCandidates) {
+        const decision = getAiDecisionFilterValue(candidate.ai_decision ?? null)
+        counts.set(decision, (counts.get(decision) ?? 0) + 1)
+      }
+
+      return Array.from(counts.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
+    })()
+
     const topVisibleSource = (() => {
       const counts = new Map<string, number>()
 
@@ -1677,6 +1688,7 @@ export function ReviewQueueClient({
       `Active triage slice: ${triageFilter === 'all' ? 'All visible pending' : getTriageLabel(triageFilter)}`,
       `Active completeness slice: ${completenessFilter === 'all' ? 'All extract levels' : COMPLETENESS_BAND_LABELS[completenessFilter]}`,
       `Active duplicate lane: ${familyShapeFilter === 'all' ? 'All family shapes' : DUPLICATE_SHAPE_LABELS[familyShapeFilter]}`,
+      `Active AI lane: ${getAiDecisionFilterLabel(aiDecisionFilter)}`,
       `Family focus: ${familyFilter ?? 'None'}`,
       `Missing summary rows: ${missingSummaryCount}`,
       `Visible duplicate families: ${duplicateFamilies.length}`,
@@ -1696,6 +1708,10 @@ export function ReviewQueueClient({
 
     if (dominantVisibleAction) {
       lines.push(`Dominant suggested action: ${getDecisionLabel(dominantVisibleAction)}`)
+    }
+
+    if (dominantVisibleAiDecision) {
+      lines.push(`Dominant AI recommendation: ${getAiDecisionFilterLabel(dominantVisibleAiDecision)}`)
     }
 
     if (topVisibleSource) {
@@ -1720,10 +1736,11 @@ export function ReviewQueueClient({
       dominantVisibleCompleteness,
       dominantVisibleFamilyShape,
       dominantVisibleAction,
+      dominantVisibleAiDecision,
       topVisibleSource,
       handoffText: lines.join('\n'),
     }
-  }, [candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, missingSummaryCount, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
+  }, [aiDecisionFilter, candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, missingSummaryCount, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
 
   const reviewRoutes = useMemo(() => {
     const routeDefinitions: Array<{
@@ -3070,7 +3087,7 @@ export function ReviewQueueClient({
             </button>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-7">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-8">
             <InfoBlock label="Visible pending" value={String(pendingCandidates.length)} subdued={`${sortedCandidates.length} total visible`} />
             <InfoBlock
               label="Dominant triage"
@@ -3091,6 +3108,11 @@ export function ReviewQueueClient({
               label="Dominant action"
               value={currentSliceSummary.dominantVisibleAction ? getDecisionLabel(currentSliceSummary.dominantVisibleAction) : 'No pending rows'}
               subdued={suggestedActionFilter === 'all' ? 'Across the current view' : 'Inside the active lane'}
+            />
+            <InfoBlock
+              label="Dominant AI lane"
+              value={currentSliceSummary.dominantVisibleAiDecision ? getAiDecisionFilterLabel(currentSliceSummary.dominantVisibleAiDecision) : 'No pending rows'}
+              subdued={aiDecisionFilter === 'all' ? 'Across the current view' : 'Inside the active lane'}
             />
             <InfoBlock
               label="Main source"
@@ -3135,6 +3157,15 @@ export function ReviewQueueClient({
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus suggested action
+              </button>
+            ) : null}
+            {currentSliceSummary.dominantVisibleAiDecision ? (
+              <button
+                type="button"
+                onClick={() => setAiDecisionFilter(currentSliceSummary.dominantVisibleAiDecision!)}
+                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Focus AI lane
               </button>
             ) : null}
             {currentSliceSummary.topVisibleSource ? (
