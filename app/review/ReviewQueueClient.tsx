@@ -1792,6 +1792,17 @@ export function ReviewQueueClient({
   const previousPendingCandidate = selectedPendingIndex > 0 ? pendingCandidates[selectedPendingIndex - 1] : null
   const nextPendingCandidate = selectedPendingIndex >= 0 ? pendingCandidates[selectedPendingIndex + 1] ?? null : pendingCandidates[0] ?? null
 
+  const previousFamilyCandidate = useMemo(() => {
+    if (!selectedCandidate?.dedupe_key) return null
+
+    const currentIndex = selectedFamilyCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id)
+    if (currentIndex <= 0) {
+      return null
+    }
+
+    return selectedFamilyCandidates[currentIndex - 1] ?? null
+  }, [selectedCandidate, selectedFamilyCandidates])
+
   const nextFamilyCandidate = useMemo(() => {
     if (!selectedCandidate?.dedupe_key) return null
 
@@ -4370,15 +4381,32 @@ export function ReviewQueueClient({
                     </div>
                   ) : null}
 
-                  {nextFamilyCandidate ? (
-                    <button
-                      type="button"
-                      onClick={() => selectCandidate(nextFamilyCandidate.id, { scrollIntoView: false })}
-                      className="mt-2 w-full rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
-                    >
-                      Next family row
-                      <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">{getDisplayTitle(nextFamilyCandidate)}</span>
-                    </button>
+                  {previousFamilyCandidate || nextFamilyCandidate ? (
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        disabled={!previousFamilyCandidate}
+                        onClick={() => previousFamilyCandidate ? selectCandidate(previousFamilyCandidate.id, { scrollIntoView: false }) : null}
+                        className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        Previous family row
+                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                          {previousFamilyCandidate ? getDisplayTitle(previousFamilyCandidate) : 'Start of this visible family cluster'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!nextFamilyCandidate}
+                        onClick={() => nextFamilyCandidate ? selectCandidate(nextFamilyCandidate.id, { scrollIntoView: false }) : null}
+                        className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        Next family row
+                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                          {nextFamilyCandidate ? getDisplayTitle(nextFamilyCandidate) : 'End of this visible family cluster'}
+                        </span>
+                      </button>
+                    </div>
                   ) : null}
                 </div>
                 {(() => {
