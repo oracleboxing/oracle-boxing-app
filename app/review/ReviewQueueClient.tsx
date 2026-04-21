@@ -1644,6 +1644,20 @@ export function ReviewQueueClient({
       .filter(([, summary]) => summary.rows > 0)
       .sort((left, right) => right[1].rows - left[1].rows)[0]?.[0] ?? null
 
+    const dominantVisibleAction = (() => {
+      const counts = new Map<FamilyDecision, number>()
+
+      for (const candidate of pendingCandidates) {
+        const insight = candidateInsights.get(candidate.id)
+        if (!insight) continue
+
+        const decision = getCandidateDecisionHint(candidate, insight)
+        counts.set(decision, (counts.get(decision) ?? 0) + 1)
+      }
+
+      return Array.from(counts.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
+    })()
+
     const topVisibleSource = (() => {
       const counts = new Map<string, number>()
 
@@ -1680,6 +1694,10 @@ export function ReviewQueueClient({
       lines.push(`Dominant duplicate lane: ${DUPLICATE_SHAPE_LABELS[dominantVisibleFamilyShape]}`)
     }
 
+    if (dominantVisibleAction) {
+      lines.push(`Dominant suggested action: ${getDecisionLabel(dominantVisibleAction)}`)
+    }
+
     if (topVisibleSource) {
       lines.push(`Main visible source: ${topVisibleSource[0]} (${topVisibleSource[1]})`)
     }
@@ -1701,6 +1719,7 @@ export function ReviewQueueClient({
       dominantVisibleTriage,
       dominantVisibleCompleteness,
       dominantVisibleFamilyShape,
+      dominantVisibleAction,
       topVisibleSource,
       handoffText: lines.join('\n'),
     }
@@ -2987,7 +3006,7 @@ export function ReviewQueueClient({
             </button>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-7">
             <InfoBlock label="Visible pending" value={String(pendingCandidates.length)} subdued={`${sortedCandidates.length} total visible`} />
             <InfoBlock
               label="Dominant triage"
@@ -3003,6 +3022,11 @@ export function ReviewQueueClient({
               label="Dominant duplicate lane"
               value={currentSliceSummary.dominantVisibleFamilyShape ? DUPLICATE_SHAPE_LABELS[currentSliceSummary.dominantVisibleFamilyShape] : 'No pending rows'}
               subdued={familyShapeFilter === 'all' ? 'Across the current view' : 'Inside the active lane'}
+            />
+            <InfoBlock
+              label="Dominant action"
+              value={currentSliceSummary.dominantVisibleAction ? getDecisionLabel(currentSliceSummary.dominantVisibleAction) : 'No pending rows'}
+              subdued={suggestedActionFilter === 'all' ? 'Across the current view' : 'Inside the active lane'}
             />
             <InfoBlock
               label="Main source"
@@ -3038,6 +3062,15 @@ export function ReviewQueueClient({
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus duplicate lane
+              </button>
+            ) : null}
+            {currentSliceSummary.dominantVisibleAction ? (
+              <button
+                type="button"
+                onClick={() => setSuggestedActionFilter(currentSliceSummary.dominantVisibleAction!)}
+                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Focus suggested action
               </button>
             ) : null}
             {currentSliceSummary.topVisibleSource ? (
