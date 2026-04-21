@@ -2192,20 +2192,21 @@ export function ReviewQueueClient({
         return
       }
 
-      if (key === 'j' || key === 'k') {
+      if (key === 'j' || key === 'k' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault()
         if (sortedCandidates.length === 0) return
 
         const currentIndex = sortedCandidates.findIndex((c) => c.id === selectedCandidateId)
+        const shouldMoveForward = key === 'j' || event.key === 'ArrowDown'
 
         if (currentIndex === -1) {
           selectCandidate(sortedCandidates[0].id)
           return
         }
 
-        if (key === 'j' && currentIndex < sortedCandidates.length - 1) {
+        if (shouldMoveForward && currentIndex < sortedCandidates.length - 1) {
           selectCandidate(sortedCandidates[currentIndex + 1].id)
-        } else if (key === 'k' && currentIndex > 0) {
+        } else if (!shouldMoveForward && currentIndex > 0) {
           selectCandidate(sortedCandidates[currentIndex - 1].id)
         }
         return
@@ -2536,7 +2537,7 @@ export function ReviewQueueClient({
             <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
               <span className="mr-2">Keyboard:</span>
               <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">/</kbd> focus search •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> navigate visible •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↑</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↓</kbd> navigate visible •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">f</kbd> toggle family focus •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">[</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">]</kbd> family hop •
@@ -2550,7 +2551,7 @@ export function ReviewQueueClient({
             </p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-7">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             <label className="text-sm text-[var(--text-secondary)]">
               <span className="mb-1 flex items-center gap-2">
                 <span>Search</span>
@@ -2642,6 +2643,66 @@ export function ReviewQueueClient({
                 {availableSources.map((source) => (
                   <option key={source} value={source}>
                     {source}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm text-[var(--text-secondary)]">
+              <span className="mb-1 block">AI recommendation</span>
+              <select
+                value={aiDecisionFilter}
+                onChange={(event) => setAiDecisionFilter(event.target.value as AiDecisionFilter)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+              >
+                {(['all', 'approve', 'merge', 'review', 'reject', 'none'] as AiDecisionFilter[]).map((value) => (
+                  <option key={value} value={value}>
+                    {getAiDecisionFilterLabel(value)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm text-[var(--text-secondary)]">
+              <span className="mb-1 block">Suggested action</span>
+              <select
+                value={suggestedActionFilter}
+                onChange={(event) => setSuggestedActionFilter(event.target.value as SuggestedActionFilter)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+              >
+                {(['all', 'keep', 'merge', 'reject'] as SuggestedActionFilter[]).map((value) => (
+                  <option key={value} value={value}>
+                    {getSuggestedActionFilterLabel(value)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm text-[var(--text-secondary)]">
+              <span className="mb-1 block">Triage lane</span>
+              <select
+                value={triageFilter}
+                onChange={(event) => setTriageFilter(event.target.value as 'all' | TriageLevel)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+              >
+                {(['all', 'act-now', 'worth-a-look', 'low-signal', 'already-reviewed'] as Array<'all' | TriageLevel>).map((value) => (
+                  <option key={value} value={value}>
+                    {value === 'all' ? 'All triage lanes' : getTriageLabel(value)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm text-[var(--text-secondary)]">
+              <span className="mb-1 block">Completeness</span>
+              <select
+                value={completenessFilter}
+                onChange={(event) => setCompletenessFilter(event.target.value as 'all' | CompletenessBand)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
+              >
+                {(['all', 'thin', 'usable', 'rich'] as Array<'all' | CompletenessBand>).map((value) => (
+                  <option key={value} value={value}>
+                    {value === 'all' ? 'All completeness bands' : COMPLETENESS_BAND_LABELS[value]}
                   </option>
                 ))}
               </select>
