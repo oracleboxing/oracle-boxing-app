@@ -1936,85 +1936,117 @@ export function ReviewQueueClient({
     const completenessBand = getCompletenessBand(insight)
     const selectedAiDecision = getAiDecisionFilterValue(selectedCandidate.ai_decision ?? null)
     const gradeValue = selectedCandidate.grade_level ?? 'unassigned'
+
+    const buildRelatedSlice = ({
+      key,
+      label,
+      detail,
+      isActive,
+      matches,
+      apply,
+    }: {
+      key: string
+      label: string
+      detail: string
+      isActive: boolean
+      matches: (candidate: RawDrillCandidate) => boolean
+      apply: () => void
+    }) => {
+      const matchingCandidates = basePendingCandidates.filter(matches)
+      const leadCandidate = matchingCandidates[0] ?? null
+
+      return {
+        key,
+        label,
+        count: matchingCandidates.length,
+        detail,
+        isActive,
+        leadCandidate,
+        onClick: () => {
+          apply()
+          if (!isActive && leadCandidate) {
+            selectCandidate(leadCandidate.id, { scrollIntoView: false })
+          }
+        },
+      }
+    }
+
     const relatedSlices = [
-      {
+      buildRelatedSlice({
         key: 'action',
         label: 'Suggested action lane',
-        count: basePendingCandidates.filter((candidate) => {
-          const relatedInsight = candidateInsights.get(candidate.id)
-          return relatedInsight ? getCandidateDecisionHint(candidate, relatedInsight) === suggestedAction : false
-        }).length,
         detail: getDecisionLabel(suggestedAction),
         isActive: suggestedActionFilter === suggestedAction,
-        onClick: () => toggleSuggestedActionFocus(suggestedAction),
-      },
-      {
+        matches: (candidate) => {
+          const relatedInsight = candidateInsights.get(candidate.id)
+          return relatedInsight ? getCandidateDecisionHint(candidate, relatedInsight) === suggestedAction : false
+        },
+        apply: () => toggleSuggestedActionFocus(suggestedAction),
+      }),
+      buildRelatedSlice({
         key: 'completeness',
         label: 'Completeness slice',
-        count: basePendingCandidates.filter((candidate) => {
-          const relatedInsight = candidateInsights.get(candidate.id)
-          return relatedInsight ? getCompletenessBand(relatedInsight) === completenessBand : false
-        }).length,
         detail: COMPLETENESS_BAND_LABELS[completenessBand],
         isActive: completenessFilter === completenessBand,
-        onClick: () => toggleCompletenessFocus(completenessBand),
-      },
-      {
+        matches: (candidate) => {
+          const relatedInsight = candidateInsights.get(candidate.id)
+          return relatedInsight ? getCompletenessBand(relatedInsight) === completenessBand : false
+        },
+        apply: () => toggleCompletenessFocus(completenessBand),
+      }),
+      buildRelatedSlice({
         key: 'grade',
         label: 'Grade slice',
-        count: basePendingCandidates.filter((candidate) => (candidate.grade_level ?? 'unassigned') === gradeValue).length,
         detail: formatGradeLevel(selectedCandidate.grade_level),
         isActive: gradeFilter === gradeValue,
-        onClick: () => toggleGradeFocus(gradeValue),
-      },
-      {
+        matches: (candidate) => (candidate.grade_level ?? 'unassigned') === gradeValue,
+        apply: () => toggleGradeFocus(gradeValue),
+      }),
+      buildRelatedSlice({
         key: 'difficulty',
         label: 'Difficulty slice',
-        count: basePendingCandidates.filter((candidate) => (candidate.difficulty || 'unassigned') === (selectedCandidate.difficulty || 'unassigned')).length,
         detail: formatDifficultyLabel(selectedCandidate.difficulty),
         isActive: difficultyFilter === (selectedCandidate.difficulty || 'unassigned'),
-        onClick: () => toggleDifficultyFocus(selectedCandidate.difficulty || 'unassigned'),
-      },
-      {
+        matches: (candidate) => (candidate.difficulty || 'unassigned') === (selectedCandidate.difficulty || 'unassigned'),
+        apply: () => toggleDifficultyFocus(selectedCandidate.difficulty || 'unassigned'),
+      }),
+      buildRelatedSlice({
         key: 'ai',
         label: 'AI recommendation lane',
-        count: basePendingCandidates.filter((candidate) => getAiDecisionFilterValue(candidate.ai_decision ?? null) === selectedAiDecision).length,
         detail: getAiDecisionFilterLabel(selectedAiDecision),
         isActive: aiDecisionFilter === selectedAiDecision,
-        onClick: () => toggleAiDecisionFocus(selectedAiDecision),
-      },
+        matches: (candidate) => getAiDecisionFilterValue(candidate.ai_decision ?? null) === selectedAiDecision,
+        apply: () => toggleAiDecisionFocus(selectedAiDecision),
+      }),
       selectedCandidate.category
-        ? {
+        ? buildRelatedSlice({
             key: 'category',
             label: 'Category slice',
-            count: basePendingCandidates.filter((candidate) => candidate.category === selectedCandidate.category).length,
             detail: selectedCandidate.category,
             isActive: categoryFilter === selectedCandidate.category,
-            onClick: () => toggleCategoryFocus(selectedCandidate.category!, selectedCandidate.id),
-          }
+            matches: (candidate) => candidate.category === selectedCandidate.category,
+            apply: () => toggleCategoryFocus(selectedCandidate.category!, selectedCandidate.id),
+          })
         : null,
       selectedCandidate.source_file
-        ? {
+        ? buildRelatedSlice({
             key: 'source',
             label: 'Source slice',
-            count: basePendingCandidates.filter((candidate) => candidate.source_file === selectedCandidate.source_file).length,
             detail: selectedCandidate.source_file,
             isActive: sourceFilter === selectedCandidate.source_file,
-            onClick: () => toggleSourceFocus(selectedCandidate.source_file!, selectedCandidate.id),
-          }
+            matches: (candidate) => candidate.source_file === selectedCandidate.source_file,
+            apply: () => toggleSourceFocus(selectedCandidate.source_file!, selectedCandidate.id),
+          })
         : null,
-    ].filter(
-      (
-        item
-      ): item is {
-        key: string
-        label: string
-        count: number
-        detail: string
-        isActive: boolean
-        onClick: () => void
-      } => Boolean(item)
-    )
+    ].filter(Boolean) as Array<{
+      key: string
+      label: string
+      count: number
+      detail: string
+      isActive: boolean
+      leadCandidate: RawDrillCandidate | null
+      onClick: () => void
+    }>
 
     return relatedSlices.sort((left, right) => right.count - left.count || left.label.localeCompare(right.label))
   }, [
@@ -2026,6 +2058,7 @@ export function ReviewQueueClient({
     difficultyFilter,
     gradeFilter,
     selectedCandidate,
+    selectCandidate,
     sourceFilter,
     suggestedActionFilter,
     toggleAiDecisionFocus,
@@ -4764,7 +4797,10 @@ export function ReviewQueueClient({
                                 </div>
                                 <p className="mt-3 text-2xl font-bold text-[var(--text-primary)]">{slice.count}</p>
                                 <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                                  pending row{slice.count === 1 ? '' : 's'} in this slice • {slice.isActive ? 'Click to clear' : 'Click to focus'}
+                                  pending row{slice.count === 1 ? '' : 's'} in this slice • {slice.isActive ? 'Click to clear' : 'Click to focus and open the lead row'}
+                                </p>
+                                <p className="mt-1 truncate text-xs text-[var(--text-tertiary)]">
+                                  {slice.leadCandidate ? `Lead row: ${getDisplayTitle(slice.leadCandidate)}` : 'No pending row in this slice yet'}
                                 </p>
                               </button>
                             ))}
