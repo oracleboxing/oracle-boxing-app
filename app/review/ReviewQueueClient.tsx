@@ -936,9 +936,12 @@ export function ReviewQueueClient({
     }
   }, [selectCandidate])
 
-  const toggleDifficultyFocus = useCallback((difficulty: string) => {
+  const toggleDifficultyFocus = useCallback((difficulty: string, candidateId?: string) => {
     setDifficultyFilter((current) => (current === difficulty ? 'all' : difficulty))
-  }, [])
+    if (candidateId) {
+      selectCandidate(candidateId, { scrollIntoView: false })
+    }
+  }, [selectCandidate])
 
   const toggleSourceFocus = useCallback((source: string, candidateId?: string) => {
     setSourceFilter((current) => (current === source ? 'all' : source))
@@ -1243,6 +1246,38 @@ export function ReviewQueueClient({
     acc[key] = (acc[key] ?? 0) + 1
     return acc
   }, {})
+
+  const difficultySummaries = useMemo(() => {
+    const summary = new Map<
+      string,
+      {
+        count: number
+        leadCandidate: RawDrillCandidate | null
+        leadInsight: CandidateInsight | null
+        leadDecision: FamilyDecision | null
+      }
+    >()
+
+    for (const candidate of pendingCandidates) {
+      const key = candidate.difficulty ?? 'unassigned'
+      const existing = summary.get(key)
+
+      if (!existing) {
+        const leadInsight = candidateInsights.get(candidate.id) ?? null
+        summary.set(key, {
+          count: 1,
+          leadCandidate: candidate,
+          leadInsight,
+          leadDecision: leadInsight ? getCandidateDecisionHint(candidate, leadInsight) : null,
+        })
+        continue
+      }
+
+      existing.count += 1
+    }
+
+    return summary
+  }, [candidateInsights, pendingCandidates])
 
   const sourceSummaries = useMemo(() => {
     const summary = new Map<
@@ -3622,36 +3657,77 @@ export function ReviewQueueClient({
                   .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
                   .map(([difficulty, count]) => {
                     const isFocusedDifficulty = difficultyFilter === difficulty
+                    const difficultySummary = difficultySummaries.get(difficulty)
 
                     return (
-                      <button
+                      <div
                         key={difficulty}
-                        type="button"
-                        onClick={() => toggleDifficultyFocus(difficulty)}
-                        className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        className={`rounded-2xl border px-4 py-4 transition-colors ${
                           isFocusedDifficulty
                             ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
                             : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
                         }`}
-                        aria-pressed={isFocusedDifficulty}
                       >
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium text-[var(--text-primary)]">{formatDifficultyLabel(difficulty)}</span>
-                            {isFocusedDifficulty ? (
-                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                                Active
-                              </span>
-                            ) : null}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 pr-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-medium text-[var(--text-primary)]">{formatDifficultyLabel(difficulty)}</span>
+                              {isFocusedDifficulty ? (
+                                <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                  Active
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                              {isFocusedDifficulty ? 'Click to clear this difficulty filter' : 'Click to focus this effort band'}
+                            </p>
                           </div>
-                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                            {isFocusedDifficulty ? 'Click to clear this difficulty filter' : 'Click to filter the queue to this difficulty'}
-                          </p>
+                          <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                            {count} pending
+                          </span>
                         </div>
-                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
-                          {count} pending
-                        </span>
-                      </button>
+
+                        {difficultySummary?.leadCandidate && difficultySummary.leadInsight && difficultySummary.leadDecision ? (
+                          <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getDecisionTone(difficultySummary.leadDecision)}`}>
+                                {getDecisionLabel(difficultySummary.leadDecision)}
+                              </span>
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getTriageTone(difficultySummary.leadInsight.triageLevel)}`}>
+                                {getTriageLabel(difficultySummary.leadInsight.triageLevel)}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">Start with {getDisplayTitle(difficultySummary.leadCandidate)}</p>
+                            <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{getReviewerNextMove(difficultySummary.leadCandidate, difficultySummary.leadInsight)}</p>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleDifficultyFocus(difficulty)}
+                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            aria-pressed={isFocusedDifficulty}
+                          >
+                            {isFocusedDifficulty ? 'Current difficulty focus' : 'Focus this difficulty'}
+                            <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                              Narrow the queue to this effort band.
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={!difficultySummary?.leadCandidate}
+                            onClick={() => (difficultySummary?.leadCandidate ? toggleDifficultyFocus(difficulty, difficultySummary.leadCandidate.id) : null)}
+                            className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                          >
+                            Open lead row
+                            <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                              {difficultySummary?.leadCandidate ? getDisplayTitle(difficultySummary.leadCandidate) : 'No lead row available in this difficulty'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
                     )
                   })
               )}
