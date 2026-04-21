@@ -1362,6 +1362,42 @@ export function ReviewQueueClient({
     }
   )
 
+  const triageSummaries = useMemo(() => {
+    const summary = new Map<
+      Exclude<TriageLevel, 'already-reviewed'>,
+      {
+        count: number
+        leadCandidate: RawDrillCandidate | null
+        leadInsight: CandidateInsight | null
+        leadDecision: FamilyDecision | null
+      }
+    >()
+
+    for (const candidate of basePendingCandidates) {
+      const leadInsight = candidateInsights.get(candidate.id)
+      const triageLevel = leadInsight?.triageLevel
+
+      if (!leadInsight || !triageLevel || triageLevel === 'already-reviewed') continue
+
+      const key: Exclude<TriageLevel, 'already-reviewed'> = triageLevel
+      const existing = summary.get(key)
+
+      if (!existing) {
+        summary.set(key, {
+          count: 1,
+          leadCandidate: candidate,
+          leadInsight,
+          leadDecision: getCandidateDecisionHint(candidate, leadInsight),
+        })
+        continue
+      }
+
+      existing.count += 1
+    }
+
+    return summary
+  }, [basePendingCandidates, candidateInsights])
+
   const completenessCounts = basePendingCandidates.reduce<Record<CompletenessBand, number>>(
     (acc, candidate) => {
       const insight = candidateInsights.get(candidate.id)
@@ -2865,6 +2901,110 @@ export function ReviewQueueClient({
                           Open lead row
                           <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                             {decisionSummary?.leadCandidate ? getDisplayTitle(decisionSummary.leadCandidate) : 'No lead row available in this AI lane'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by triage</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Jump straight into the rows that need attention now, are worth a look next, or can wait without losing the rest of the queue context.</p>
+              </div>
+              {triageFilter !== 'all' ? (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                  Focused on {getTriageLabel(triageFilter)}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-5 space-y-3">
+              {(['act-now', 'worth-a-look', 'low-signal'] as Array<Exclude<TriageLevel, 'already-reviewed'>>).every((level) => triageCounts[level] === 0) ? (
+                <p className="text-sm text-[var(--text-secondary)]">No pending triage lanes in the current filter set.</p>
+              ) : (
+                (['act-now', 'worth-a-look', 'low-signal'] as Array<Exclude<TriageLevel, 'already-reviewed'>>).map((level) => {
+                  const count = triageCounts[level]
+                  if (count === 0) return null
+
+                  const isFocusedLevel = triageFilter === level
+                  const triageSummary = triageSummaries.get(level)
+
+                  return (
+                    <div
+                      key={level}
+                      className={`rounded-2xl border px-4 py-4 transition-colors ${
+                        isFocusedLevel
+                          ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                          : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 pr-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(level)}`}>
+                              {getTriageLabel(level)}
+                            </span>
+                            {isFocusedLevel ? (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
+                            {isFocusedLevel ? 'Click to clear this triage lane' : 'Click to focus this triage lane'}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                          {count} pending
+                        </span>
+                      </div>
+
+                      {triageSummary?.leadCandidate && triageSummary.leadInsight && triageSummary.leadDecision ? (
+                        <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getDecisionTone(triageSummary.leadDecision)}`}>
+                              {getDecisionLabel(triageSummary.leadDecision)}
+                            </span>
+                            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
+                              {triageSummary.leadInsight.familySize} row{triageSummary.leadInsight.familySize === 1 ? '' : 's'} in family
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">Start with {getDisplayTitle(triageSummary.leadCandidate)}</p>
+                          <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{getReviewerNextMove(triageSummary.leadCandidate, triageSummary.leadInsight)}</p>
+                        </div>
+                      ) : null}
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => setTriageFilter((current) => (current === level ? 'all' : level))}
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                          aria-pressed={isFocusedLevel}
+                        >
+                          {isFocusedLevel ? 'Current triage lane' : 'Focus this triage lane'}
+                          <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                            Narrow the queue to {getTriageLabel(level).toLowerCase()} rows.
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={!triageSummary?.leadCandidate}
+                          onClick={() => {
+                            if (!triageSummary?.leadCandidate) return
+                            setTriageFilter(level)
+                            selectCandidate(triageSummary.leadCandidate.id, { scrollIntoView: false })
+                          }}
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                        >
+                          Open lead row
+                          <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                            {triageSummary?.leadCandidate ? getDisplayTitle(triageSummary.leadCandidate) : 'No lead row available in this triage lane'}
                           </span>
                         </button>
                       </div>
