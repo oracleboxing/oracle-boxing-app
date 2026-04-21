@@ -1634,6 +1634,16 @@ export function ReviewQueueClient({
     sortedCandidates[0] ??
     null
 
+  useEffect(() => {
+    const nextVisibleSelectedId = selectedCandidate?.id ?? null
+
+    if (selectedCandidateId === nextVisibleSelectedId) {
+      return
+    }
+
+    setSelectedCandidateId(nextVisibleSelectedId)
+  }, [selectedCandidate, selectedCandidateId])
+
   const matchedDrills = useMemo(() => {
     if (!selectedCandidate) return []
 
