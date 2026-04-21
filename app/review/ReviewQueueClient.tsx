@@ -3296,8 +3296,13 @@ export function ReviewQueueClient({
                       </span>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{getReviewerNextMove(currentSliceSummary.leadCandidate, currentSliceSummary.leadInsight)}</p>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
                       <InfoBlock label="Source" value={getSourceLabel(currentSliceSummary.leadCandidate)} />
+                      <InfoBlock
+                        label="Suggested action"
+                        value={getDecisionLabel(leadDecision)}
+                        subdued={getSuggestedActionShortcutLabel(leadDecision)}
+                      />
                       <InfoBlock
                         label="Duplicate pressure"
                         value={`${currentSliceSummary.leadInsight.familySize} row${currentSliceSummary.leadInsight.familySize === 1 ? '' : 's'}`}
@@ -3311,6 +3316,20 @@ export function ReviewQueueClient({
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Open in detail panel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSourceFilter(getSourceLabel(currentSliceSummary.leadCandidate))}
+                        className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        Focus this source
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSuggestedActionFilter(leadDecision)}
+                        className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        Focus this action
                       </button>
                       {currentSliceSummary.leadCandidate.dedupe_key ? (
                         <button
