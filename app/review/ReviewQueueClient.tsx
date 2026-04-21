@@ -1831,6 +1831,107 @@ export function ReviewQueueClient({
     }
   }, [candidateInsights, selectedCandidate, selectedFamilyCandidates])
 
+  const selectedCandidateRelatedSlices = useMemo(() => {
+    if (!selectedCandidate) return []
+
+    const insight = candidateInsights.get(selectedCandidate.id)
+    if (!insight) return []
+
+    const suggestedAction = getCandidateDecisionHint(selectedCandidate, insight)
+    const completenessBand = getCompletenessBand(insight)
+    const selectedAiDecision = getAiDecisionFilterValue(selectedCandidate.ai_decision ?? null)
+    const gradeValue = selectedCandidate.grade_level ?? 'unassigned'
+    const relatedSlices = [
+      {
+        key: 'action',
+        label: 'Suggested action lane',
+        count: basePendingCandidates.filter((candidate) => {
+          const relatedInsight = candidateInsights.get(candidate.id)
+          return relatedInsight ? getCandidateDecisionHint(candidate, relatedInsight) === suggestedAction : false
+        }).length,
+        detail: getDecisionLabel(suggestedAction),
+        isActive: suggestedActionFilter === suggestedAction,
+        onClick: () => toggleSuggestedActionFocus(suggestedAction),
+      },
+      {
+        key: 'completeness',
+        label: 'Completeness slice',
+        count: basePendingCandidates.filter((candidate) => {
+          const relatedInsight = candidateInsights.get(candidate.id)
+          return relatedInsight ? getCompletenessBand(relatedInsight) === completenessBand : false
+        }).length,
+        detail: COMPLETENESS_BAND_LABELS[completenessBand],
+        isActive: completenessFilter === completenessBand,
+        onClick: () => toggleCompletenessFocus(completenessBand),
+      },
+      {
+        key: 'grade',
+        label: 'Grade slice',
+        count: basePendingCandidates.filter((candidate) => (candidate.grade_level ?? 'unassigned') === gradeValue).length,
+        detail: formatGradeLevel(selectedCandidate.grade_level),
+        isActive: gradeFilter === gradeValue,
+        onClick: () => toggleGradeFocus(gradeValue),
+      },
+      {
+        key: 'ai',
+        label: 'AI recommendation lane',
+        count: basePendingCandidates.filter((candidate) => getAiDecisionFilterValue(candidate.ai_decision ?? null) === selectedAiDecision).length,
+        detail: getAiDecisionFilterLabel(selectedAiDecision),
+        isActive: aiDecisionFilter === selectedAiDecision,
+        onClick: () => toggleAiDecisionFocus(selectedAiDecision),
+      },
+      selectedCandidate.category
+        ? {
+            key: 'category',
+            label: 'Category slice',
+            count: basePendingCandidates.filter((candidate) => candidate.category === selectedCandidate.category).length,
+            detail: selectedCandidate.category,
+            isActive: categoryFilter === selectedCandidate.category,
+            onClick: () => toggleCategoryFocus(selectedCandidate.category!, selectedCandidate.id),
+          }
+        : null,
+      selectedCandidate.source_file
+        ? {
+            key: 'source',
+            label: 'Source slice',
+            count: basePendingCandidates.filter((candidate) => candidate.source_file === selectedCandidate.source_file).length,
+            detail: selectedCandidate.source_file,
+            isActive: sourceFilter === selectedCandidate.source_file,
+            onClick: () => toggleSourceFocus(selectedCandidate.source_file!, selectedCandidate.id),
+          }
+        : null,
+    ].filter(
+      (
+        item
+      ): item is {
+        key: string
+        label: string
+        count: number
+        detail: string
+        isActive: boolean
+        onClick: () => void
+      } => Boolean(item)
+    )
+
+    return relatedSlices.sort((left, right) => right.count - left.count || left.label.localeCompare(right.label))
+  }, [
+    aiDecisionFilter,
+    basePendingCandidates,
+    candidateInsights,
+    categoryFilter,
+    completenessFilter,
+    gradeFilter,
+    selectedCandidate,
+    sourceFilter,
+    suggestedActionFilter,
+    toggleAiDecisionFocus,
+    toggleCategoryFocus,
+    toggleCompletenessFocus,
+    toggleGradeFocus,
+    toggleSourceFocus,
+    toggleSuggestedActionFocus,
+  ])
+
   const bulkSelectionCounts = visibleSelectedIds.reduce<Record<ReviewStatus, number>>(
     (acc, id) => {
       const candidate = sortedCandidates.find((item) => item.id === id)
@@ -4298,6 +4399,54 @@ export function ReviewQueueClient({
                           )}
                         </div>
                       </div>
+
+                      {selectedCandidateRelatedSlices.length > 0 ? (
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Related queue slices</p>
+                              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                                Pivot straight into the pending rows that look most like this candidate, instead of backing out to the summary cards.
+                              </p>
+                            </div>
+                            <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                              Keeps current search and scope
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            {selectedCandidateRelatedSlices.map((slice) => (
+                              <button
+                                key={slice.key}
+                                type="button"
+                                disabled={slice.count === 0}
+                                onClick={slice.onClick}
+                                className={`rounded-2xl border px-4 py-4 text-left transition-colors disabled:pointer-events-none disabled:opacity-50 ${
+                                  slice.isActive
+                                    ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)] shadow-sm'
+                                    : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{slice.label}</p>
+                                    <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">{slice.detail}</p>
+                                  </div>
+                                  {slice.isActive ? (
+                                    <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                      Active
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <p className="mt-3 text-2xl font-bold text-[var(--text-primary)]">{slice.count}</p>
+                                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                                  pending row{slice.count === 1 ? '' : 's'} in this slice • {slice.isActive ? 'Click to clear' : 'Click to focus'}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
 
                       <DetailList title="Steps" items={jsonToStringList(selectedCandidate.steps_json)} emptyLabel="No steps extracted yet." />
                       <DetailList title="Focus points" items={jsonToStringList(selectedCandidate.focus_points_json)} emptyLabel="No focus points extracted yet." />
