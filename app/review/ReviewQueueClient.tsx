@@ -1680,6 +1680,39 @@ export function ReviewQueueClient({
       return Array.from(counts.entries()).sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0] ?? null
     })()
 
+    const topVisibleFamily = (() => {
+      const families = new Map<
+        string,
+        {
+          count: number
+          leadCandidate: RawDrillCandidate | null
+        }
+      >()
+
+      for (const candidate of pendingCandidates) {
+        if (!candidate.dedupe_key) continue
+
+        const existing = families.get(candidate.dedupe_key)
+        if (existing) {
+          existing.count += 1
+          continue
+        }
+
+        families.set(candidate.dedupe_key, {
+          count: 1,
+          leadCandidate: candidate,
+        })
+      }
+
+      return Array.from(families.entries())
+        .map(([dedupeKey, family]) => ({
+          dedupeKey,
+          count: family.count,
+          leadCandidate: family.leadCandidate,
+        }))
+        .sort((left, right) => right.count - left.count || left.dedupeKey.localeCompare(right.dedupeKey))[0] ?? null
+    })()
+
     const lines = [
       'Review queue handoff',
       `Visible rows: ${sortedCandidates.length}`,
@@ -1718,6 +1751,10 @@ export function ReviewQueueClient({
       lines.push(`Main visible source: ${topVisibleSource[0]} (${topVisibleSource[1]})`)
     }
 
+    if (topVisibleFamily) {
+      lines.push(`Largest pending family: ${topVisibleFamily.dedupeKey} (${topVisibleFamily.count} rows)`)
+    }
+
     if (leadCandidate && leadInsight) {
       lines.push('')
       lines.push(`Lead visible candidate: ${getDisplayTitle(leadCandidate)}`)
@@ -1738,6 +1775,7 @@ export function ReviewQueueClient({
       dominantVisibleAction,
       dominantVisibleAiDecision,
       topVisibleSource,
+      topVisibleFamily,
       handoffText: lines.join('\n'),
     }
   }, [aiDecisionFilter, candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, missingSummaryCount, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
@@ -3087,7 +3125,7 @@ export function ReviewQueueClient({
             </button>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-8">
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-9">
             <InfoBlock label="Visible pending" value={String(pendingCandidates.length)} subdued={`${sortedCandidates.length} total visible`} />
             <InfoBlock
               label="Dominant triage"
@@ -3118,6 +3156,11 @@ export function ReviewQueueClient({
               label="Main source"
               value={currentSliceSummary.topVisibleSource?.[0] ?? 'Mixed'}
               subdued={currentSliceSummary.topVisibleSource ? `${currentSliceSummary.topVisibleSource[1]} pending rows` : 'No dominant source'}
+            />
+            <InfoBlock
+              label="Largest family"
+              value={currentSliceSummary.topVisibleFamily?.dedupeKey ?? 'No family'}
+              subdued={currentSliceSummary.topVisibleFamily ? `${currentSliceSummary.topVisibleFamily.count} pending rows` : 'No duplicate family in slice'}
             />
             <InfoBlock label="Visible families" value={String(duplicateFamilies.length)} subdued={`${missingSummaryCount} rows still need a summary`} />
           </div>
@@ -3175,6 +3218,15 @@ export function ReviewQueueClient({
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus main source
+              </button>
+            ) : null}
+            {currentSliceSummary.topVisibleFamily ? (
+              <button
+                type="button"
+                onClick={() => focusFamily(currentSliceSummary.topVisibleFamily!.dedupeKey, currentSliceSummary.topVisibleFamily!.leadCandidate?.id)}
+                className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+              >
+                Focus largest family
               </button>
             ) : null}
             {currentSliceSummary.leadCandidate ? (
