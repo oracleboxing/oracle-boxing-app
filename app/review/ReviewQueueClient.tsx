@@ -463,11 +463,18 @@ function getAdjacentPendingDuplicateFamily<T extends { dedupeKey: string; status
   currentFamilyKey: string | null,
   direction: 'next' | 'previous'
 ) {
-  if (!currentFamilyKey || duplicateFamilies.length === 0) return null
+  if (duplicateFamilies.length === 0) return null
+
+  const pendingFamilies = duplicateFamilies.filter((family) => family.statuses.includes('pending'))
+  if (pendingFamilies.length === 0) return null
+
+  if (!currentFamilyKey) {
+    return direction === 'next' ? pendingFamilies[0] ?? null : pendingFamilies[pendingFamilies.length - 1] ?? null
+  }
 
   const currentIndex = duplicateFamilies.findIndex((family) => family.dedupeKey === currentFamilyKey)
   if (currentIndex === -1) {
-    return duplicateFamilies.find((family) => family.statuses.includes('pending')) ?? duplicateFamilies[0] ?? null
+    return direction === 'next' ? pendingFamilies[0] ?? null : pendingFamilies[pendingFamilies.length - 1] ?? null
   }
 
   const orderedFamilies =
