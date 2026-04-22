@@ -53,7 +53,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['Shift + f', 'Select pending family'], description: 'Add or remove every pending row in the selected family from the bulk set.' },
       { keys: ['[ / ]', 'Family hop'], description: 'Move to the previous or next pending family.' },
       { keys: [', / .', 'Family row'], description: 'Step through rows inside the current family.' },
-      { keys: ['; / \'' , 'Merge target'], description: 'Cycle the canonical merge target without leaving the keyboard.' },
+      { keys: ['← / → or ; / \'' , 'Merge target'], description: 'Cycle the canonical merge target without leaving the keyboard.' },
       { keys: ['4 / 5 / 6', 'Pick target'], description: 'Jump straight to the top likely merge targets by rank when multiple drill matches are surfaced.' },
       { keys: ['Shift + h', 'Copy family notes'], description: 'Copy the current duplicate-family handoff scaffold without leaving the keyboard.' },
     ],
@@ -3065,13 +3065,13 @@ export function ReviewQueueClient({
         return
       }
 
-      if (event.key === ';') {
+      if (event.key === 'ArrowLeft' || event.key === ';') {
         event.preventDefault()
         cycleMergeTarget('previous')
         return
       }
 
-      if (event.key === "'") {
+      if (event.key === 'ArrowRight' || event.key === "'") {
         event.preventDefault()
         cycleMergeTarget('next')
         return
@@ -3582,6 +3582,9 @@ export function ReviewQueueClient({
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   Enter applies suggestion when the queue is focused
+                </span>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                  ← / → cycles merge targets
                 </span>
               </span>
               <input
@@ -5521,7 +5524,7 @@ export function ReviewQueueClient({
                 </span>
               ) : null}
               {matchedDrills.length > 1 ? (
-                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ; and ' keep cycling.</span>
+                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
               ) : null}
             </label>
 
@@ -6233,7 +6236,7 @@ export function ReviewQueueClient({
                                 </span>
                               ) : null}
                               {matchedDrills.length > 1 ? (
-                                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ; and ' keep cycling.</span>
+                                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
                               ) : null}
                             </label>
 
