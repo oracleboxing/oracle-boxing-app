@@ -407,6 +407,10 @@ function getNextPendingReviewSelection(
   )
 }
 
+function isMergeTargetActionError(message: string | null) {
+  return message === 'Pick a merge target first.' || message === 'Pick a merge target first. This row has multiple plausible library matches.'
+}
+
 function getAdjacentPendingDuplicateFamily<T extends { dedupeKey: string; statuses: ReviewStatus[] }>(
   duplicateFamilies: T[],
   currentFamilyKey: string | null,
@@ -2123,6 +2127,14 @@ export function ReviewQueueClient({
   useEffect(() => {
     setActionError(null)
   }, [selectedCandidate?.id])
+
+  useEffect(() => {
+    if (!isMergeTargetActionError(actionError) || !canRunMergeAction) {
+      return
+    }
+
+    setActionError(null)
+  }, [actionError, canRunMergeAction])
 
   const selectedFamilyWorkspace = useMemo(() => {
     if (!selectedCandidate || !selectedCandidate.dedupe_key || selectedFamilyCandidates.length === 0) {
