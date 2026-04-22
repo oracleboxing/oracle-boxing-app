@@ -832,6 +832,7 @@ export function ReviewQueueClient({
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const detailPanelRef = useRef<HTMLElement | null>(null)
   const shouldScrollSelectedCandidateIntoViewRef = useRef(false)
+  const shouldFocusSelectedCandidateRowRef = useRef(false)
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') ?? ''
@@ -955,6 +956,15 @@ export function ReviewQueueClient({
     navigator.clipboard.writeText(text)
     setCopyFeedback('Copied family review notes')
     setTimeout(() => setCopyFeedback(null), 3000)
+  }, [])
+
+  const focusCandidateRow = useCallback((candidateId: string) => {
+    if (typeof document === 'undefined') return
+
+    const row = document.getElementById(`candidate-${candidateId}`)
+    if (!(row instanceof HTMLElement)) return
+
+    row.focus({ preventScroll: true })
   }, [])
 
   const selectCandidate = useCallback((candidateId: string, options?: { scrollIntoView?: boolean }) => {
@@ -1321,7 +1331,12 @@ export function ReviewQueueClient({
           )
 
           shouldScrollSelectedCandidateIntoViewRef.current = Boolean(nextSelectedId)
+          shouldFocusSelectedCandidateRowRef.current = Boolean(nextSelectedId)
           setSelectedCandidateId(nextSelectedId)
+
+          if (!nextSelectedId && typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur()
+          }
         }
 
         setCopyFeedback(payload?.message || successLabel)
@@ -1770,7 +1785,7 @@ export function ReviewQueueClient({
   }, [selectedCandidate, selectedCandidateId])
 
   useEffect(() => {
-    if (!shouldScrollSelectedCandidateIntoViewRef.current || !selectedCandidateId || typeof document === 'undefined') {
+    if (!selectedCandidateId || typeof document === 'undefined') {
       return
     }
 
@@ -1779,9 +1794,16 @@ export function ReviewQueueClient({
       return
     }
 
-    shouldScrollSelectedCandidateIntoViewRef.current = false
-    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [selectedCandidateId, sortedCandidates])
+    if (shouldScrollSelectedCandidateIntoViewRef.current) {
+      shouldScrollSelectedCandidateIntoViewRef.current = false
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+
+    if (shouldFocusSelectedCandidateRowRef.current) {
+      shouldFocusSelectedCandidateRowRef.current = false
+      focusCandidateRow(selectedCandidateId)
+    }
+  }, [focusCandidateRow, selectedCandidateId, sortedCandidates])
 
   const matchedDrills = useMemo(() => {
     if (!selectedCandidate) return []
@@ -5463,7 +5485,8 @@ export function ReviewQueueClient({
                   <article
                     key={candidate.id}
                     id={`candidate-${candidate.id}`}
-                    className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 transition-colors ${
+                    tabIndex={-1}
+                    className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] ${
                       isSelected ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)]'
                     }`}
                   >
