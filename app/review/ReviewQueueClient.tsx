@@ -2718,7 +2718,7 @@ export function ReviewQueueClient({
       if (key === 'n') {
         event.preventDefault()
         if (nextPendingCandidate) {
-          selectCandidate(nextPendingCandidate.id, { scrollIntoView: false })
+          selectCandidate(nextPendingCandidate.id)
         }
         return
       }
@@ -2726,7 +2726,7 @@ export function ReviewQueueClient({
       if (key === 'p') {
         event.preventDefault()
         if (previousPendingCandidate) {
-          selectCandidate(previousPendingCandidate.id, { scrollIntoView: false })
+          selectCandidate(previousPendingCandidate.id)
         }
         return
       }
@@ -2734,7 +2734,7 @@ export function ReviewQueueClient({
       if (key === 'l') {
         event.preventDefault()
         if (leadVisibleCandidate) {
-          selectCandidate(leadVisibleCandidate.id, { scrollIntoView: false })
+          selectCandidate(leadVisibleCandidate.id)
         }
         return
       }
@@ -2789,7 +2789,7 @@ export function ReviewQueueClient({
       if (event.key === '.') {
         event.preventDefault()
         if (nextFamilyCandidate) {
-          selectCandidate(nextFamilyCandidate.id, { scrollIntoView: false })
+          selectCandidate(nextFamilyCandidate.id)
         }
         return
       }
@@ -2797,7 +2797,7 @@ export function ReviewQueueClient({
       if (event.key === ',') {
         event.preventDefault()
         if (previousFamilyCandidate) {
-          selectCandidate(previousFamilyCandidate.id, { scrollIntoView: false })
+          selectCandidate(previousFamilyCandidate.id)
         }
         return
       }
@@ -2848,7 +2848,7 @@ export function ReviewQueueClient({
 
         applyReviewRoute(route.key)
         if (route.leadCandidate) {
-          selectCandidate(route.leadCandidate.id, { scrollIntoView: false })
+          selectCandidate(route.leadCandidate.id)
         }
         return
       }
@@ -5458,7 +5458,7 @@ export function ReviewQueueClient({
                     <button
                       type="button"
                       disabled={!previousVisibleCandidate || previousVisibleCandidate.id === selectedCandidate.id}
-                      onClick={() => previousVisibleCandidate ? selectCandidate(previousVisibleCandidate.id, { scrollIntoView: false }) : null}
+                      onClick={() => previousVisibleCandidate ? selectCandidate(previousVisibleCandidate.id) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Previous visible
@@ -5472,7 +5472,7 @@ export function ReviewQueueClient({
                     <button
                       type="button"
                       disabled={!nextVisibleCandidate || nextVisibleCandidate.id === selectedCandidate.id}
-                      onClick={() => nextVisibleCandidate ? selectCandidate(nextVisibleCandidate.id, { scrollIntoView: false }) : null}
+                      onClick={() => nextVisibleCandidate ? selectCandidate(nextVisibleCandidate.id) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Next visible
