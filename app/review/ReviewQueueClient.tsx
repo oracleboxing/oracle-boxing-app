@@ -34,6 +34,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     shortcuts: [
       { keys: ['/', 'Focus search'], description: 'Jump into search and select the current query.' },
       { keys: ['↓ / ↑ from search', 'Enter queue'], description: 'Jump from the search box straight into the selected row, or the first or last visible result.' },
+      { keys: ['Enter from search', 'Open lead + focus queue'], description: 'Open the lead search result and hand keyboard control straight back to the queue.' },
       { keys: ['j / ↓', 'Next visible'], description: 'Move to the next visible row in the current slice.' },
       { keys: ['k / ↑', 'Previous visible'], description: 'Move to the previous visible row.' },
       { keys: ['PageDown / PageUp', 'Jump 10 rows'], description: 'Leap through longer visible slices without mashing single-row navigation.' },
@@ -3439,7 +3440,11 @@ export function ReviewQueueClient({
     }
 
     selectCandidate(leadCandidate.id)
-  }, [focusCandidateDetailPanel, selectCandidate, sortedCandidates])
+
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => focusCandidateRow(leadCandidate.id))
+    }
+  }, [focusCandidateDetailPanel, focusCandidateRow, selectCandidate, sortedCandidates])
 
   return (
     <>
@@ -3535,7 +3540,7 @@ export function ReviewQueueClient({
                   Shortcut /
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
-                  Enter opens lead result
+                  Enter opens lead + enters queue
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   ↑ / ↓ enters the queue
