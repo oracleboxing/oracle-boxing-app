@@ -1859,6 +1859,15 @@ export function ReviewQueueClient({
     [sortedCandidates, visibleSelectedIds]
   )
   const skippedSelectedCount = visibleSelectedIds.length - actionableSelectedIds.length
+  const actionableSelectedLabel = `${actionableSelectedIds.length} visible pending row${actionableSelectedIds.length === 1 ? '' : 's'}`
+  const bulkActionTitle =
+    actionableSelectedIds.length > 0
+      ? `Run this action on ${actionableSelectedLabel}. Hidden or already-reviewed selections stay untouched.`
+      : hiddenSelectedCount > 0
+        ? 'No visible pending rows selected. Hidden selections stay selected, but bulk actions only run on rows visible in the current slice.'
+        : skippedSelectedCount > 0
+          ? 'No pending rows selected. Bulk actions only run on pending rows in the current slice.'
+          : 'Select at least one visible pending row to run a bulk action.'
 
   const selectedCandidate =
     (selectedCandidateFromUrl
@@ -5534,9 +5543,13 @@ export function ReviewQueueClient({
               <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                 Pending {bulkSelectionCounts.pending} • Approved {bulkSelectionCounts.approved} • Merged {bulkSelectionCounts.merged} • Rejected {bulkSelectionCounts.rejected}
               </p>
+              <p className="mt-2 text-xs text-[var(--text-secondary)]">
+                Ready right now: <span className="font-medium text-[var(--text-primary)]">{actionableSelectedLabel}</span>
+              </p>
               <p className="mt-2 text-xs text-[var(--text-tertiary)]">
-                Bulk actions only apply to pending rows, so already-reviewed selections stay visible for comparison but are skipped.
-                {skippedSelectedCount > 0 ? ` ${skippedSelectedCount} selected row${skippedSelectedCount === 1 ? '' : 's'} will be ignored.` : ''}
+                Bulk actions only apply to pending rows in the current slice, so already-reviewed or hidden selections stay available for comparison but are skipped.
+                {skippedSelectedCount > 0 ? ` ${skippedSelectedCount} visible reviewed row${skippedSelectedCount === 1 ? '' : 's'} will be ignored.` : ''}
+                {hiddenSelectedCount > 0 ? ` ${hiddenSelectedCount} hidden selected row${hiddenSelectedCount === 1 ? '' : 's'} will stay untouched until visible again.` : ''}
               </p>
               <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                 Shortcuts: <span className="font-medium text-[var(--text-secondary)]">Shift + X</span> selects visible pending, <span className="font-medium text-[var(--text-secondary)]">c</span> clears the full selection, then <span className="font-medium text-[var(--text-secondary)]">Shift + A / R / M</span> runs the bulk action.
@@ -5573,10 +5586,11 @@ export function ReviewQueueClient({
                       : `Approved ${actionableSelectedIds.length} candidates into the drill library.`,
                 })
               }
+              title={bulkActionTitle}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
             >
-              <span>Approve selected</span>
-              <span className="text-xs text-[var(--text-tertiary)]">Create drills</span>
+              <span>Approve visible pending</span>
+              <span className="text-xs text-[var(--text-tertiary)]">{actionableSelectedIds.length > 0 ? `${actionableSelectedIds.length} ready` : 'Create drills'}</span>
             </button>
 
             <button
@@ -5589,10 +5603,11 @@ export function ReviewQueueClient({
                   successLabel: actionableSelectedIds.length === 1 ? 'Rejected candidate.' : `Rejected ${actionableSelectedIds.length} candidates.`,
                 })
               }
+              title={bulkActionTitle}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
             >
-              <span>Reject selected</span>
-              <span className="text-xs text-[var(--text-tertiary)]">Mark rejected</span>
+              <span>Reject visible pending</span>
+              <span className="text-xs text-[var(--text-tertiary)]">{actionableSelectedIds.length > 0 ? `${actionableSelectedIds.length} ready` : 'Mark rejected'}</span>
             </button>
 
             <label className="block text-sm text-[var(--text-secondary)]">
@@ -5640,10 +5655,11 @@ export function ReviewQueueClient({
                     })
                   : setActionError(mergeTargetPrompt)
               }
+              title={canRunMergeAction ? bulkActionTitle : mergeTargetPrompt}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
             >
-              <span>Merge selected</span>
-              <span className="text-xs text-[var(--text-tertiary)]">{canRunMergeAction ? 'Use chosen library match' : mergeTargetPrompt}</span>
+              <span>Merge visible pending</span>
+              <span className="text-xs text-[var(--text-tertiary)]">{canRunMergeAction ? (actionableSelectedIds.length > 0 ? `${actionableSelectedIds.length} ready` : 'Use chosen library match') : mergeTargetPrompt}</span>
             </button>
           </div>
         </div>
