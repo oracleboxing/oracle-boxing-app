@@ -744,6 +744,7 @@ export function ReviewQueueClient({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const detailPanelRef = useRef<HTMLElement | null>(null)
+  const shouldScrollSelectedCandidateIntoViewRef = useRef(false)
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') ?? ''
@@ -1246,6 +1247,8 @@ export function ReviewQueueClient({
             sortedCandidates.map((candidate) => candidate.id),
             selectedCandidateId
           )
+
+          shouldScrollSelectedCandidateIntoViewRef.current = Boolean(nextSelectedId)
           setSelectedCandidateId(nextSelectedId)
         }
 
@@ -1692,6 +1695,20 @@ export function ReviewQueueClient({
 
     setSelectedCandidateId(nextVisibleSelectedId)
   }, [selectedCandidate, selectedCandidateId])
+
+  useEffect(() => {
+    if (!shouldScrollSelectedCandidateIntoViewRef.current || !selectedCandidateId || typeof document === 'undefined') {
+      return
+    }
+
+    const row = document.getElementById(`candidate-${selectedCandidateId}`)
+    if (!row) {
+      return
+    }
+
+    shouldScrollSelectedCandidateIntoViewRef.current = false
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [selectedCandidateId, sortedCandidates])
 
   const matchedDrills = useMemo(() => {
     if (!selectedCandidate) return []
