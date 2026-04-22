@@ -64,6 +64,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     shortcuts: [
       { keys: ['1 / 2 / 3', 'Route jump'], description: 'Jump into the highest-value review route.' },
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
+      { keys: ['0', 'Reset view'], description: 'Snap the queue back to the default pending triage view in one move.' },
       { keys: ['Backspace', 'Peel back'], description: 'Clear the most recent active view modifier.' },
       { keys: ['Esc', 'Dismiss or reset'], description: 'Close help, dismiss feedback, then clear search, family focus, or other active modifiers.' },
       { keys: ['?', 'Shortcut help'], description: 'Open or close this keyboard reference.' },
@@ -2736,6 +2737,13 @@ export function ReviewQueueClient({
         return
       }
 
+      if (key === '0') {
+        if (!hasActiveViewModifiers) return
+        event.preventDefault()
+        clearAllViewFilters()
+        return
+      }
+
       if (event.key === 'Backspace') {
         if (!lastActiveViewModifierLabel) return
         event.preventDefault()
@@ -3329,6 +3337,7 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">l</kbd> jump to lead row •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Enter</kbd> apply suggestion •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">?</kbd> open full shortcut help •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">0</kbd> reset the queue •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> dismiss feedback or reset view
             </p>
           </div>
@@ -3591,7 +3600,7 @@ export function ReviewQueueClient({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Active view modifiers</p>
-                  <p className="mt-1 text-sm text-[var(--text-secondary)]">Clear one filter at a time, peel back the most specific modifier with Backspace, or reset the queue back to the default pending triage view.</p>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)]">Clear one filter at a time, peel back the most specific modifier with Backspace, or hit 0 to reset the queue back to the default pending triage view.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {lastActiveViewModifierLabel ? (
@@ -3610,6 +3619,7 @@ export function ReviewQueueClient({
                     className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                   >
                     Reset view
+                    <span className="ml-2 text-[var(--text-tertiary)]">0</span>
                   </button>
                 </div>
               </div>
