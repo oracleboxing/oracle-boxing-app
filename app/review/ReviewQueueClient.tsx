@@ -1235,6 +1235,23 @@ export function ReviewQueueClient({
     void copyText(window.location.href, label)
   }, [copyText])
 
+  const moveKeyboardSelection = useCallback(
+    (candidateId: string | null, options?: { focusQueueRow?: boolean }) => {
+      if (!candidateId || candidateId === selectedCandidateId) return
+
+      selectCandidate(candidateId, { scrollIntoView: false })
+
+      if (!options?.focusQueueRow || typeof window === 'undefined') {
+        return
+      }
+
+      window.requestAnimationFrame(() => {
+        focusCandidateRow(candidateId)
+      })
+    },
+    [focusCandidateRow, selectCandidate, selectedCandidateId]
+  )
+
   const clearScopedReview = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams.toString())
     nextParams.delete('ids')
@@ -3127,9 +3144,7 @@ export function ReviewQueueClient({
         if (sortedCandidates.length === 0) return
 
         const targetCandidate = event.key === 'End' || (key === 'g' && event.shiftKey) ? sortedCandidates[sortedCandidates.length - 1] : sortedCandidates[0]
-        if (targetCandidate && targetCandidate.id !== selectedCandidateId) {
-          selectCandidate(targetCandidate.id)
-        }
+        moveKeyboardSelection(targetCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
         return
       }
 
@@ -3138,9 +3153,7 @@ export function ReviewQueueClient({
         if (sortedCandidates.length === 0) return
 
         const targetCandidate = getOffsetCandidate(sortedCandidates, selectedCandidateId, event.key === 'PageDown' ? 10 : -10)
-        if (targetCandidate && targetCandidate.id !== selectedCandidateId) {
-          selectCandidate(targetCandidate.id)
-        }
+        moveKeyboardSelection(targetCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
         return
       }
 
@@ -3151,33 +3164,25 @@ export function ReviewQueueClient({
         const shouldMoveForward = key === 'j' || event.key === 'ArrowDown'
         const adjacentCandidate = getAdjacentCandidate(sortedCandidates, selectedCandidateId, shouldMoveForward ? 'next' : 'previous')
 
-        if (adjacentCandidate && adjacentCandidate.id !== selectedCandidateId) {
-          selectCandidate(adjacentCandidate.id)
-        }
+        moveKeyboardSelection(adjacentCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
         return
       }
 
       if (key === 'n') {
         event.preventDefault()
-        if (nextPendingCandidate) {
-          selectCandidate(nextPendingCandidate.id)
-        }
+        moveKeyboardSelection(nextPendingCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
         return
       }
 
       if (key === 'p') {
         event.preventDefault()
-        if (previousPendingCandidate) {
-          selectCandidate(previousPendingCandidate.id)
-        }
+        moveKeyboardSelection(previousPendingCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
         return
       }
 
       if (key === 'l') {
         event.preventDefault()
-        if (leadVisibleCandidate) {
-          selectCandidate(leadVisibleCandidate.id)
-        }
+        moveKeyboardSelection(leadVisibleCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
         return
       }
 
@@ -3216,6 +3221,12 @@ export function ReviewQueueClient({
         event.preventDefault()
         if (nextDuplicateFamily) {
           focusFamily(nextDuplicateFamily.dedupeKey, nextDuplicateFamily.leadCandidate?.id ?? null)
+
+          if (isRowControlTarget && nextDuplicateFamily.leadCandidate?.id) {
+            window.requestAnimationFrame(() => {
+              focusCandidateRow(nextDuplicateFamily.leadCandidate?.id ?? '')
+            })
+          }
         }
         return
       }
@@ -3224,23 +3235,25 @@ export function ReviewQueueClient({
         event.preventDefault()
         if (previousDuplicateFamily) {
           focusFamily(previousDuplicateFamily.dedupeKey, previousDuplicateFamily.leadCandidate?.id ?? null)
+
+          if (isRowControlTarget && previousDuplicateFamily.leadCandidate?.id) {
+            window.requestAnimationFrame(() => {
+              focusCandidateRow(previousDuplicateFamily.leadCandidate?.id ?? '')
+            })
+          }
         }
         return
       }
 
       if (event.key === '.') {
         event.preventDefault()
-        if (nextFamilyCandidate) {
-          selectCandidate(nextFamilyCandidate.id)
-        }
+        moveKeyboardSelection(nextFamilyCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
         return
       }
 
       if (event.key === ',') {
         event.preventDefault()
-        if (previousFamilyCandidate) {
-          selectCandidate(previousFamilyCandidate.id)
-        }
+        moveKeyboardSelection(previousFamilyCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
         return
       }
 
@@ -3467,6 +3480,7 @@ export function ReviewQueueClient({
     lastActiveViewModifierLabel,
     mergeTargetPrompt,
     matchedDrills,
+    moveKeyboardSelection,
     actionError,
     nextDuplicateFamily,
     nextFamilyCandidate,
