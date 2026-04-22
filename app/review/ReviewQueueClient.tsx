@@ -2999,8 +2999,14 @@ export function ReviewQueueClient({
       }
 
       if (event.key === 'Backspace') {
-        if (!lastActiveViewModifierLabel) return
+        if (selectedIds.length === 0 && !lastActiveViewModifierLabel) return
         event.preventDefault()
+
+        if (selectedIds.length > 0) {
+          clearSelectedRows()
+          return
+        }
+
         clearLastViewModifier()
         return
       }
