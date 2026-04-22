@@ -53,7 +53,7 @@ const REVIEW_SHORTCUT_GROUPS = [
   {
     title: 'Select and act',
     shortcuts: [
-      { keys: ['x', 'Toggle select'], description: 'Add or remove the selected row from the bulk set.' },
+      { keys: ['x / Space', 'Toggle select'], description: 'Add or remove the selected row from the bulk set.' },
       { keys: ['c', 'Clear selection'], description: 'Clear the current bulk selection.' },
       { keys: ['a / r / m', 'Approve, reject, merge'], description: 'Run the primary action on the selected pending row.' },
       { keys: ['Enter / s', 'Suggested action'], description: 'Apply the queue recommendation for the selected row without leaving the keyboard.' },
@@ -2929,7 +2929,7 @@ export function ReviewQueueClient({
         return
       }
 
-      if (key === 'x') {
+      if (key === 'x' || event.key === ' ') {
         event.preventDefault()
         if (selectedCandidateId) {
           toggleSelected(selectedCandidateId)
@@ -3454,6 +3454,7 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↑</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↓</kbd> navigate visible •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">l</kbd> jump to lead row •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Space</kbd> toggle select •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Enter</kbd> apply suggestion •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">?</kbd> open full shortcut help •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">0</kbd> reset the queue •
