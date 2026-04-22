@@ -33,6 +33,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     title: 'Navigate the queue',
     shortcuts: [
       { keys: ['/', 'Focus search'], description: 'Jump into search and select the current query.' },
+      { keys: ['⌘/Ctrl + K', 'Focus search'], description: 'Open search from anywhere in the queue without leaving the keyboard flow.' },
       { keys: ['↓ / ↑ from search', 'Enter queue'], description: 'Jump from the search box straight into the selected row, or the first or last visible result.' },
       { keys: ['Enter from search', 'Open lead + focus queue'], description: 'Open the lead search result and hand keyboard control straight back to the queue.' },
       { keys: ['Esc from search', 'Back to queue'], description: 'When the search is already empty, leave the field and return focus to the active queue row.' },
@@ -2778,6 +2779,15 @@ export function ReviewQueueClient({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      const key = event.key.toLowerCase()
+
+      if (!event.altKey && !event.shiftKey && key === 'k' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+        return
+      }
+
       if (event.metaKey || event.ctrlKey || event.altKey) {
         return
       }
@@ -2850,8 +2860,6 @@ export function ReviewQueueClient({
       if (shouldIgnoreShortcutTarget(event.target)) {
         return
       }
-
-      const key = event.key.toLowerCase()
 
       if (event.key === '?') {
         event.preventDefault()
@@ -3548,7 +3556,7 @@ export function ReviewQueueClient({
             </div>
             <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
               <span className="mr-2">Keyboard:</span>
-              <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">/</kbd> focus search •
+              <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">/</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">⌘</kbd>/<kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Ctrl</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">K</kbd> focus search •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↑</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↓</kbd> navigate visible •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Home</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">End</kbd> jump to queue edges •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">PgDn</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">PgUp</kbd> jump 10 visible rows •
@@ -3567,7 +3575,7 @@ export function ReviewQueueClient({
               <span className="mb-1 flex items-center gap-2">
                 <span>Search</span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
-                  Shortcut /
+                  Shortcut / or ⌘/Ctrl + K
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   Enter opens lead + enters queue
