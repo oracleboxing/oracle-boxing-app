@@ -65,9 +65,9 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['1 / 2 / 3', 'Route jump'], description: 'Jump into the highest-value review route.' },
       { keys: ['h', 'Copy queue handoff'], description: 'Copy the current review-slice handoff without leaving the keyboard.' },
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
-      { keys: ['0', 'Reset view'], description: 'Snap the queue back to the default pending triage view in one move.' },
-      { keys: ['Backspace', 'Peel back'], description: 'Clear the most recent active view modifier.' },
-      { keys: ['Esc', 'Dismiss or reset'], description: 'Close help, dismiss feedback, then clear search, family focus, or other active modifiers.' },
+      { keys: ['0', 'Reset view'], description: 'Snap the queue back to the default pending triage view and clear bulk selection in one move.' },
+      { keys: ['Backspace', 'Peel back'], description: 'Clear bulk selection first, then peel back the most recent active view modifier.' },
+      { keys: ['Esc', 'Dismiss or reset'], description: 'Close help, dismiss feedback, then clear bulk selection, search, family focus, or other active modifiers.' },
       { keys: ['?', 'Shortcut help'], description: 'Open or close this keyboard reference.' },
     ],
   },
@@ -983,6 +983,7 @@ export function ReviewQueueClient({
   }, [])
 
   const clearAllViewFilters = useCallback(() => {
+    setSelectedIds([])
     setQuery('')
     setStatusFilter('pending')
     setGradeFilter('all')
@@ -1719,6 +1720,7 @@ export function ReviewQueueClient({
     () => selectedIds.filter((id) => sortedCandidates.some((candidate) => candidate.id === id)),
     [selectedIds, sortedCandidates]
   )
+  const hiddenSelectedCount = selectedIds.length - visibleSelectedIds.length
   const actionableSelectedIds = useMemo(
     () =>
       visibleSelectedIds.filter((id) => {
@@ -2520,6 +2522,7 @@ export function ReviewQueueClient({
   }, [pendingCandidates, visibleSelectedIds])
 
   const hasActiveViewModifiers = Boolean(
+    selectedIds.length > 0 ||
     query.trim() ||
       statusFilter !== 'pending' ||
       gradeFilter !== 'all' ||
@@ -2537,6 +2540,9 @@ export function ReviewQueueClient({
   )
 
   const lastActiveViewModifierLabel = useMemo(() => {
+    if (selectedIds.length > 0) {
+      return `Selection: ${selectedIds.length} row${selectedIds.length === 1 ? '' : 's'}`
+    }
     if (scopedCandidateIds) {
       return `Scope: ${scopeRequestedCount} linked row${scopeRequestedCount === 1 ? '' : 's'}`
     }
@@ -2592,6 +2598,7 @@ export function ReviewQueueClient({
     query,
     scopeRequestedCount,
     scopedCandidateIds,
+    selectedIds.length,
     sortMode,
     sourceFilter,
     statusFilter,
@@ -2600,6 +2607,10 @@ export function ReviewQueueClient({
   ])
 
   const clearLastViewModifier = useCallback(() => {
+    if (selectedIds.length > 0) {
+      clearSelectedRows()
+      return
+    }
     if (scopedCandidateIds) {
       clearScopedReview()
       return
@@ -2666,6 +2677,7 @@ export function ReviewQueueClient({
     gradeFilter,
     query,
     scopedCandidateIds,
+    selectedIds.length,
     sortMode,
     sourceFilter,
     statusFilter,
@@ -2702,6 +2714,12 @@ export function ReviewQueueClient({
           } else {
             searchInputRef.current?.blur()
           }
+          return
+        }
+
+        if (selectedIds.length > 0) {
+          event.preventDefault()
+          clearSelectedRows()
           return
         }
 
@@ -3118,6 +3136,7 @@ export function ReviewQueueClient({
     selectedCandidateId,
     selectedMergeHandoff,
     showShortcutHelp,
+    selectedIds.length,
     sortMode,
     sortedCandidates,
     sourceFilter,
@@ -3139,6 +3158,16 @@ export function ReviewQueueClient({
             key: 'query',
             label: `Search: ${query.trim()}`,
             onClear: () => setQuery(''),
+          }
+        : null,
+      selectedIds.length > 0
+        ? {
+            key: 'selection',
+            label:
+              hiddenSelectedCount > 0
+                ? `Selection: ${visibleSelectedIds.length} visible, ${hiddenSelectedCount} hidden`
+                : `Selection: ${visibleSelectedIds.length} row${visibleSelectedIds.length === 1 ? '' : 's'}`,
+            onClear: clearSelectedRows,
           }
         : null,
       statusFilter !== 'pending'
@@ -3233,7 +3262,28 @@ export function ReviewQueueClient({
           }
         : null,
     ].filter((chip): chip is ActiveViewChip => Boolean(chip)),
-    [aiDecisionFilter, categoryFilter, clearScopedReview, completenessFilter, difficultyFilter, familyFilter, familyShapeFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
+    [
+      aiDecisionFilter,
+      categoryFilter,
+      clearScopedReview,
+      clearSelectedRows,
+      completenessFilter,
+      difficultyFilter,
+      familyFilter,
+      familyShapeFilter,
+      gradeFilter,
+      hiddenSelectedCount,
+      query,
+      scopeRequestedCount,
+      scopedCandidateIds,
+      selectedIds.length,
+      sortMode,
+      sourceFilter,
+      statusFilter,
+      suggestedActionFilter,
+      triageFilter,
+      visibleSelectedIds.length,
+    ]
   )
 
   const copyCurrentSliceHandoff = useCallback(() => {
@@ -3610,7 +3660,7 @@ export function ReviewQueueClient({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Active view modifiers</p>
-                  <p className="mt-1 text-sm text-[var(--text-secondary)]">Clear one filter at a time, peel back the most specific modifier with Backspace, or hit 0 to reset the queue back to the default pending triage view.</p>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)]">Clear one filter at a time, peel back bulk selection or the most specific modifier with Backspace, or hit 0 to reset the queue back to the default pending triage view and clear selection.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {lastActiveViewModifierLabel ? (
@@ -5193,8 +5243,13 @@ export function ReviewQueueClient({
           <div className="mt-5 space-y-3">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Selected visible rows</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Selected rows in this slice</p>
                 <p className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{visibleSelectedIds.length}</p>
+                {hiddenSelectedCount > 0 ? (
+                  <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                    {hiddenSelectedCount} more selected row{hiddenSelectedCount === 1 ? '' : 's'} hidden by the current slice.
+                  </p>
+                ) : null}
               </div>
               <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                 Pending {bulkSelectionCounts.pending} • Approved {bulkSelectionCounts.approved} • Merged {bulkSelectionCounts.merged} • Rejected {bulkSelectionCounts.rejected}
@@ -5218,7 +5273,7 @@ export function ReviewQueueClient({
 
             <button
               type="button"
-              disabled={visibleSelectedIds.length === 0}
+              disabled={selectedIds.length === 0}
               onClick={clearSelectedRows}
               className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
             >
