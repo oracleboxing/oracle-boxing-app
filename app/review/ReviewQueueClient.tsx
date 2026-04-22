@@ -2767,6 +2767,10 @@ export function ReviewQueueClient({
         return
       }
 
+      if (showShortcutHelp) {
+        return
+      }
+
       if (key === '/') {
         event.preventDefault()
         searchInputRef.current?.focus()
