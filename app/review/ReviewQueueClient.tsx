@@ -65,7 +65,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['1 / 2 / 3', 'Route jump'], description: 'Jump into the highest-value review route.' },
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
       { keys: ['Backspace', 'Peel back'], description: 'Clear the most recent active view modifier.' },
-      { keys: ['Esc', 'Close or reset'], description: 'Close this panel, then clear search, family focus, or other active modifiers.' },
+      { keys: ['Esc', 'Dismiss or reset'], description: 'Close help, dismiss feedback, then clear search, family focus, or other active modifiers.' },
       { keys: ['?', 'Shortcut help'], description: 'Open or close this keyboard reference.' },
     ],
   },
@@ -2684,6 +2684,13 @@ export function ReviewQueueClient({
           return
         }
 
+        if (actionError || copyFeedback) {
+          event.preventDefault()
+          setActionError(null)
+          setCopyFeedback(null)
+          return
+        }
+
         const isSearchFocused = event.target === searchInputRef.current
 
         if (isSearchFocused) {
@@ -3063,6 +3070,7 @@ export function ReviewQueueClient({
     clearLastViewModifier,
     clearSelectedRows,
     completenessFilter,
+    copyFeedback,
     cycleMergeTarget,
     difficultyFilter,
     familyFilter,
@@ -3073,6 +3081,7 @@ export function ReviewQueueClient({
     leadVisibleCandidate,
     lastActiveViewModifierLabel,
     mergeTargetPrompt,
+    actionError,
     nextDuplicateFamily,
     nextFamilyCandidate,
     nextPendingCandidate,
@@ -3257,7 +3266,7 @@ export function ReviewQueueClient({
                 <p className="text-sm font-medium text-[var(--accent-primary)]">Keyboard shortcut help</p>
                 <h3 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Stay in flow while triaging</h3>
                 <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  This mirrors the queue shortcuts in a scannable layout. Press <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">?</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">Esc</kbd> to close.
+                  This mirrors the queue shortcuts in a scannable layout. Press <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">?</kbd> to open or close it, and <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">Esc</kbd> to dismiss feedback before resetting the view.
                 </p>
               </div>
               <button
@@ -3320,7 +3329,7 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">l</kbd> jump to lead row •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Enter</kbd> apply suggestion •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">?</kbd> open full shortcut help •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> close help or reset view
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> dismiss feedback or reset view
             </p>
           </div>
 
