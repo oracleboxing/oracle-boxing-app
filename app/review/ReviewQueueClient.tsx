@@ -228,6 +228,33 @@ function getShortSummary(candidate: RawDrillCandidate) {
   return candidate.summary || candidate.what_it_trains || candidate.description || 'No summary yet.'
 }
 
+function getCandidateSearchText(candidate: RawDrillCandidate) {
+  return [
+    candidate.cleaned_title,
+    candidate.raw_title,
+    candidate.summary,
+    candidate.description,
+    candidate.what_it_trains,
+    candidate.when_to_assign,
+    candidate.review_notes,
+    candidate.coach_demo_quote,
+    candidate.dedupe_key,
+    candidate.source_file,
+    candidate.source_type,
+    candidate.category,
+    candidate.difficulty,
+    candidate.grade_level,
+    ...(candidate.skill_tags ?? []),
+    ...(candidate.tags ?? []),
+    ...jsonToStringList(candidate.steps_json),
+    ...jsonToStringList(candidate.focus_points_json),
+    ...jsonToStringList(candidate.common_mistakes_json),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
 function getCandidateDecisionHint(candidate: RawDrillCandidate, insight: CandidateInsight): FamilyDecision {
   if (candidate.review_status === 'rejected') return 'reject'
   if (candidate.review_status === 'merged') return 'merge'
@@ -1131,23 +1158,7 @@ export function ReviewQueueClient({
 
       if (!normalizedQuery) return true
 
-      const haystack = [
-        candidate.cleaned_title,
-        candidate.raw_title,
-        candidate.summary,
-        candidate.description,
-        candidate.what_it_trains,
-        candidate.when_to_assign,
-        candidate.dedupe_key,
-        candidate.source_file,
-        candidate.source_type,
-        candidate.review_notes,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-
-      return haystack.includes(normalizedQuery)
+      return getCandidateSearchText(candidate).includes(normalizedQuery)
     })
   }, [aiDecisionFilter, candidateInsights, candidates, query, statusFilter, gradeFilter, difficultyFilter, categoryFilter, familyShapeFilter, sourceFilter, familyFilter, scopedCandidateIds])
 
