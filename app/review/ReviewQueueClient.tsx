@@ -78,6 +78,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     title: 'Routing and cleanup',
     shortcuts: [
       { keys: ['1 / 2 / 3', 'Route jump'], description: 'Jump into the highest-value review route.' },
+      { keys: ['b / t / d', 'Focus current row context'], description: 'Toggle the selected row’s source batch, drill type, or difficulty filter without leaving the keyboard.' },
       { keys: ['h', 'Copy queue handoff'], description: 'Copy the current review-slice handoff without leaving the keyboard.' },
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
       { keys: ['0', 'Reset view'], description: 'Snap the queue back to the default pending triage view and clear bulk selection in one move.' },
@@ -3185,6 +3186,27 @@ export function ReviewQueueClient({
         return
       }
 
+      if (key === 'b') {
+        event.preventDefault()
+        if (!selectedCandidate) return
+        toggleSourceFocus(getSourceLabel(selectedCandidate), selectedCandidate.id)
+        return
+      }
+
+      if (key === 't') {
+        event.preventDefault()
+        if (!selectedCandidate?.category) return
+        toggleCategoryFocus(selectedCandidate.category, selectedCandidate.id)
+        return
+      }
+
+      if (key === 'd') {
+        event.preventDefault()
+        if (!selectedCandidate?.difficulty) return
+        toggleDifficultyFocus(selectedCandidate.difficulty, selectedCandidate.id)
+        return
+      }
+
       const mergeTargetShortcutIndex = MERGE_TARGET_SHORTCUT_KEYS.indexOf(key as (typeof MERGE_TARGET_SHORTCUT_KEYS)[number])
       if (mergeTargetShortcutIndex !== -1) {
         const shortcutTarget = matchedDrills[mergeTargetShortcutIndex]
@@ -3346,9 +3368,12 @@ export function ReviewQueueClient({
     sourceFilter,
     statusFilter,
     suggestedActionFilter,
+    toggleCategoryFocus,
+    toggleDifficultyFocus,
     toggleSelectAllVisiblePending,
     toggleSelectPendingFamilyRows,
     toggleSelected,
+    toggleSourceFocus,
     triageFilter,
     visibleSelectedIds.length,
   ])
