@@ -78,6 +78,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     title: 'Routing and cleanup',
     shortcuts: [
       { keys: ['1 / 2 / 3', 'Route jump'], description: 'Jump into the highest-value review route.' },
+      { keys: ['o / Shift + o', 'Cycle sort'], description: 'Step through queue sort modes without leaving the keyboard or opening the sort dropdown.' },
       { keys: ['b / t / d', 'Focus current row context'], description: 'Toggle the selected row’s source batch, drill type, or difficulty filter without leaving the keyboard.' },
       { keys: ['h', 'Copy queue handoff'], description: 'Copy the current review-slice handoff without leaving the keyboard.' },
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
@@ -100,6 +101,8 @@ const SORT_MODE_LABELS: Record<SortMode, string> = {
   newest: 'Newest first',
   grade: 'Grade order',
 }
+
+const SORT_MODE_SEQUENCE: SortMode[] = ['triage', 'pending-first', 'duplicate-pressure', 'completeness', 'newest', 'grade']
 
 type TriageLevel = 'act-now' | 'worth-a-look' | 'low-signal' | 'already-reviewed'
 type CompletenessBand = 'thin' | 'usable' | 'rich'
@@ -953,6 +956,15 @@ export function ReviewQueueClient({
   const [selectedCanonicalDrillId, setSelectedCanonicalDrillId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+
+  const cycleSortMode = useCallback((direction: 'next' | 'previous') => {
+    setSortMode((current) => {
+      const currentIndex = SORT_MODE_SEQUENCE.indexOf(current)
+      const resolvedIndex = currentIndex === -1 ? 0 : currentIndex
+      const offset = direction === 'next' ? 1 : -1
+      return SORT_MODE_SEQUENCE[(resolvedIndex + offset + SORT_MODE_SEQUENCE.length) % SORT_MODE_SEQUENCE.length]
+    })
+  }, [])
   const detailPanelRef = useRef<HTMLElement | null>(null)
   const shouldScrollSelectedCandidateIntoViewRef = useRef(false)
   const shouldFocusSelectedCandidateRowRef = useRef(false)
@@ -3183,6 +3195,12 @@ export function ReviewQueueClient({
         if (route.leadCandidate) {
           selectCandidate(route.leadCandidate.id)
         }
+        return
+      }
+
+      if (key === 'o') {
+        event.preventDefault()
+        cycleSortMode(event.shiftKey ? 'previous' : 'next')
         return
       }
 
