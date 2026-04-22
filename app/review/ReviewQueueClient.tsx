@@ -2986,6 +2986,18 @@ export function ReviewQueueClient({
     window.setTimeout(() => setCopyFeedback(null), 3000)
   }, [selectedMergeHandoff])
 
+  const openLeadSearchResult = useCallback(() => {
+    const leadCandidate = sortedCandidates[0]
+    if (!leadCandidate) return
+
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1279px)').matches) {
+      focusCandidateDetailPanel(leadCandidate.id)
+      return
+    }
+
+    selectCandidate(leadCandidate.id)
+  }, [focusCandidateDetailPanel, selectCandidate, sortedCandidates])
+
   return (
     <>
       {copyFeedback && (
@@ -3031,11 +3043,19 @@ export function ReviewQueueClient({
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   Shortcut /
                 </span>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                  Enter opens lead result
+                </span>
               </span>
               <input
                 ref={searchInputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter') return
+                  event.preventDefault()
+                  openLeadSearchResult()
+                }}
                 placeholder="Title, source, summary, dedupe key"
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               />
