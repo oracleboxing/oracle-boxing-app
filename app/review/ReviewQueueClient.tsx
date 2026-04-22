@@ -63,6 +63,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     title: 'Routing and cleanup',
     shortcuts: [
       { keys: ['1 / 2 / 3', 'Route jump'], description: 'Jump into the highest-value review route.' },
+      { keys: ['h', 'Copy queue handoff'], description: 'Copy the current review-slice handoff without leaving the keyboard.' },
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
       { keys: ['0', 'Reset view'], description: 'Snap the queue back to the default pending triage view in one move.' },
       { keys: ['Backspace', 'Peel back'], description: 'Clear the most recent active view modifier.' },
@@ -2927,6 +2928,14 @@ export function ReviewQueueClient({
         return
       }
 
+      if (key === 'h') {
+        event.preventDefault()
+        navigator.clipboard.writeText(currentSliceSummary.handoffText)
+        setCopyFeedback('Copied review queue handoff')
+        window.setTimeout(() => setCopyFeedback(null), 3000)
+        return
+      }
+
       if (key === 'y') {
         event.preventDefault()
 
@@ -3079,6 +3088,7 @@ export function ReviewQueueClient({
     clearSelectedRows,
     completenessFilter,
     copyFeedback,
+    currentSliceSummary.handoffText,
     cycleMergeTarget,
     difficultyFilter,
     familyFilter,
@@ -3740,6 +3750,7 @@ export function ReviewQueueClient({
               className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
               Copy queue handoff
+              <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)]">H</span>
             </button>
           </div>
 
