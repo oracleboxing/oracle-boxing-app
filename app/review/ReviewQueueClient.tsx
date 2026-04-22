@@ -5006,7 +5006,78 @@ export function ReviewQueueClient({
                         </div>
                       </div>
 
-                      <div className="grid gap-2 sm:grid-cols-3 xl:w-[360px] xl:grid-cols-1">
+                      <div className="grid gap-2 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-2">
+                        <button
+                          type="button"
+                          disabled={isSubmitting || candidate.review_status !== 'pending' || (suggestedAction === 'merge' && (!isSelected || !preferredMergeTargetId))}
+                          onClick={() => {
+                            if (suggestedAction === 'keep') {
+                              runReviewAction({
+                                action: 'approve',
+                                candidateIds: [candidate.id],
+                                successLabel: 'Applied suggested action and approved candidate into the drill library.',
+                              })
+                              return
+                            }
+
+                            if (suggestedAction === 'reject') {
+                              runReviewAction({
+                                action: 'reject',
+                                candidateIds: [candidate.id],
+                                successLabel: 'Applied suggested action and rejected candidate.',
+                              })
+                              return
+                            }
+
+                            if (!isSelected || !preferredMergeTargetId) {
+                              setActionError('Select this candidate and pick a merge target first to apply the suggested action.')
+                              return
+                            }
+
+                            runReviewAction({
+                              action: 'merge',
+                              candidateIds: [candidate.id],
+                              canonicalDrillId: preferredMergeTargetId,
+                              successLabel: 'Applied suggested action and merged candidate into the selected drill.',
+                            })
+                          }}
+                          className={`sm:col-span-2 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${
+                            suggestedAction === 'keep'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/30'
+                              : suggestedAction === 'merge'
+                                ? 'border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300 dark:hover:bg-sky-950/30'
+                                : 'border-rose-200 bg-rose-50 text-rose-900 hover:bg-rose-100 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-950/30'
+                          }`}
+                          title={
+                            candidate.review_status !== 'pending'
+                              ? `This candidate is already ${REVIEW_STATUS_LABELS[candidate.review_status].toLowerCase()}.`
+                              : suggestedAction === 'merge'
+                                ? isSelected
+                                  ? preferredMergeTargetId
+                                    ? 'Apply the suggested merge into the selected canonical target.'
+                                    : 'Pick a merge target first to apply the suggested merge.'
+                                  : 'Select this candidate first to apply the suggested merge.'
+                                : 'Apply the queue recommendation for this candidate.'
+                          }
+                        >
+                          Apply suggestion
+                          <span className={`mt-1 block text-xs font-normal ${
+                            suggestedAction === 'keep'
+                              ? 'text-emerald-700 dark:text-emerald-400'
+                              : suggestedAction === 'merge'
+                                ? 'text-sky-700 dark:text-sky-400'
+                                : 'text-rose-700 dark:text-rose-400'
+                          }`}>
+                            {getDecisionLabel(suggestedAction)} • {getSuggestedActionShortcutLabel(suggestedAction)}
+                            {suggestedAction === 'merge'
+                              ? isSelected
+                                ? preferredMergeTargetId
+                                  ? ' using the chosen target'
+                                  : ' once a merge target is chosen'
+                                : ' after selecting this row'
+                              : ''}
+                          </span>
+                        </button>
                         <button
                           type="button"
                           disabled={isSubmitting || candidate.review_status !== 'pending'}
