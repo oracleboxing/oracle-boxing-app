@@ -40,7 +40,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['j / ↓', 'Next visible'], description: 'Move to the next visible row in the current slice.' },
       { keys: ['k / ↑', 'Previous visible'], description: 'Move to the previous visible row.' },
       { keys: ['PageDown / PageUp', 'Jump 10 rows'], description: 'Leap through longer visible slices without mashing single-row navigation.' },
-      { keys: ['g / Shift + g', 'Queue edges'], description: 'Jump straight to the first or last visible row in the current slice.' },
+      { keys: ['g / Shift + g / Home / End', 'Queue edges'], description: 'Jump straight to the first or last visible row in the current slice.' },
       { keys: ['n', 'Next pending'], description: 'Skip to the next pending row.' },
       { keys: ['p', 'Previous pending'], description: 'Jump back to the previous pending row.' },
       { keys: ['l', 'Lead row'], description: 'Snap to the lead candidate in the current slice.' },
@@ -2943,11 +2943,11 @@ export function ReviewQueueClient({
         return
       }
 
-      if (key === 'g') {
+      if (key === 'g' || event.key === 'Home' || event.key === 'End') {
         event.preventDefault()
         if (sortedCandidates.length === 0) return
 
-        const targetCandidate = event.shiftKey ? sortedCandidates[sortedCandidates.length - 1] : sortedCandidates[0]
+        const targetCandidate = event.key === 'End' || (key === 'g' && event.shiftKey) ? sortedCandidates[sortedCandidates.length - 1] : sortedCandidates[0]
         if (targetCandidate && targetCandidate.id !== selectedCandidateId) {
           selectCandidate(targetCandidate.id)
         }
@@ -3550,6 +3550,7 @@ export function ReviewQueueClient({
               <span className="mr-2">Keyboard:</span>
               <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">/</kbd> focus search •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↑</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↓</kbd> navigate visible •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Home</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">End</kbd> jump to queue edges •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">PgDn</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">PgUp</kbd> jump 10 visible rows •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">l</kbd> jump to lead row •
