@@ -53,7 +53,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['x', 'Toggle select'], description: 'Add or remove the selected row from the bulk set.' },
       { keys: ['c', 'Clear selection'], description: 'Clear the current bulk selection.' },
       { keys: ['a / r / m', 'Approve, reject, merge'], description: 'Run the primary action on the selected pending row.' },
-      { keys: ['s', 'Suggested action'], description: 'Apply the queue recommendation for the selected row.' },
+      { keys: ['Enter / s', 'Suggested action'], description: 'Apply the queue recommendation for the selected row without leaving the keyboard.' },
       { keys: ['Shift + x', 'Select visible pending'], description: 'Select every visible pending row at once.' },
       { keys: ['Shift + a / r / m', 'Bulk act'], description: 'Approve, reject, or merge the bulk selection.' },
     ],
@@ -272,13 +272,13 @@ function getSuggestedActionShortcutLabel(decision: FamilyDecision) {
 function getSuggestedActionShortcutHint(decision: FamilyDecision, hasMergeTarget: boolean) {
   switch (decision) {
     case 'keep':
-      return 'Shortcut S, uses the queue recommendation and advances selection.'
+      return 'Shortcut Enter or S, uses the queue recommendation and advances selection.'
     case 'merge':
       return hasMergeTarget
-        ? 'Shortcut S, uses the queue recommendation and the selected merge target.'
-        : 'Shortcut S, select a merge target first.'
+        ? 'Shortcut Enter or S, uses the queue recommendation and the selected merge target.'
+        : 'Shortcut Enter or S, select a merge target first.'
     case 'reject':
-      return 'Shortcut S, uses the queue recommendation and advances selection.'
+      return 'Shortcut Enter or S, uses the queue recommendation and advances selection.'
   }
 }
 
@@ -2992,7 +2992,7 @@ export function ReviewQueueClient({
         return
       }
 
-      if (key === 's') {
+      if (event.key === 'Enter' || key === 's') {
         event.preventDefault()
         if (!selectedCandidate) return
         if (selectedCandidate.review_status !== 'pending') {
@@ -3306,6 +3306,7 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↑</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↓</kbd> navigate visible •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">l</kbd> jump to lead row •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Enter</kbd> apply suggestion •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">?</kbd> open full shortcut help •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> close help or reset view
             </p>
@@ -3320,6 +3321,9 @@ export function ReviewQueueClient({
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   Enter opens lead result
+                </span>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                  Enter applies suggestion when the queue is focused
                 </span>
               </span>
               <input
