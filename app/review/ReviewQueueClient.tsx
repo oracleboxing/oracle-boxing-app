@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { AiDecision, Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
 const REVIEW_STATUSES: ReviewStatus[] = ['pending', 'approved', 'merged', 'rejected']
@@ -744,11 +744,20 @@ function buildCandidateInsight(candidate: RawDrillCandidate, familySize: number)
   }
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
+function EmptyState({
+  title,
+  body,
+  footer,
+}: {
+  title: string
+  body: string
+  footer?: ReactNode
+}) {
   return (
     <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-8">
       <h2 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">{body}</p>
+      {footer ? <div className="mt-5">{footer}</div> : null}
     </div>
   )
 }
@@ -5483,7 +5492,58 @@ export function ReviewQueueClient({
           ) : null}
 
           {sortedCandidates.length === 0 ? (
-            <EmptyState title="No matching candidates" body="Nothing in raw_drill_candidates matches the current filter combination." />
+            <EmptyState
+              title="No matching candidates"
+              body={
+                activeViewChips.length > 0
+                  ? 'Nothing in raw_drill_candidates matches the current filter combination. Peel back the last modifier or reset the queue to get back to a wider slice.'
+                  : 'Nothing in raw_drill_candidates matches the current filter combination.'
+              }
+              footer={
+                activeViewChips.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {lastActiveViewModifierLabel ? (
+                        <button
+                          type="button"
+                          onClick={clearLastViewModifier}
+                          className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                        >
+                          Peel back last
+                          <span className="ml-2 text-[var(--text-tertiary)]">Backspace • {lastActiveViewModifierLabel}</span>
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={clearAllViewFilters}
+                        className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                      >
+                        Reset view
+                        <span className="ml-2 text-[var(--text-tertiary)]">0</span>
+                      </button>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Active modifiers blocking results</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {activeViewChips.map((chip) => (
+                          <button
+                            key={`empty-${chip.key}`}
+                            type="button"
+                            onClick={chip.onClear}
+                            className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-primary)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                          >
+                            <span>{chip.label}</span>
+                            <span aria-hidden="true" className="text-[var(--text-tertiary)]">
+                              ×
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : undefined
+              }
+            />
           ) : (
             <div className="space-y-4">
               <div className="hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] lg:flex lg.items-center lg:justify-between">
