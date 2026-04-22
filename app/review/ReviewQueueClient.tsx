@@ -1089,11 +1089,70 @@ export function ReviewQueueClient({
     }
   }, [aiDecisionFilter, categoryFilter, completenessFilter, suggestedActionFilter, difficultyFilter, familyShapeFilter, sourceFilter, triageFilter, familyFilter, gradeFilter, pathname, query, router, searchParams, selectedCandidateId, sortMode, statusFilter])
 
-  const copyFamilyHandoff = useCallback((text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopyFeedback('Copied family review notes')
-    setTimeout(() => setCopyFeedback(null), 3000)
+  const fallbackCopyText = useCallback((value: string) => {
+    if (typeof document === 'undefined') return false
+
+    const textarea = document.createElement('textarea')
+    textarea.value = value
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.top = '0'
+    textarea.style.left = '0'
+    textarea.style.opacity = '0'
+    textarea.style.pointerEvents = 'none'
+
+    document.body.appendChild(textarea)
+
+    const selection = document.getSelection()
+    const originalRanges = selection ? Array.from({ length: selection.rangeCount }, (_, index) => selection.getRangeAt(index)) : []
+
+    textarea.focus()
+    textarea.select()
+    textarea.setSelectionRange(0, textarea.value.length)
+
+    let didCopy = false
+
+    try {
+      didCopy = document.execCommand('copy')
+    } catch {
+      didCopy = false
+    }
+
+    document.body.removeChild(textarea)
+
+    if (selection) {
+      selection.removeAllRanges()
+      originalRanges.forEach((range) => selection.addRange(range))
+    }
+
+    return didCopy
   }, [])
+
+  const copyText = useCallback(async (value: string, label: string) => {
+    if (typeof window === 'undefined') return
+
+    let didCopy = false
+
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(value)
+        didCopy = true
+      } catch {
+        didCopy = false
+      }
+    }
+
+    if (!didCopy) {
+      didCopy = fallbackCopyText(value)
+    }
+
+    setCopyFeedback(didCopy ? label : 'Copy failed, try again.')
+    window.setTimeout(() => setCopyFeedback(null), 3000)
+  }, [fallbackCopyText])
+
+  const copyFamilyHandoff = useCallback((text: string) => {
+    void copyText(text, 'Copied family review notes')
+  }, [copyText])
 
   const focusCandidateRow = useCallback((candidateId: string) => {
     if (typeof document === 'undefined') return
@@ -1171,16 +1230,9 @@ export function ReviewQueueClient({
     })
   }, [])
 
-  const copyText = useCallback((value: string, label: string) => {
-    if (typeof window === 'undefined') return
-    navigator.clipboard.writeText(value)
-    setCopyFeedback(label)
-    window.setTimeout(() => setCopyFeedback(null), 3000)
-  }, [])
-
   const copyCurrentView = useCallback((label: string) => {
     if (typeof window === 'undefined') return
-    copyText(window.location.href, label)
+    void copyText(window.location.href, label)
   }, [copyText])
 
   const clearScopedReview = useCallback(() => {
@@ -3207,17 +3259,13 @@ export function ReviewQueueClient({
       if (event.shiftKey && key === 'h') {
         event.preventDefault()
         if (!selectedFamilyWorkspace) return
-        navigator.clipboard.writeText(selectedFamilyWorkspace.handoffText)
-        setCopyFeedback('Copied family review notes')
-        window.setTimeout(() => setCopyFeedback(null), 3000)
+        void copyText(selectedFamilyWorkspace.handoffText, 'Copied family review notes')
         return
       }
 
       if (key === 'h') {
         event.preventDefault()
-        navigator.clipboard.writeText(currentSliceSummary.handoffText)
-        setCopyFeedback('Copied review queue handoff')
-        window.setTimeout(() => setCopyFeedback(null), 3000)
+        void copyText(currentSliceSummary.handoffText, 'Copied review queue handoff')
         return
       }
 
@@ -3226,16 +3274,12 @@ export function ReviewQueueClient({
 
         if (event.shiftKey) {
           if (!selectedMergeHandoff) return
-          navigator.clipboard.writeText(selectedMergeHandoff)
-          setCopyFeedback('Copied selected merge handoff')
-          window.setTimeout(() => setCopyFeedback(null), 3000)
+          void copyText(selectedMergeHandoff, 'Copied selected merge handoff')
           return
         }
 
         if (!selectedCandidateHandoff) return
-        navigator.clipboard.writeText(selectedCandidateHandoff)
-        setCopyFeedback('Copied selected candidate handoff')
-        window.setTimeout(() => setCopyFeedback(null), 3000)
+        void copyText(selectedCandidateHandoff, 'Copied selected candidate handoff')
         return
       }
 
@@ -3410,6 +3454,7 @@ export function ReviewQueueClient({
     clearSelectedRows,
     completenessFilter,
     copyFeedback,
+    copyText,
     currentSliceSummary.handoffText,
     cycleMergeTarget,
     difficultyFilter,
@@ -3597,24 +3642,18 @@ export function ReviewQueueClient({
   )
 
   const copyCurrentSliceHandoff = useCallback(() => {
-    navigator.clipboard.writeText(currentSliceSummary.handoffText)
-    setCopyFeedback('Copied review queue handoff')
-    window.setTimeout(() => setCopyFeedback(null), 3000)
-  }, [currentSliceSummary.handoffText])
+    void copyText(currentSliceSummary.handoffText, 'Copied review queue handoff')
+  }, [copyText, currentSliceSummary.handoffText])
 
   const copySelectedCandidateHandoff = useCallback(() => {
     if (!selectedCandidateHandoff) return
-    navigator.clipboard.writeText(selectedCandidateHandoff)
-    setCopyFeedback('Copied selected candidate handoff')
-    window.setTimeout(() => setCopyFeedback(null), 3000)
-  }, [selectedCandidateHandoff])
+    void copyText(selectedCandidateHandoff, 'Copied selected candidate handoff')
+  }, [copyText, selectedCandidateHandoff])
 
   const copySelectedMergeHandoff = useCallback(() => {
     if (!selectedMergeHandoff) return
-    navigator.clipboard.writeText(selectedMergeHandoff)
-    setCopyFeedback('Copied selected merge handoff')
-    window.setTimeout(() => setCopyFeedback(null), 3000)
-  }, [selectedMergeHandoff])
+    void copyText(selectedMergeHandoff, 'Copied selected merge handoff')
+  }, [copyText, selectedMergeHandoff])
 
   const openLeadSearchResult = useCallback(() => {
     const leadCandidate = sortedCandidates[0]
@@ -5492,7 +5531,7 @@ export function ReviewQueueClient({
             {duplicateFamilySummary ? (
               <button
                 type="button"
-                onClick={() => copyText(duplicateFamilySummary.handoffText, 'Copied duplicate family handoff')}
+                onClick={() => void copyText(duplicateFamilySummary.handoffText, 'Copied duplicate family handoff')}
                 className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-primary)]"
               >
                 Copy family handoff
@@ -6612,7 +6651,7 @@ export function ReviewQueueClient({
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => copyText(slice.handoffText, `Copied ${slice.label.toLowerCase()} handoff`)}
+                                    onClick={() => void copyText(slice.handoffText, `Copied ${slice.label.toLowerCase()} handoff`)}
                                     className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                                   >
                                     Copy handoff
