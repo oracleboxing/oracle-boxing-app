@@ -43,6 +43,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     title: 'Work duplicate families',
     shortcuts: [
       { keys: ['f', 'Family focus'], description: 'Toggle focus on the selected candidate family.' },
+      { keys: ['Shift + f', 'Select pending family'], description: 'Add or remove every pending row in the selected family from the bulk set.' },
       { keys: ['[ / ]', 'Family hop'], description: 'Move to the previous or next pending family.' },
       { keys: [', / .', 'Family row'], description: 'Step through rows inside the current family.' },
       { keys: ['; / \'' , 'Merge target'], description: 'Cycle the canonical merge target without leaving the keyboard.' },
@@ -2529,6 +2530,12 @@ export function ReviewQueueClient({
     setSelectedIds([])
   }, [])
 
+  const toggleSelectPendingFamilyRows = useCallback(() => {
+    const pendingFamilyIds = selectedFamilyPendingCandidates.map((candidate) => candidate.id)
+    if (pendingFamilyIds.length === 0) return
+    toggleSelectedBatch(pendingFamilyIds)
+  }, [selectedFamilyPendingCandidates, toggleSelectedBatch])
+
   const toggleSelectAllVisiblePending = useCallback(() => {
     const pendingIds = pendingCandidates.map((candidate) => candidate.id)
     const allSelected = pendingIds.length > 0 && pendingIds.every((id) => visibleSelectedIds.includes(id))
@@ -2795,6 +2802,12 @@ export function ReviewQueueClient({
       if (event.shiftKey && key === 'x') {
         event.preventDefault()
         toggleSelectAllVisiblePending()
+        return
+      }
+
+      if (event.shiftKey && key === 'f') {
+        event.preventDefault()
+        toggleSelectPendingFamilyRows()
         return
       }
 
@@ -3165,6 +3178,7 @@ export function ReviewQueueClient({
     statusFilter,
     suggestedActionFilter,
     toggleSelectAllVisiblePending,
+    toggleSelectPendingFamilyRows,
     toggleSelected,
     triageFilter,
     visibleSelectedIds.length,
@@ -6429,6 +6443,9 @@ export function ReviewQueueClient({
                                 {selectedFamilyWorkspace.pendingFamilyIds.length > 0
                                   ? `${selectedFamilyWorkspace.pendingFamilyIds.length} pending row${selectedFamilyWorkspace.pendingFamilyIds.length === 1 ? '' : 's'} ready for bulk actions`
                                   : 'No pending family rows left'}
+                              </span>
+                              <span className="mt-2 inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                                Shortcut Shift + F
                               </span>
                             </button>
                             <button
