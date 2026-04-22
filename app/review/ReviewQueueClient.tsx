@@ -26,6 +26,50 @@ const REVIEW_ROUTE_SHORTCUTS: Record<ReviewRouteKey, '1' | '2' | '3'> = {
   'thin-cleanup': '3',
 }
 
+const REVIEW_SHORTCUT_GROUPS = [
+  {
+    title: 'Navigate the queue',
+    shortcuts: [
+      { keys: ['/', 'Focus search'], description: 'Jump into search and select the current query.' },
+      { keys: ['j / ↓', 'Next visible'], description: 'Move to the next visible row in the current slice.' },
+      { keys: ['k / ↑', 'Previous visible'], description: 'Move to the previous visible row.' },
+      { keys: ['n', 'Next pending'], description: 'Skip to the next pending row.' },
+      { keys: ['p', 'Previous pending'], description: 'Jump back to the previous pending row.' },
+      { keys: ['l', 'Lead row'], description: 'Snap to the lead candidate in the current slice.' },
+    ],
+  },
+  {
+    title: 'Work duplicate families',
+    shortcuts: [
+      { keys: ['f', 'Family focus'], description: 'Toggle focus on the selected candidate family.' },
+      { keys: ['[ / ]', 'Family hop'], description: 'Move to the previous or next pending family.' },
+      { keys: [', / .', 'Family row'], description: 'Step through rows inside the current family.' },
+      { keys: ['; / \'' , 'Merge target'], description: 'Cycle the canonical merge target without leaving the keyboard.' },
+    ],
+  },
+  {
+    title: 'Select and act',
+    shortcuts: [
+      { keys: ['x', 'Toggle select'], description: 'Add or remove the selected row from the bulk set.' },
+      { keys: ['c', 'Clear selection'], description: 'Clear the current bulk selection.' },
+      { keys: ['a / r / m', 'Approve, reject, merge'], description: 'Run the primary action on the selected pending row.' },
+      { keys: ['s', 'Suggested action'], description: 'Apply the queue recommendation for the selected row.' },
+      { keys: ['Shift + x', 'Select visible pending'], description: 'Select every visible pending row at once.' },
+      { keys: ['Shift + a / r / m', 'Bulk act'], description: 'Approve, reject, or merge the bulk selection.' },
+    ],
+  },
+  {
+    title: 'Routing and cleanup',
+    shortcuts: [
+      { keys: ['1 / 2 / 3', 'Route jump'], description: 'Jump into the highest-value review route.' },
+      { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
+      { keys: ['Backspace', 'Peel back'], description: 'Clear the most recent active view modifier.' },
+      { keys: ['Esc', 'Close or reset'], description: 'Close this panel, then clear search, family focus, or other active modifiers.' },
+      { keys: ['?', 'Shortcut help'], description: 'Open or close this keyboard reference.' },
+    ],
+  },
+] as const
+
 type SortMode = 'triage' | 'pending-first' | 'duplicate-pressure' | 'completeness' | 'newest' | 'grade'
 type AiDecisionFilter = 'all' | AiDecision | 'none'
 
@@ -744,6 +788,7 @@ export function ReviewQueueClient({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false)
   const [selectedCanonicalDrillId, setSelectedCanonicalDrillId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
@@ -2632,6 +2677,12 @@ export function ReviewQueueClient({
       }
 
       if (event.key === 'Escape') {
+        if (showShortcutHelp) {
+          event.preventDefault()
+          setShowShortcutHelp(false)
+          return
+        }
+
         const isSearchFocused = event.target === searchInputRef.current
 
         if (isSearchFocused) {
@@ -2663,6 +2714,12 @@ export function ReviewQueueClient({
       }
 
       const key = event.key.toLowerCase()
+
+      if (event.key === '?') {
+        event.preventDefault()
+        setShowShortcutHelp((current) => !current)
+        return
+      }
 
       if (key === '/') {
         event.preventDefault()
@@ -3021,6 +3078,7 @@ export function ReviewQueueClient({
     selectedCandidateHandoff,
     selectedCandidateId,
     selectedMergeHandoff,
+    showShortcutHelp,
     sortMode,
     sortedCandidates,
     sourceFilter,
@@ -3179,34 +3237,77 @@ export function ReviewQueueClient({
         </div>
       )}
 
+      {showShortcutHelp && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm xl:items-center">
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-2xl">
+            <div className="flex flex-col gap-3 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-[var(--accent-primary)]">Keyboard shortcut help</p>
+                <h3 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Stay in flow while triaging</h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                  This mirrors the queue shortcuts in a scannable layout. Press <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">?</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">Esc</kbd> to close.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShortcutHelp(false)}
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
+              >
+                Close help
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              {REVIEW_SHORTCUT_GROUPS.map((group) => (
+                <section key={group.title} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
+                  <h4 className="text-sm font-semibold text-[var(--text-primary)]">{group.title}</h4>
+                  <div className="mt-3 space-y-3">
+                    {group.shortcuts.map((shortcut) => (
+                      <div key={`${group.title}-${shortcut.keys[0]}`} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-1 text-xs font-semibold text-[var(--text-primary)]">
+                            {shortcut.keys[0]}
+                          </kbd>
+                          <span className="text-sm font-medium text-[var(--text-primary)]">{shortcut.keys[1]}</span>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{shortcut.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
         <div className="flex flex-col gap-5">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Review controls</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Default sort surfaces the best next candidates first, instead of making reviewers scroll through transcript soup blindly.
-            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Review controls</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                  Default sort surfaces the best next candidates first, instead of making reviewers scroll through transcript soup blindly.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShortcutHelp(true)}
+                className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
+              >
+                <span>Shortcut help</span>
+                <kbd className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-1.5 py-0.5 text-xs">?</kbd>
+              </button>
+            </div>
             <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
               <span className="mr-2">Keyboard:</span>
               <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">/</kbd> focus search •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↑</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↓</kbd> navigate visible •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">l</kbd> jump to lead row •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">f</kbd> toggle family focus •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">[</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">]</kbd> family hop •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">,</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">.</kbd> family row •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> select •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">c</kbd> clear selection •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> approve •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> merge •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">s</kbd> suggested action •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">y</kbd> copy row handoff •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Shift</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">y</kbd> copy merge handoff •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Shift</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> bulk select + act •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">1</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">2</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">3</kbd> route jump •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Backspace</kbd> peel back one modifier •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> clear search, family focus, or reset view
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">?</kbd> open full shortcut help •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> close help or reset view
             </p>
           </div>
 
