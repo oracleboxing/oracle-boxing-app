@@ -35,6 +35,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['/', 'Focus search'], description: 'Jump into search and select the current query.' },
       { keys: ['↓ / ↑ from search', 'Enter queue'], description: 'Jump from the search box straight into the selected row, or the first or last visible result.' },
       { keys: ['Enter from search', 'Open lead + focus queue'], description: 'Open the lead search result and hand keyboard control straight back to the queue.' },
+      { keys: ['Esc from search', 'Back to queue'], description: 'When the search is already empty, leave the field and return focus to the active queue row.' },
       { keys: ['Tab into a row', 'Sync selection'], description: 'Selecting any checkbox or action button also makes that row the active keyboard context.' },
       { keys: ['j / ↓', 'Next visible'], description: 'Move to the next visible row in the current slice.' },
       { keys: ['k / ↑', 'Previous visible'], description: 'Move to the previous visible row.' },
@@ -2795,6 +2796,10 @@ export function ReviewQueueClient({
             setQuery('')
           } else {
             searchInputRef.current?.blur()
+            const queueCandidate = selectedCandidate ?? sortedCandidates[0]
+            if (queueCandidate) {
+              focusCandidateRow(queueCandidate.id)
+            }
           }
           return
         }
@@ -3545,6 +3550,9 @@ export function ReviewQueueClient({
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   ↑ / ↓ enters the queue
+                </span>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                  Esc returns to the queue when search is clear
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   Tabbing into a row syncs selection
