@@ -1710,6 +1710,17 @@ export function ReviewQueueClient({
   const preferredMergeTargetId = selectedCanonicalDrillId ?? matchedDrills[0]?.id ?? null
   const preferredMergeTarget = matchedDrills.find((drill) => drill.id === preferredMergeTargetId) ?? null
   const isUsingAutoMergeTarget = !selectedCanonicalDrillId && Boolean(preferredMergeTarget)
+  const mergeTargetNeedsExplicitSelection =
+    Boolean(preferredMergeTargetId) &&
+    matchedDrills.length > 1 &&
+    !selectedCanonicalDrillId &&
+    selectedCandidate?.canonical_drill_id !== preferredMergeTargetId
+  const canRunMergeAction = Boolean(preferredMergeTargetId) && !mergeTargetNeedsExplicitSelection
+  const mergeTargetPrompt = !preferredMergeTargetId
+    ? 'Pick a merge target first.'
+    : mergeTargetNeedsExplicitSelection
+      ? 'Pick a merge target first. This row has multiple plausible library matches.'
+      : 'Use the selected canonical target.'
 
   const cycleMergeTarget = useCallback(
     (direction: 'next' | 'previous') => {
@@ -2523,7 +2534,11 @@ export function ReviewQueueClient({
 
       if (event.shiftKey && key === 'm') {
         event.preventDefault()
-        if (actionableSelectedIds.length === 0 || !preferredMergeTargetId) return
+        if (actionableSelectedIds.length === 0) return
+        if (!canRunMergeAction || !preferredMergeTargetId) {
+          setActionError(mergeTargetPrompt)
+          return
+        }
 
         runReviewAction({
           action: 'merge',
@@ -2709,14 +2724,17 @@ export function ReviewQueueClient({
           setActionError(`This candidate is already ${REVIEW_STATUS_LABELS[selectedCandidate.review_status].toLowerCase()}. Select a pending row to review it again.`)
           return
         }
-        if (selectedCandidateId && preferredMergeTargetId) {
-          runReviewAction({
-            action: 'merge',
-            candidateIds: [selectedCandidateId],
-            canonicalDrillId: preferredMergeTargetId,
-            successLabel: 'Merged candidate into the selected drill.',
-          })
+        if (!canRunMergeAction || !preferredMergeTargetId) {
+          setActionError(mergeTargetPrompt)
+          return
         }
+
+        runReviewAction({
+          action: 'merge',
+          candidateIds: [selectedCandidateId],
+          canonicalDrillId: preferredMergeTargetId,
+          successLabel: 'Merged candidate into the selected drill.',
+        })
         return
       }
 
@@ -2751,8 +2769,8 @@ export function ReviewQueueClient({
           return
         }
 
-        if (!preferredMergeTargetId) {
-          setActionError('Pick a merge target first to apply the suggested action for this candidate.')
+        if (!canRunMergeAction || !preferredMergeTargetId) {
+          setActionError(mergeTargetPrompt)
           return
         }
 
@@ -2768,8 +2786,11 @@ export function ReviewQueueClient({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
+    actionableSelectedIds,
     aiDecisionFilter,
     applyReviewRoute,
+    canRunMergeAction,
+    candidateInsights,
     categoryFilter,
     clearAllViewFilters,
     clearFamilyFocus,
@@ -2783,13 +2804,13 @@ export function ReviewQueueClient({
     gradeFilter,
     hasActiveViewModifiers,
     leadVisibleCandidate,
+    mergeTargetPrompt,
     nextDuplicateFamily,
     nextFamilyCandidate,
     nextPendingCandidate,
+    preferredMergeTargetId,
     previousDuplicateFamily,
     previousFamilyCandidate,
-    candidateInsights,
-    preferredMergeTargetId,
     previousPendingCandidate,
     query,
     reviewRoutes,
@@ -2807,8 +2828,6 @@ export function ReviewQueueClient({
     toggleSelectAllVisiblePending,
     toggleSelected,
     triageFilter,
-    actionableSelectedIds,
-    selectedCandidate,
     visibleSelectedIds.length,
   ])
 
@@ -4885,13 +4904,18 @@ export function ReviewQueueClient({
                   ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
                   : 'Select a candidate with likely library matches to enable merge actions.'}
               </span>
+              {mergeTargetNeedsExplicitSelection ? (
+                <span className="mt-1 block text-xs leading-5 text-amber-700 dark:text-amber-400">
+                  Multiple matches found. Pick one target before running merge actions.
+                </span>
+              ) : null}
             </label>
 
             <button
               type="button"
-              disabled={actionableSelectedIds.length === 0 || !preferredMergeTargetId || isSubmitting}
+              disabled={actionableSelectedIds.length === 0 || !canRunMergeAction || isSubmitting}
               onClick={() =>
-                preferredMergeTargetId
+                canRunMergeAction && preferredMergeTargetId
                   ? runReviewAction({
                       action: 'merge',
                       candidateIds: actionableSelectedIds,
@@ -4901,12 +4925,12 @@ export function ReviewQueueClient({
                           ? 'Merged candidate into the selected drill.'
                           : `Merged ${actionableSelectedIds.length} candidates into the selected drill.`,
                     })
-                  : null
+                  : setActionError(mergeTargetPrompt)
               }
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
             >
               <span>Merge selected</span>
-              <span className="text-xs text-[var(--text-tertiary)]">{preferredMergeTargetId ? 'Use chosen library match' : 'Pick a candidate with a target first'}</span>
+              <span className="text-xs text-[var(--text-tertiary)]">{canRunMergeAction ? 'Use chosen library match' : mergeTargetPrompt}</span>
             </button>
           </div>
         </div>
@@ -5033,7 +5057,7 @@ export function ReviewQueueClient({
                       <div className="grid gap-2 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-2">
                         <button
                           type="button"
-                          disabled={isSubmitting || candidate.review_status !== 'pending' || (suggestedAction === 'merge' && (!isSelected || !preferredMergeTargetId))}
+                          disabled={isSubmitting || candidate.review_status !== 'pending' || (suggestedAction === 'merge' && (!isSelected || !canRunMergeAction))}
                           onClick={() => {
                             if (suggestedAction === 'keep') {
                               runReviewAction({
@@ -5053,8 +5077,13 @@ export function ReviewQueueClient({
                               return
                             }
 
-                            if (!isSelected || !preferredMergeTargetId) {
-                              setActionError('Select this candidate and pick a merge target first to apply the suggested action.')
+                            if (!isSelected) {
+                              setActionError('Select this candidate first to apply the suggested merge.')
+                              return
+                            }
+
+                            if (!canRunMergeAction || !preferredMergeTargetId) {
+                              setActionError(mergeTargetPrompt)
                               return
                             }
 
@@ -5077,9 +5106,9 @@ export function ReviewQueueClient({
                               ? `This candidate is already ${REVIEW_STATUS_LABELS[candidate.review_status].toLowerCase()}.`
                               : suggestedAction === 'merge'
                                 ? isSelected
-                                  ? preferredMergeTargetId
+                                  ? canRunMergeAction
                                     ? 'Apply the suggested merge into the selected canonical target.'
-                                    : 'Pick a merge target first to apply the suggested merge.'
+                                    : mergeTargetPrompt
                                   : 'Select this candidate first to apply the suggested merge.'
                                 : 'Apply the queue recommendation for this candidate.'
                           }
@@ -5095,9 +5124,9 @@ export function ReviewQueueClient({
                             {getDecisionLabel(suggestedAction)} • {getSuggestedActionShortcutLabel(suggestedAction)}
                             {suggestedAction === 'merge'
                               ? isSelected
-                                ? preferredMergeTargetId
+                                ? canRunMergeAction
                                   ? ' using the chosen target'
-                                  : ' once a merge target is chosen'
+                                  : ' once a target is explicitly chosen'
                                 : ' after selecting this row'
                               : ''}
                           </span>
@@ -5134,22 +5163,22 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
-                          disabled={isSubmitting || candidate.review_status !== 'pending' || !isSelected || !preferredMergeTargetId}
+                          disabled={isSubmitting || candidate.review_status !== 'pending' || !isSelected || !canRunMergeAction}
                           onClick={() =>
-                            preferredMergeTargetId
+                            canRunMergeAction && preferredMergeTargetId
                               ? runReviewAction({
                                   action: 'merge',
                                   candidateIds: [candidate.id],
                                   canonicalDrillId: preferredMergeTargetId,
                                   successLabel: 'Merged candidate into the selected drill.',
                                 })
-                              : null
+                              : setActionError(mergeTargetPrompt)
                           }
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
-                          title={isSelected ? 'Merge this candidate into the chosen canonical target.' : 'Select this candidate first to choose a merge target.'}
+                          title={isSelected ? (canRunMergeAction ? 'Merge this candidate into the chosen canonical target.' : mergeTargetPrompt) : 'Select this candidate first to choose a merge target.'}
                         >
                           Merge
-                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">{isSelected ? (preferredMergeTargetId ? 'Use chosen target' : 'No target yet') : 'Select first'}</span>
+                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">{isSelected ? (canRunMergeAction ? 'Use chosen target' : mergeTargetPrompt) : 'Select first'}</span>
                         </button>
                       </div>
                     </div>
@@ -5421,7 +5450,7 @@ export function ReviewQueueClient({
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
                           <button
                             type="button"
-                            disabled={!selectedCandidateIsPending || isSubmitting || (suggestedAction === 'merge' && !preferredMergeTargetId)}
+                            disabled={!selectedCandidateIsPending || isSubmitting || (suggestedAction === 'merge' && !canRunMergeAction)}
                             onClick={() => {
                               if (suggestedAction === 'keep') {
                                 runReviewAction({
@@ -5441,8 +5470,8 @@ export function ReviewQueueClient({
                                 return
                               }
 
-                              if (!preferredMergeTargetId) {
-                                setActionError('Pick a merge target first to apply the suggested action for this candidate.')
+                              if (!canRunMergeAction || !preferredMergeTargetId) {
+                                setActionError(mergeTargetPrompt)
                                 return
                               }
 
@@ -5469,7 +5498,7 @@ export function ReviewQueueClient({
                                   ? 'text-sky-700 dark:text-sky-400'
                                   : 'text-rose-700 dark:text-rose-400'
                             }`}>
-                              {getSuggestedActionShortcutLabel(suggestedAction)} • {getSuggestedActionShortcutHint(suggestedAction, Boolean(preferredMergeTargetId))}
+                              {getSuggestedActionShortcutLabel(suggestedAction)} • {getSuggestedActionShortcutHint(suggestedAction, canRunMergeAction)}
                             </span>
                           </button>
 
@@ -5527,6 +5556,11 @@ export function ReviewQueueClient({
                                   ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
                                   : 'No likely canonical target yet for this candidate.'}
                               </span>
+                              {mergeTargetNeedsExplicitSelection ? (
+                                <span className="mt-1 block text-xs leading-5 text-amber-700 dark:text-amber-400">
+                                  Multiple matches found. Pick one target before merging this row.
+                                </span>
+                              ) : null}
                               {matchedDrills.length > 1 ? (
                                 <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts ; and ' cycle merge targets without leaving the keyboard.</span>
                               ) : null}
@@ -5545,22 +5579,22 @@ export function ReviewQueueClient({
 
                           <button
                             type="button"
-                            disabled={!selectedCandidateIsPending || isSubmitting || !preferredMergeTargetId}
+                            disabled={!selectedCandidateIsPending || isSubmitting || !canRunMergeAction}
                             onClick={() =>
-                              preferredMergeTargetId
+                              canRunMergeAction && preferredMergeTargetId
                                 ? runReviewAction({
                                     action: 'merge',
                                     candidateIds: [selectedCandidate.id],
                                     canonicalDrillId: preferredMergeTargetId,
                                     successLabel: 'Merged candidate into the selected drill.',
                                   })
-                                : null
+                                : setActionError(mergeTargetPrompt)
                             }
                             className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left text-sm font-medium text-sky-900 transition-colors hover:bg-sky-100 disabled:pointer-events-none disabled:opacity-50 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300 dark:hover:bg-sky-950/30"
                           >
                             Merge candidate
                             <span className="mt-1 block text-xs font-normal text-sky-700 dark:text-sky-400">
-                              Shortcut M • {preferredMergeTargetId ? 'Uses the selected canonical target and advances selection' : 'Pick a target first'}
+                              Shortcut M • {canRunMergeAction ? 'Uses the selected canonical target and advances selection' : mergeTargetPrompt}
                             </span>
                           </button>
                         </div>
