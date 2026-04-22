@@ -2664,6 +2664,24 @@ export function ReviewQueueClient({
         return
       }
 
+      if (key === 'y') {
+        event.preventDefault()
+
+        if (event.shiftKey) {
+          if (!selectedMergeHandoff) return
+          navigator.clipboard.writeText(selectedMergeHandoff)
+          setCopyFeedback('Copied selected merge handoff')
+          window.setTimeout(() => setCopyFeedback(null), 3000)
+          return
+        }
+
+        if (!selectedCandidateHandoff) return
+        navigator.clipboard.writeText(selectedCandidateHandoff)
+        setCopyFeedback('Copied selected candidate handoff')
+        window.setTimeout(() => setCopyFeedback(null), 3000)
+        return
+      }
+
       const requestedRoute =
         key === REVIEW_ROUTE_SHORTCUTS['approve-ready']
           ? 'approve-ready'
@@ -2819,7 +2837,9 @@ export function ReviewQueueClient({
     searchInputRef,
     selectCandidate,
     selectedCandidate,
+    selectedCandidateHandoff,
     selectedCandidateId,
+    selectedMergeHandoff,
     sortMode,
     sortedCandidates,
     sourceFilter,
@@ -2996,6 +3016,8 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> merge •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">s</kbd> suggested action •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">y</kbd> copy row handoff •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Shift</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">y</kbd> copy merge handoff •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Shift</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> bulk select + act •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">1</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">2</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">3</kbd> route jump •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> clear search, family focus, or reset view
@@ -5433,6 +5455,7 @@ export function ReviewQueueClient({
                                 className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
                                 Copy candidate handoff
+                                <span className="sr-only">Shortcut Y</span>
                               </button>
                             ) : null}
                             {nextPendingCandidate && nextPendingCandidate.id !== selectedCandidate.id ? (
@@ -5573,6 +5596,7 @@ export function ReviewQueueClient({
                                 className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
                                 Copy merge handoff
+                                <span className="sr-only">Shortcut Shift Y</span>
                               </button>
                             ) : null}
                           </div>
