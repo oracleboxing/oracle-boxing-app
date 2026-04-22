@@ -77,7 +77,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
       { keys: ['0', 'Reset view'], description: 'Snap the queue back to the default pending triage view and clear bulk selection in one move.' },
       { keys: ['Backspace', 'Peel back'], description: 'Clear bulk selection first, then peel back the most recent active view modifier.' },
-      { keys: ['Esc', 'Dismiss or reset'], description: 'Close help, dismiss feedback, then clear bulk selection, search, family focus, or other active modifiers.' },
+      { keys: ['Esc', 'Dismiss, reset, or return'], description: 'Close help, dismiss feedback, clear active modifiers, or jump back from row controls into the active queue row.' },
       { keys: ['?', 'Shortcut help'], description: 'Open or close this keyboard reference.' },
     ],
   },
@@ -555,6 +555,14 @@ function getOffsetCandidate<T extends { id: string }>(candidates: T[], currentCa
 
   const nextIndex = Math.min(candidates.length - 1, Math.max(0, currentIndex + offset))
   return candidates[nextIndex] ?? null
+}
+
+function getCandidateIdFromTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return null
+
+  const candidateRow = target.closest<HTMLElement>('article[id^="candidate-"]')
+  const candidateId = candidateRow?.id.replace(/^candidate-/, '') ?? null
+  return candidateId || null
 }
 
 function shouldIgnoreShortcutTarget(target: EventTarget | null) {
@@ -2819,6 +2827,14 @@ export function ReviewQueueClient({
         if (hasActiveViewModifiers) {
           event.preventDefault()
           clearAllViewFilters()
+          return
+        }
+
+        const candidateIdFromTarget = getCandidateIdFromTarget(event.target)
+        if (candidateIdFromTarget) {
+          event.preventDefault()
+          selectCandidate(candidateIdFromTarget, { scrollIntoView: false })
+          focusCandidateRow(candidateIdFromTarget)
         }
 
         return
@@ -3468,7 +3484,7 @@ export function ReviewQueueClient({
                 <p className="text-sm font-medium text-[var(--accent-primary)]">Keyboard shortcut help</p>
                 <h3 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Stay in flow while triaging</h3>
                 <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  This mirrors the queue shortcuts in a scannable layout. Press <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">?</kbd> to open or close it, and <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">Esc</kbd> to dismiss feedback before resetting the view.
+                  This mirrors the queue shortcuts in a scannable layout. Press <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">?</kbd> to open or close it, and <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">Esc</kbd> to dismiss feedback, reset the view, or jump back out of row controls into the queue.
                 </p>
               </div>
               <button
@@ -3534,7 +3550,7 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Enter</kbd> apply suggestion •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">?</kbd> open full shortcut help •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">0</kbd> reset the queue •
-              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> dismiss feedback or reset view
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> dismiss feedback, reset view, or return from row controls
             </p>
           </div>
 
