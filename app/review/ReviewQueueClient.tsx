@@ -34,6 +34,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['↓ / ↑ from search', 'Enter queue'], description: 'Jump from the search box straight into the selected row, or the first or last visible result.' },
       { keys: ['j / ↓', 'Next visible'], description: 'Move to the next visible row in the current slice.' },
       { keys: ['k / ↑', 'Previous visible'], description: 'Move to the previous visible row.' },
+      { keys: ['PageDown / PageUp', 'Jump 10 rows'], description: 'Leap through longer visible slices without mashing single-row navigation.' },
       { keys: ['g / Shift + g', 'Queue edges'], description: 'Jump straight to the first or last visible row in the current slice.' },
       { keys: ['n', 'Next pending'], description: 'Skip to the next pending row.' },
       { keys: ['p', 'Previous pending'], description: 'Jump back to the previous pending row.' },
@@ -529,6 +530,20 @@ function getAdjacentCandidate<T extends { id: string }>(candidates: T[], current
   }
 
   return candidates[(currentIndex - 1 + candidates.length) % candidates.length] ?? null
+}
+
+function getOffsetCandidate<T extends { id: string }>(candidates: T[], currentCandidateId: string | null, offset: number) {
+  if (candidates.length === 0) return null
+  if (candidates.length === 1 || offset === 0) return candidates[0] ?? null
+
+  const currentIndex = currentCandidateId ? candidates.findIndex((candidate) => candidate.id === currentCandidateId) : -1
+
+  if (currentIndex === -1) {
+    return offset > 0 ? candidates[0] ?? null : candidates[candidates.length - 1] ?? null
+  }
+
+  const nextIndex = Math.min(candidates.length - 1, Math.max(0, currentIndex + offset))
+  return candidates[nextIndex] ?? null
 }
 
 function shouldIgnoreShortcutTarget(target: EventTarget | null) {
@@ -2901,6 +2916,17 @@ export function ReviewQueueClient({
         return
       }
 
+      if (event.key === 'PageDown' || event.key === 'PageUp') {
+        event.preventDefault()
+        if (sortedCandidates.length === 0) return
+
+        const targetCandidate = getOffsetCandidate(sortedCandidates, selectedCandidateId, event.key === 'PageDown' ? 10 : -10)
+        if (targetCandidate && targetCandidate.id !== selectedCandidateId) {
+          selectCandidate(targetCandidate.id)
+        }
+        return
+      }
+
       if (key === 'j' || key === 'k' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault()
         if (sortedCandidates.length === 0) return
@@ -3461,6 +3487,7 @@ export function ReviewQueueClient({
               <span className="mr-2">Keyboard:</span>
               <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">/</kbd> focus search •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↑</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↓</kbd> navigate visible •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">PgDn</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">PgUp</kbd> jump 10 visible rows •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">n</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">p</kbd> navigate pending •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">l</kbd> jump to lead row •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Space</kbd> toggle select •
