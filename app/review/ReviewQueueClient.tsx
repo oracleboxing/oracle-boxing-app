@@ -956,6 +956,8 @@ export function ReviewQueueClient({
   const [selectedCanonicalDrillId, setSelectedCanonicalDrillId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const shortcutHelpCloseButtonRef = useRef<HTMLButtonElement | null>(null)
+  const shortcutHelpTriggerRef = useRef<HTMLElement | null>(null)
 
   const cycleSortMode = useCallback((direction: 'next' | 'previous') => {
     setSortMode((current) => {
@@ -1101,6 +1103,51 @@ export function ReviewQueueClient({
 
     row.focus({ preventScroll: true })
   }, [])
+
+  useEffect(() => {
+    if (!showShortcutHelp || typeof document === 'undefined' || typeof window === 'undefined') {
+      return
+    }
+
+    shortcutHelpTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+
+    const frame = window.requestAnimationFrame(() => {
+      shortcutHelpCloseButtonRef.current?.focus()
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [showShortcutHelp])
+
+  useEffect(() => {
+    if (showShortcutHelp || typeof window === 'undefined' || typeof document === 'undefined') {
+      return
+    }
+
+    const previousFocusTarget = shortcutHelpTriggerRef.current
+    if (!previousFocusTarget) {
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      if (previousFocusTarget.isConnected) {
+        previousFocusTarget.focus()
+        return
+      }
+
+      const fallbackCandidateId = selectedCandidateId ?? candidates[0]?.id ?? null
+      if (fallbackCandidateId) {
+        focusCandidateRow(fallbackCandidateId)
+      }
+    })
+
+    shortcutHelpTriggerRef.current = null
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [candidates, focusCandidateRow, selectedCandidateId, showShortcutHelp])
 
   const selectCandidate = useCallback((candidateId: string, options?: { scrollIntoView?: boolean }) => {
     setSelectedCandidateId(candidateId)
@@ -3589,16 +3636,23 @@ export function ReviewQueueClient({
 
       {showShortcutHelp && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm xl:items-center">
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="review-shortcut-help-title"
+            aria-describedby="review-shortcut-help-description"
+            className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-2xl"
+          >
             <div className="flex flex-col gap-3 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-[var(--accent-primary)]">Keyboard shortcut help</p>
-                <h3 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Stay in flow while triaging</h3>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                <h3 id="review-shortcut-help-title" className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Stay in flow while triaging</h3>
+                <p id="review-shortcut-help-description" className="mt-1 text-sm text-[var(--text-secondary)]">
                   This mirrors the queue shortcuts in a scannable layout. Press <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">?</kbd> to open or close it, and <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">Esc</kbd> to return focus to the queue, dismiss feedback, reset the view, or jump back out of row controls into the queue.
                 </p>
               </div>
               <button
+                ref={shortcutHelpCloseButtonRef}
                 type="button"
                 onClick={() => setShowShortcutHelp(false)}
                 className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
