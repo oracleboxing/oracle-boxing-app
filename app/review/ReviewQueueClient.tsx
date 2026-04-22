@@ -87,6 +87,12 @@ type DrillMatch = Pick<
   matchReasons: string[]
 }
 
+type ActiveViewChip = {
+  key: string
+  label: string
+  onClear: () => void
+}
+
 function getAiDecisionTone(decision: AiDecision | null) {
   switch (decision) {
     case 'approve':
@@ -2453,6 +2459,143 @@ export function ReviewQueueClient({
       scopedCandidateIds
   )
 
+  const lastActiveViewModifierLabel = useMemo(() => {
+    if (scopedCandidateIds) {
+      return `Scope: ${scopeRequestedCount} linked row${scopeRequestedCount === 1 ? '' : 's'}`
+    }
+    if (sortMode !== 'triage') {
+      return `Sort: ${SORT_MODE_LABELS[sortMode]}`
+    }
+    if (familyFilter) {
+      return `Family: ${familyFilter}`
+    }
+    if (familyShapeFilter !== 'all') {
+      return `Family shape: ${DUPLICATE_SHAPE_LABELS[familyShapeFilter]}`
+    }
+    if (suggestedActionFilter !== 'all') {
+      return `Suggested action: ${getSuggestedActionFilterLabel(suggestedActionFilter)}`
+    }
+    if (completenessFilter !== 'all') {
+      return `Completeness: ${COMPLETENESS_BAND_LABELS[completenessFilter]}`
+    }
+    if (triageFilter !== 'all') {
+      return `Triage: ${getTriageLabel(triageFilter)}`
+    }
+    if (aiDecisionFilter !== 'all') {
+      return `AI recommendation: ${getAiDecisionFilterLabel(aiDecisionFilter)}`
+    }
+    if (sourceFilter !== 'all') {
+      return `Source: ${sourceFilter}`
+    }
+    if (categoryFilter !== 'all') {
+      return `Category: ${categoryFilter}`
+    }
+    if (difficultyFilter !== 'all') {
+      return `Difficulty: ${formatDifficultyLabel(difficultyFilter)}`
+    }
+    if (gradeFilter !== 'all') {
+      return `Grade: ${formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}`
+    }
+    if (statusFilter !== 'pending') {
+      return `Status: ${statusFilter === 'all' ? 'All statuses' : REVIEW_STATUS_LABELS[statusFilter]}`
+    }
+    if (query.trim()) {
+      return `Search: ${query.trim()}`
+    }
+
+    return null
+  }, [
+    aiDecisionFilter,
+    categoryFilter,
+    completenessFilter,
+    difficultyFilter,
+    familyFilter,
+    familyShapeFilter,
+    gradeFilter,
+    query,
+    scopeRequestedCount,
+    scopedCandidateIds,
+    sortMode,
+    sourceFilter,
+    statusFilter,
+    suggestedActionFilter,
+    triageFilter,
+  ])
+
+  const clearLastViewModifier = useCallback(() => {
+    if (scopedCandidateIds) {
+      clearScopedReview()
+      return
+    }
+    if (sortMode !== 'triage') {
+      setSortMode('triage')
+      return
+    }
+    if (familyFilter) {
+      setFamilyFilter(null)
+      return
+    }
+    if (familyShapeFilter !== 'all') {
+      setFamilyShapeFilter('all')
+      return
+    }
+    if (suggestedActionFilter !== 'all') {
+      setSuggestedActionFilter('all')
+      return
+    }
+    if (completenessFilter !== 'all') {
+      setCompletenessFilter('all')
+      return
+    }
+    if (triageFilter !== 'all') {
+      setTriageFilter('all')
+      return
+    }
+    if (aiDecisionFilter !== 'all') {
+      setAiDecisionFilter('all')
+      return
+    }
+    if (sourceFilter !== 'all') {
+      setSourceFilter('all')
+      return
+    }
+    if (categoryFilter !== 'all') {
+      setCategoryFilter('all')
+      return
+    }
+    if (difficultyFilter !== 'all') {
+      setDifficultyFilter('all')
+      return
+    }
+    if (gradeFilter !== 'all') {
+      setGradeFilter('all')
+      return
+    }
+    if (statusFilter !== 'pending') {
+      setStatusFilter('pending')
+      return
+    }
+    if (query.trim()) {
+      setQuery('')
+    }
+  }, [
+    aiDecisionFilter,
+    categoryFilter,
+    clearScopedReview,
+    completenessFilter,
+    difficultyFilter,
+    familyFilter,
+    familyShapeFilter,
+    gradeFilter,
+    query,
+    scopedCandidateIds,
+    sortMode,
+    sourceFilter,
+    statusFilter,
+    suggestedActionFilter,
+    triageFilter,
+  ])
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.metaKey || event.ctrlKey || event.altKey) {
@@ -2496,6 +2639,13 @@ export function ReviewQueueClient({
         event.preventDefault()
         searchInputRef.current?.focus()
         searchInputRef.current?.select()
+        return
+      }
+
+      if (event.key === 'Backspace') {
+        if (!lastActiveViewModifierLabel) return
+        event.preventDefault()
+        clearLastViewModifier()
         return
       }
 
@@ -2812,6 +2962,7 @@ export function ReviewQueueClient({
     categoryFilter,
     clearAllViewFilters,
     clearFamilyFocus,
+    clearLastViewModifier,
     clearSelectedRows,
     completenessFilter,
     cycleMergeTarget,
@@ -2822,6 +2973,7 @@ export function ReviewQueueClient({
     gradeFilter,
     hasActiveViewModifiers,
     leadVisibleCandidate,
+    lastActiveViewModifierLabel,
     mergeTargetPrompt,
     nextDuplicateFamily,
     nextFamilyCandidate,
@@ -2854,7 +3006,7 @@ export function ReviewQueueClient({
   const allVisiblePendingSelected =
     pendingCandidates.length > 0 && pendingCandidates.every((candidate) => visibleSelectedIds.includes(candidate.id))
 
-  const activeViewChips = useMemo(
+  const activeViewChips = useMemo<ActiveViewChip[]>(
     () => [
       query.trim()
         ? {
@@ -2954,15 +3106,7 @@ export function ReviewQueueClient({
             onClear: clearScopedReview,
           }
         : null,
-    ].filter(
-      (
-        chip
-      ): chip is {
-        key: string
-        label: string
-        onClear: () => void
-      } => Boolean(chip)
-    ),
+    ].filter((chip): chip is ActiveViewChip => Boolean(chip)),
     [aiDecisionFilter, categoryFilter, clearScopedReview, completenessFilter, difficultyFilter, familyFilter, familyShapeFilter, gradeFilter, query, scopeRequestedCount, scopedCandidateIds, sortMode, sourceFilter, statusFilter, triageFilter]
   )
 
@@ -3032,6 +3176,7 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Shift</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">y</kbd> copy merge handoff •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Shift</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> bulk select + act •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">1</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">2</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">3</kbd> route jump •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Backspace</kbd> peel back one modifier •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Esc</kbd> clear search, family focus, or reset view
             </p>
           </div>
@@ -3291,15 +3436,27 @@ export function ReviewQueueClient({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Active view modifiers</p>
-                  <p className="mt-1 text-sm text-[var(--text-secondary)]">Clear one filter at a time, or reset the queue back to the default pending triage view.</p>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)]">Clear one filter at a time, peel back the most specific modifier with Backspace, or reset the queue back to the default pending triage view.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={clearAllViewFilters}
-                  className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
-                >
-                  Reset view
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {lastActiveViewModifierLabel ? (
+                    <button
+                      type="button"
+                      onClick={clearLastViewModifier}
+                      className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                    >
+                      Peel back last
+                      <span className="ml-2 text-[var(--text-tertiary)]">Backspace • {lastActiveViewModifierLabel}</span>
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={clearAllViewFilters}
+                    className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                  >
+                    Reset view
+                  </button>
+                </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {activeViewChips.map((chip) => (
