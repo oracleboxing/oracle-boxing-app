@@ -33,6 +33,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['/', 'Focus search'], description: 'Jump into search and select the current query.' },
       { keys: ['j / ↓', 'Next visible'], description: 'Move to the next visible row in the current slice.' },
       { keys: ['k / ↑', 'Previous visible'], description: 'Move to the previous visible row.' },
+      { keys: ['g / Shift + g', 'Queue edges'], description: 'Jump straight to the first or last visible row in the current slice.' },
       { keys: ['n', 'Next pending'], description: 'Skip to the next pending row.' },
       { keys: ['p', 'Previous pending'], description: 'Jump back to the previous pending row.' },
       { keys: ['l', 'Lead row'], description: 'Snap to the lead candidate in the current slice.' },
@@ -2785,6 +2786,17 @@ export function ReviewQueueClient({
               ? 'Merged candidate into the selected drill.'
               : `Merged ${actionableSelectedIds.length} candidates into the selected drill.`,
         })
+        return
+      }
+
+      if (key === 'g') {
+        event.preventDefault()
+        if (sortedCandidates.length === 0) return
+
+        const targetCandidate = event.shiftKey ? sortedCandidates[sortedCandidates.length - 1] : sortedCandidates[0]
+        if (targetCandidate && targetCandidate.id !== selectedCandidateId) {
+          selectCandidate(targetCandidate.id)
+        }
         return
       }
 
