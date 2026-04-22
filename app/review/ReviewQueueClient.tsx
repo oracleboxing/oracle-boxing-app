@@ -52,6 +52,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: [', / .', 'Family row'], description: 'Step through rows inside the current family.' },
       { keys: ['; / \'' , 'Merge target'], description: 'Cycle the canonical merge target without leaving the keyboard.' },
       { keys: ['4 / 5 / 6', 'Pick target'], description: 'Jump straight to the top likely merge targets by rank when multiple drill matches are surfaced.' },
+      { keys: ['Shift + h', 'Copy family notes'], description: 'Copy the current duplicate-family handoff scaffold without leaving the keyboard.' },
     ],
   },
   {
@@ -3046,6 +3047,15 @@ export function ReviewQueueClient({
         return
       }
 
+      if (event.shiftKey && key === 'h') {
+        event.preventDefault()
+        if (!selectedFamilyWorkspace) return
+        navigator.clipboard.writeText(selectedFamilyWorkspace.handoffText)
+        setCopyFeedback('Copied family review notes')
+        window.setTimeout(() => setCopyFeedback(null), 3000)
+        return
+      }
+
       if (key === 'h') {
         event.preventDefault()
         navigator.clipboard.writeText(currentSliceSummary.handoffText)
@@ -3242,6 +3252,7 @@ export function ReviewQueueClient({
     scopedCandidateIds,
     searchInputRef,
     selectCandidate,
+    selectedFamilyWorkspace,
     selectedCandidate,
     selectedCandidateHandoff,
     selectedCandidateId,
@@ -6759,6 +6770,7 @@ export function ReviewQueueClient({
                                 className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
                                 Copy notes
+                                <span className="ml-2 text-xs font-normal text-[var(--text-tertiary)]">Shift + H</span>
                               </button>
                             </div>
                             <textarea
