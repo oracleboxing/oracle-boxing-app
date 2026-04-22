@@ -678,6 +678,65 @@ function getCreatedAtTimestamp(value: string | null) {
   return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
+function compareCandidatesForSortMode(
+  left: RawDrillCandidate,
+  right: RawDrillCandidate,
+  candidateInsights: Map<string, CandidateInsight>,
+  sortMode: SortMode
+) {
+  const leftInsight = candidateInsights.get(left.id)
+  const rightInsight = candidateInsights.get(right.id)
+  const leftCreatedAt = getCreatedAtTimestamp(left.created_at)
+  const rightCreatedAt = getCreatedAtTimestamp(right.created_at)
+  const leftTitle = getDisplayTitle(left)
+  const rightTitle = getDisplayTitle(right)
+
+  if (!leftInsight || !rightInsight) {
+    return leftTitle.localeCompare(rightTitle)
+  }
+
+  switch (sortMode) {
+    case 'triage':
+      return (
+        rightInsight.triageScore - leftInsight.triageScore ||
+        STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+        rightInsight.familySize - leftInsight.familySize ||
+        rightCreatedAt - leftCreatedAt ||
+        leftTitle.localeCompare(rightTitle)
+      )
+    case 'pending-first':
+      return (
+        STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+        rightCreatedAt - leftCreatedAt ||
+        rightInsight.familySize - leftInsight.familySize ||
+        leftTitle.localeCompare(rightTitle)
+      )
+    case 'duplicate-pressure':
+      return (
+        rightInsight.familySize - leftInsight.familySize ||
+        STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+        rightInsight.triageScore - leftInsight.triageScore ||
+        leftTitle.localeCompare(rightTitle)
+      )
+    case 'completeness':
+      return (
+        rightInsight.completenessScore - leftInsight.completenessScore ||
+        rightInsight.familySize - leftInsight.familySize ||
+        STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+        leftTitle.localeCompare(rightTitle)
+      )
+    case 'newest':
+      return rightCreatedAt - leftCreatedAt || rightInsight.triageScore - leftInsight.triageScore || leftTitle.localeCompare(rightTitle)
+    case 'grade':
+      return (
+        getGradeSortValue(left.grade_level) - getGradeSortValue(right.grade_level) ||
+        STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
+        rightInsight.triageScore - leftInsight.triageScore ||
+        leftTitle.localeCompare(rightTitle)
+      )
+  }
+}
+
 function buildCandidateInsight(candidate: RawDrillCandidate, familySize: number): CandidateInsight {
   const stepsCount = countJsonItems(candidate.steps_json)
   const focusPointsCount = countJsonItems(candidate.focus_points_json)
@@ -1090,23 +1149,6 @@ export function ReviewQueueClient({
     setFamilyFilter(null)
   }, [])
 
-  const clearAllViewFilters = useCallback(() => {
-    setSelectedIds([])
-    setQuery('')
-    setStatusFilter('pending')
-    setGradeFilter('all')
-    setDifficultyFilter('all')
-    setCategoryFilter('all')
-    setSourceFilter('all')
-    setAiDecisionFilter('all')
-    setTriageFilter('all')
-    setCompletenessFilter('all')
-    setSuggestedActionFilter('all')
-    setFamilyShapeFilter('all')
-    setFamilyFilter(null)
-    setSortMode('triage')
-  }, [])
-
   const applyReviewRoute = useCallback((route: ReviewRouteKey) => {
     setStatusFilter('pending')
     setTriageFilter('all')
@@ -1247,65 +1289,42 @@ export function ReviewQueueClient({
     })
   }, [baseFilteredCandidates, candidateInsights, completenessFilter, suggestedActionFilter, triageFilter])
 
-  const sortedCandidates = useMemo(() => {
-    return [...filteredCandidates].sort((left, right) => {
-      const leftInsight = candidateInsights.get(left.id)
-      const rightInsight = candidateInsights.get(right.id)
-      const leftCreatedAt = getCreatedAtTimestamp(left.created_at)
-      const rightCreatedAt = getCreatedAtTimestamp(right.created_at)
-      const leftTitle = getDisplayTitle(left)
-      const rightTitle = getDisplayTitle(right)
+  const sortedCandidates = useMemo(
+    () => [...filteredCandidates].sort((left, right) => compareCandidatesForSortMode(left, right, candidateInsights, sortMode)),
+    [filteredCandidates, candidateInsights, sortMode]
+  )
 
-      if (!leftInsight || !rightInsight) {
-        return leftTitle.localeCompare(rightTitle)
-      }
+  const defaultResetCandidateId = useMemo(() => {
+    const defaultPendingCandidate = [...candidates]
+      .filter((candidate) => candidate.review_status === 'pending')
+      .sort((left, right) => compareCandidatesForSortMode(left, right, candidateInsights, 'triage'))[0]
 
-      switch (sortMode) {
-        case 'triage':
-          return (
-            rightInsight.triageScore - leftInsight.triageScore ||
-            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
-            rightInsight.familySize - leftInsight.familySize ||
-            rightCreatedAt - leftCreatedAt ||
-            leftTitle.localeCompare(rightTitle)
-          )
-        case 'pending-first':
-          return (
-            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
-            rightCreatedAt - leftCreatedAt ||
-            rightInsight.familySize - leftInsight.familySize ||
-            leftTitle.localeCompare(rightTitle)
-          )
-        case 'duplicate-pressure':
-          return (
-            rightInsight.familySize - leftInsight.familySize ||
-            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
-            rightInsight.triageScore - leftInsight.triageScore ||
-            leftTitle.localeCompare(rightTitle)
-          )
-        case 'completeness':
-          return (
-            rightInsight.completenessScore - leftInsight.completenessScore ||
-            rightInsight.familySize - leftInsight.familySize ||
-            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
-            leftTitle.localeCompare(rightTitle)
-          )
-        case 'newest':
-          return (
-            rightCreatedAt - leftCreatedAt ||
-            rightInsight.triageScore - leftInsight.triageScore ||
-            leftTitle.localeCompare(rightTitle)
-          )
-        case 'grade':
-          return (
-            getGradeSortValue(left.grade_level) - getGradeSortValue(right.grade_level) ||
-            STATUS_SORT_ORDER[left.review_status] - STATUS_SORT_ORDER[right.review_status] ||
-            rightInsight.triageScore - leftInsight.triageScore ||
-            leftTitle.localeCompare(rightTitle)
-          )
-      }
-    })
-  }, [filteredCandidates, candidateInsights, sortMode])
+    if (defaultPendingCandidate) {
+      return defaultPendingCandidate.id
+    }
+
+    return [...candidates].sort((left, right) => compareCandidatesForSortMode(left, right, candidateInsights, 'triage'))[0]?.id ?? null
+  }, [candidateInsights, candidates])
+
+  const clearAllViewFilters = useCallback(() => {
+    setSelectedIds([])
+    setQuery('')
+    setStatusFilter('pending')
+    setGradeFilter('all')
+    setDifficultyFilter('all')
+    setCategoryFilter('all')
+    setSourceFilter('all')
+    setAiDecisionFilter('all')
+    setTriageFilter('all')
+    setCompletenessFilter('all')
+    setSuggestedActionFilter('all')
+    setFamilyShapeFilter('all')
+    setFamilyFilter(null)
+    setSortMode('triage')
+    setSelectedCandidateId(defaultResetCandidateId)
+    shouldScrollSelectedCandidateIntoViewRef.current = Boolean(defaultResetCandidateId)
+    shouldFocusSelectedCandidateRowRef.current = Boolean(defaultResetCandidateId)
+  }, [defaultResetCandidateId])
 
   const pendingCandidates = sortedCandidates.filter((candidate) => candidate.review_status === 'pending')
   const basePendingCandidates = baseFilteredCandidates.filter((candidate) => candidate.review_status === 'pending')
