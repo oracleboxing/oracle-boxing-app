@@ -1675,6 +1675,7 @@ export function ReviewQueueClient({
     sortedCandidates.find((candidate) => candidate.id === selectedCandidateId) ??
     sortedCandidates[0] ??
     null
+  const selectedCandidateIsPending = selectedCandidate?.review_status === 'pending'
 
   useEffect(() => {
     const nextVisibleSelectedId = selectedCandidate?.id ?? null
@@ -2084,6 +2085,10 @@ export function ReviewQueueClient({
       return matchedDrills[0]?.id ?? null
     })
   }, [matchedDrills, selectedCandidate])
+
+  useEffect(() => {
+    setActionError(null)
+  }, [selectedCandidate?.id])
 
   const selectedFamilyWorkspace = useMemo(() => {
     if (!selectedCandidate || !selectedCandidate.dedupe_key || selectedFamilyCandidates.length === 0) {
@@ -2655,30 +2660,43 @@ export function ReviewQueueClient({
 
       if (key === 'a') {
         event.preventDefault()
-        if (selectedCandidateId) {
-          runReviewAction({
-            action: 'approve',
-            candidateIds: [selectedCandidateId],
-            successLabel: 'Approved candidate into the drill library.',
-          })
+        if (!selectedCandidateId || !selectedCandidate) return
+        if (selectedCandidate.review_status !== 'pending') {
+          setActionError(`This candidate is already ${REVIEW_STATUS_LABELS[selectedCandidate.review_status].toLowerCase()}. Select a pending row to review it again.`)
+          return
         }
+
+        runReviewAction({
+          action: 'approve',
+          candidateIds: [selectedCandidateId],
+          successLabel: 'Approved candidate into the drill library.',
+        })
         return
       }
 
       if (key === 'r') {
         event.preventDefault()
-        if (selectedCandidateId) {
-          runReviewAction({
-            action: 'reject',
-            candidateIds: [selectedCandidateId],
-            successLabel: 'Rejected candidate.',
-          })
+        if (!selectedCandidateId || !selectedCandidate) return
+        if (selectedCandidate.review_status !== 'pending') {
+          setActionError(`This candidate is already ${REVIEW_STATUS_LABELS[selectedCandidate.review_status].toLowerCase()}. Select a pending row to review it again.`)
+          return
         }
+
+        runReviewAction({
+          action: 'reject',
+          candidateIds: [selectedCandidateId],
+          successLabel: 'Rejected candidate.',
+        })
         return
       }
 
       if (key === 'm') {
         event.preventDefault()
+        if (!selectedCandidateId || !selectedCandidate) return
+        if (selectedCandidate.review_status !== 'pending') {
+          setActionError(`This candidate is already ${REVIEW_STATUS_LABELS[selectedCandidate.review_status].toLowerCase()}. Select a pending row to review it again.`)
+          return
+        }
         if (selectedCandidateId && preferredMergeTargetId) {
           runReviewAction({
             action: 'merge',
@@ -2693,6 +2711,10 @@ export function ReviewQueueClient({
       if (key === 's') {
         event.preventDefault()
         if (!selectedCandidate) return
+        if (selectedCandidate.review_status !== 'pending') {
+          setActionError(`This candidate is already ${REVIEW_STATUS_LABELS[selectedCandidate.review_status].toLowerCase()}. Select a pending row to review it again.`)
+          return
+        }
 
         const insight = candidateInsights.get(selectedCandidate.id)
         if (!insight) return
@@ -2773,6 +2795,7 @@ export function ReviewQueueClient({
     toggleSelected,
     triageFilter,
     actionableSelectedIds,
+    selectedCandidate,
   ])
 
   const allVisiblePendingSelected =
@@ -4986,7 +5009,7 @@ export function ReviewQueueClient({
                       <div className="grid gap-2 sm:grid-cols-3 xl:w-[360px] xl:grid-cols-1">
                         <button
                           type="button"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || candidate.review_status !== 'pending'}
                           onClick={() =>
                             runReviewAction({
                               action: 'approve',
@@ -5001,7 +5024,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || candidate.review_status !== 'pending'}
                           onClick={() =>
                             runReviewAction({
                               action: 'reject',
@@ -5016,7 +5039,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
-                          disabled={isSubmitting || !isSelected || !preferredMergeTargetId}
+                          disabled={isSubmitting || candidate.review_status !== 'pending' || !isSelected || !preferredMergeTargetId}
                           onClick={() =>
                             preferredMergeTargetId
                               ? runReviewAction({
@@ -5273,7 +5296,9 @@ export function ReviewQueueClient({
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Quick review actions</p>
                             <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                              Review this row from the detail panel, then keep moving through the pending queue without bouncing back to the list.
+                              {selectedCandidateIsPending
+                                ? 'Review this row from the detail panel, then keep moving through the pending queue without bouncing back to the list.'
+                                : `This row is already ${REVIEW_STATUS_LABELS[selectedCandidate.review_status].toLowerCase()}, so actions are locked to prevent accidental re-review.`}
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -5301,7 +5326,7 @@ export function ReviewQueueClient({
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
                           <button
                             type="button"
-                            disabled={isSubmitting || (suggestedAction === 'merge' && !preferredMergeTargetId)}
+                            disabled={!selectedCandidateIsPending || isSubmitting || (suggestedAction === 'merge' && !preferredMergeTargetId)}
                             onClick={() => {
                               if (suggestedAction === 'keep') {
                                 runReviewAction({
@@ -5355,7 +5380,7 @@ export function ReviewQueueClient({
 
                           <button
                             type="button"
-                            disabled={isSubmitting}
+                            disabled={!selectedCandidateIsPending || isSubmitting}
                             onClick={() =>
                               runReviewAction({
                                 action: 'approve',
@@ -5371,7 +5396,7 @@ export function ReviewQueueClient({
 
                           <button
                             type="button"
-                            disabled={isSubmitting}
+                            disabled={!selectedCandidateIsPending || isSubmitting}
                             onClick={() =>
                               runReviewAction({
                                 action: 'reject',
@@ -5425,7 +5450,7 @@ export function ReviewQueueClient({
 
                           <button
                             type="button"
-                            disabled={isSubmitting || !preferredMergeTargetId}
+                            disabled={!selectedCandidateIsPending || isSubmitting || !preferredMergeTargetId}
                             onClick={() =>
                               preferredMergeTargetId
                                 ? runReviewAction({
