@@ -54,7 +54,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     title: 'Select and act',
     shortcuts: [
       { keys: ['x / Space', 'Toggle select'], description: 'Add or remove the selected row from the bulk set.' },
-      { keys: ['c', 'Clear selection'], description: 'Clear the current bulk selection.' },
+      { keys: ['c', 'Clear selection'], description: 'Clear the full bulk selection, including rows hidden by the current slice.' },
       { keys: ['a / r / m', 'Approve, reject, merge'], description: 'Run the primary action on the selected pending row.' },
       { keys: ['Enter / s', 'Suggested action'], description: 'Apply the queue recommendation for the selected row without leaving the keyboard.' },
       { keys: ['Shift + x', 'Select visible pending'], description: 'Select every visible pending row at once.' },
@@ -2939,7 +2939,7 @@ export function ReviewQueueClient({
 
       if (key === 'c') {
         event.preventDefault()
-        if (visibleSelectedIds.length > 0) {
+        if (selectedIds.length > 0) {
           clearSelectedRows()
         }
         return
@@ -5335,7 +5335,7 @@ export function ReviewQueueClient({
                 {skippedSelectedCount > 0 ? ` ${skippedSelectedCount} selected row${skippedSelectedCount === 1 ? '' : 's'} will be ignored.` : ''}
               </p>
               <p className="mt-2 text-xs text-[var(--text-tertiary)]">
-                Shortcuts: <span className="font-medium text-[var(--text-secondary)]">Shift + X</span> selects visible pending, then <span className="font-medium text-[var(--text-secondary)]">Shift + A / R / M</span> runs the bulk action.
+                Shortcuts: <span className="font-medium text-[var(--text-secondary)]">Shift + X</span> selects visible pending, <span className="font-medium text-[var(--text-secondary)]">c</span> clears the full selection, then <span className="font-medium text-[var(--text-secondary)]">Shift + A / R / M</span> runs the bulk action.
               </p>
             </div>
 
