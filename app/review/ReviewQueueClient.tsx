@@ -37,7 +37,11 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['↓ / ↑ from search', 'Enter queue'], description: 'Jump from the search box straight into the selected row, or the first or last visible result.' },
       { keys: ['Enter from search', 'Open lead + focus queue'], description: 'Open the lead search result and hand keyboard control straight back to the queue.' },
       { keys: ['Esc from search', 'Back to queue'], description: 'When the search is already empty, leave the field and return focus to the active queue row.' },
-      { keys: ['Tab into a row', 'Sync selection'], description: 'Selecting any checkbox or action button also makes that row the active keyboard context.' },
+      {
+        keys: ['Tab into a row', 'Sync selection'],
+        description:
+          'Selecting any checkbox or action button also makes that row the active keyboard context, and queue shortcuts keep working from those controls without stealing Enter or Space.',
+      },
       { keys: ['j / ↓', 'Next visible'], description: 'Move to the next visible row in the current slice.' },
       { keys: ['k / ↑', 'Previous visible'], description: 'Move to the previous visible row.' },
       { keys: ['PageDown / PageUp', 'Jump 10 rows'], description: 'Leap through longer visible slices without mashing single-row navigation.' },
@@ -566,11 +570,25 @@ function getCandidateIdFromTarget(target: EventTarget | null) {
   return candidateId || null
 }
 
-function shouldIgnoreShortcutTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false
+function getShortcutTargetContext(target: EventTarget | null): 'none' | 'text-entry' | 'row-control' | 'interactive' {
+  if (!(target instanceof HTMLElement)) return 'none'
 
-  const interactiveParent = target.closest('input, textarea, select, button, a, [contenteditable="true"], [role="button"], [role="link"]')
-  return Boolean(interactiveParent || target.isContentEditable)
+  if (target.isContentEditable || target.closest('textarea, select, [contenteditable="true"]')) {
+    return 'text-entry'
+  }
+
+  const input = target.closest('input')
+  if (input instanceof HTMLInputElement) {
+    return input.type === 'checkbox' || input.type === 'radio' ? 'row-control' : 'text-entry'
+  }
+
+  const rowControl = target.closest('article[id^="candidate-"] button, article[id^="candidate-"] a, article[id^="candidate-"] [role="button"], article[id^="candidate-"] [role="link"]')
+  if (rowControl) {
+    return 'row-control'
+  }
+
+  const interactiveParent = target.closest('button, a, [role="button"], [role="link"]')
+  return interactiveParent ? 'interactive' : 'none'
 }
 
 function normaliseTokens(value: string) {
@@ -2857,7 +2875,14 @@ export function ReviewQueueClient({
         return
       }
 
-      if (shouldIgnoreShortcutTarget(event.target)) {
+      const shortcutTargetContext = getShortcutTargetContext(event.target)
+      const isRowControlTarget = shortcutTargetContext === 'row-control'
+
+      if (shortcutTargetContext === 'text-entry' || shortcutTargetContext === 'interactive') {
+        return
+      }
+
+      if (isRowControlTarget && (event.key === 'Enter' || event.key === ' ')) {
         return
       }
 
