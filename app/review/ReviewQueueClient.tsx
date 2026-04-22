@@ -2411,6 +2411,10 @@ export function ReviewQueueClient({
     })
   }, [])
 
+  const clearSelectedRows = useCallback(() => {
+    setSelectedIds([])
+  }, [])
+
   const toggleSelectAllVisiblePending = useCallback(() => {
     const pendingIds = pendingCandidates.map((candidate) => candidate.id)
     const allSelected = pendingIds.length > 0 && pendingIds.every((id) => visibleSelectedIds.includes(id))
@@ -2574,6 +2578,14 @@ export function ReviewQueueClient({
         event.preventDefault()
         if (selectedCandidateId) {
           toggleSelected(selectedCandidateId)
+        }
+        return
+      }
+
+      if (key === 'c') {
+        event.preventDefault()
+        if (visibleSelectedIds.length > 0) {
+          clearSelectedRows()
         }
         return
       }
@@ -2761,6 +2773,7 @@ export function ReviewQueueClient({
     categoryFilter,
     clearAllViewFilters,
     clearFamilyFocus,
+    clearSelectedRows,
     completenessFilter,
     cycleMergeTarget,
     difficultyFilter,
@@ -2796,6 +2809,7 @@ export function ReviewQueueClient({
     triageFilter,
     actionableSelectedIds,
     selectedCandidate,
+    visibleSelectedIds.length,
   ])
 
   const allVisiblePendingSelected =
@@ -2958,6 +2972,7 @@ export function ReviewQueueClient({
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">[</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">]</kbd> family hop •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">,</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">.</kbd> family row •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">x</kbd> select •
+              <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">c</kbd> clear selection •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">a</kbd> approve •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">r</kbd> reject •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">m</kbd> merge •
@@ -4805,6 +4820,15 @@ export function ReviewQueueClient({
               className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
               {allVisiblePendingSelected ? 'Clear visible pending selection' : 'Select all visible pending'}
+            </button>
+
+            <button
+              type="button"
+              disabled={visibleSelectedIds.length === 0}
+              onClick={clearSelectedRows}
+              className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+            >
+              Clear all selected rows
             </button>
 
             <button
