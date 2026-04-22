@@ -35,6 +35,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['/', 'Focus search'], description: 'Jump into search and select the current query.' },
       { keys: ['↓ / ↑ from search', 'Enter queue'], description: 'Jump from the search box straight into the selected row, or the first or last visible result.' },
       { keys: ['Enter from search', 'Open lead + focus queue'], description: 'Open the lead search result and hand keyboard control straight back to the queue.' },
+      { keys: ['Tab into a row', 'Sync selection'], description: 'Selecting any checkbox or action button also makes that row the active keyboard context.' },
       { keys: ['j / ↓', 'Next visible'], description: 'Move to the next visible row in the current slice.' },
       { keys: ['k / ↑', 'Previous visible'], description: 'Move to the previous visible row.' },
       { keys: ['PageDown / PageUp', 'Jump 10 rows'], description: 'Leap through longer visible slices without mashing single-row navigation.' },
@@ -3546,6 +3547,9 @@ export function ReviewQueueClient({
                   ↑ / ↓ enters the queue
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                  Tabbing into a row syncs selection
+                </span>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   Enter applies suggestion when the queue is focused
                 </span>
               </span>
@@ -5628,6 +5632,10 @@ export function ReviewQueueClient({
                     key={candidate.id}
                     id={`candidate-${candidate.id}`}
                     tabIndex={-1}
+                    onFocusCapture={() => {
+                      if (selectedCandidateId === candidate.id) return
+                      selectCandidate(candidate.id, { scrollIntoView: false })
+                    }}
                     className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] ${
                       isSelected ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)]'
                     }`}
