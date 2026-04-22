@@ -26,6 +26,8 @@ const REVIEW_ROUTE_SHORTCUTS: Record<ReviewRouteKey, '1' | '2' | '3'> = {
   'thin-cleanup': '3',
 }
 
+const MERGE_TARGET_SHORTCUT_KEYS = ['4', '5', '6', '7', '8', '9'] as const
+
 const REVIEW_SHORTCUT_GROUPS = [
   {
     title: 'Navigate the queue',
@@ -49,6 +51,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['[ / ]', 'Family hop'], description: 'Move to the previous or next pending family.' },
       { keys: [', / .', 'Family row'], description: 'Step through rows inside the current family.' },
       { keys: ['; / \'' , 'Merge target'], description: 'Cycle the canonical merge target without leaving the keyboard.' },
+      { keys: ['4 / 5 / 6', 'Pick target'], description: 'Jump straight to the top likely merge targets by rank when multiple drill matches are surfaced.' },
     ],
   },
   {
@@ -313,6 +316,10 @@ function getSuggestedActionShortcutHint(decision: FamilyDecision, hasMergeTarget
     case 'reject':
       return 'Shortcut Enter or S, uses the queue recommendation and advances selection.'
   }
+}
+
+function getMergeTargetShortcutKey(index: number) {
+  return MERGE_TARGET_SHORTCUT_KEYS[index] ?? null
 }
 
 function isSuggestedActionFilter(value: string | null): value is SuggestedActionFilter {
@@ -3086,6 +3093,16 @@ export function ReviewQueueClient({
         return
       }
 
+      const mergeTargetShortcutIndex = MERGE_TARGET_SHORTCUT_KEYS.indexOf(key as (typeof MERGE_TARGET_SHORTCUT_KEYS)[number])
+      if (mergeTargetShortcutIndex !== -1) {
+        const shortcutTarget = matchedDrills[mergeTargetShortcutIndex]
+        if (!shortcutTarget) return
+
+        event.preventDefault()
+        setSelectedCanonicalDrillId(shortcutTarget.id)
+        return
+      }
+
       if (key === 'a') {
         event.preventDefault()
         if (!selectedCandidateId || !selectedCandidate) return
@@ -3210,6 +3227,7 @@ export function ReviewQueueClient({
     leadVisibleCandidate,
     lastActiveViewModifierLabel,
     mergeTargetPrompt,
+    matchedDrills,
     actionError,
     nextDuplicateFamily,
     nextFamilyCandidate,
@@ -5451,6 +5469,9 @@ export function ReviewQueueClient({
                   Multiple matches found. Pick one target before running merge actions.
                 </span>
               ) : null}
+              {matchedDrills.length > 1 ? (
+                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ; and ' keep cycling.</span>
+              ) : null}
             </label>
 
             <button
@@ -6157,7 +6178,7 @@ export function ReviewQueueClient({
                                 </span>
                               ) : null}
                               {matchedDrills.length > 1 ? (
-                                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts ; and ' cycle merge targets without leaving the keyboard.</span>
+                                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ; and ' keep cycling.</span>
                               ) : null}
                             </label>
 
@@ -6399,14 +6420,14 @@ export function ReviewQueueClient({
                           These are the strongest likely canonical targets from the curated drills table, so you can merge straight from here instead of juggling IDs by hand.
                         </p>
                         {matchedDrills.length > 1 ? (
-                          <p className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use ; for the previous target and ' for the next target.</p>
+                          <p className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use 4 to 9 to pick the top visible targets by rank, or ; and ' to cycle target selection.</p>
                         ) : null}
 
                         {matchedDrills.length === 0 ? (
                           <p className="mt-4 text-sm text-[var(--text-secondary)]">No likely drill matches surfaced yet from the current library.</p>
                         ) : (
                           <div className="mt-4 space-y-3">
-                            {matchedDrills.map((drill) => (
+                            {matchedDrills.map((drill, index) => (
                               <div key={drill.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3">
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                   <div>
@@ -6415,6 +6436,11 @@ export function ReviewQueueClient({
                                       <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
                                         Match {drill.matchScore}
                                       </span>
+                                      {getMergeTargetShortcutKey(index) ? (
+                                        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
+                                          Shortcut {getMergeTargetShortcutKey(index)}
+                                        </span>
+                                      ) : null}
                                       {drill.is_curated ? (
                                         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
                                           Curated
