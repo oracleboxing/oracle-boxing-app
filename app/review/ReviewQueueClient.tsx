@@ -31,6 +31,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     title: 'Navigate the queue',
     shortcuts: [
       { keys: ['/', 'Focus search'], description: 'Jump into search and select the current query.' },
+      { keys: ['↓ / ↑ from search', 'Enter queue'], description: 'Jump from the search box straight into the selected row, or the first or last visible result.' },
       { keys: ['j / ↓', 'Next visible'], description: 'Move to the next visible row in the current slice.' },
       { keys: ['k / ↑', 'Previous visible'], description: 'Move to the previous visible row.' },
       { keys: ['g / Shift + g', 'Queue edges'], description: 'Jump straight to the first or last visible row in the current slice.' },
@@ -3471,6 +3472,9 @@ export function ReviewQueueClient({
                   Enter opens lead result
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                  ↑ / ↓ enters the queue
+                </span>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   Enter applies suggestion when the queue is focused
                 </span>
               </span>
@@ -3479,9 +3483,22 @@ export function ReviewQueueClient({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key !== 'Enter') return
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    openLeadSearchResult()
+                    return
+                  }
+
+                  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+
+                  const edgeCandidate = event.key === 'ArrowDown' ? sortedCandidates[0] : sortedCandidates[sortedCandidates.length - 1]
+                  const targetCandidate = selectedCandidate ?? edgeCandidate
+
+                  if (!targetCandidate) return
+
                   event.preventDefault()
-                  openLeadSearchResult()
+                  selectCandidate(targetCandidate.id, { scrollIntoView: false })
+                  focusCandidateRow(targetCandidate.id)
                 }}
                 placeholder="Title, source, summary, dedupe key"
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
