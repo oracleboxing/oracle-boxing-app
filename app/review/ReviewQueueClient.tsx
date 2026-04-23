@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import type { AiDecision, Drill, Json, RawDrillCandidate, ReviewStatus } from '@/lib/supabase/types'
 
 const REVIEW_STATUSES: ReviewStatus[] = ['pending', 'approved', 'merged', 'rejected']
@@ -1211,6 +1211,13 @@ export function ReviewQueueClient({
 
     row.focus({ preventScroll: !options?.reveal })
   }, [])
+
+  const handleSelectEscape = useCallback((event: ReactKeyboardEvent<HTMLSelectElement>) => {
+    if (event.key !== 'Escape' || !selectedCandidateId) return
+
+    event.preventDefault()
+    focusCandidateRow(selectedCandidateId, { reveal: true })
+  }, [focusCandidateRow, selectedCandidateId])
 
   useEffect(() => {
     if (!showShortcutHelp || typeof document === 'undefined' || typeof window === 'undefined') {
@@ -4180,6 +4187,7 @@ export function ReviewQueueClient({
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as 'all' | ReviewStatus)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All statuses</option>
@@ -4196,6 +4204,7 @@ export function ReviewQueueClient({
               <select
                 value={gradeFilter}
                 onChange={(event) => setGradeFilter(event.target.value)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All grades</option>
@@ -4212,6 +4221,7 @@ export function ReviewQueueClient({
               <select
                 value={categoryFilter}
                 onChange={(event) => setCategoryFilter(event.target.value)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All categories</option>
@@ -4228,6 +4238,7 @@ export function ReviewQueueClient({
               <select
                 value={difficultyFilter}
                 onChange={(event) => setDifficultyFilter(event.target.value)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All difficulties</option>
@@ -4244,6 +4255,7 @@ export function ReviewQueueClient({
               <select
                 value={sourceFilter}
                 onChange={(event) => setSourceFilter(event.target.value)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All sources</option>
@@ -4260,6 +4272,7 @@ export function ReviewQueueClient({
               <select
                 value={aiDecisionFilter}
                 onChange={(event) => setAiDecisionFilter(event.target.value as AiDecisionFilter)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {(['all', 'approve', 'merge', 'review', 'reject', 'none'] as AiDecisionFilter[]).map((value) => (
@@ -4275,6 +4288,7 @@ export function ReviewQueueClient({
               <select
                 value={suggestedActionFilter}
                 onChange={(event) => setSuggestedActionFilter(event.target.value as SuggestedActionFilter)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {(['all', 'keep', 'merge', 'reject'] as SuggestedActionFilter[]).map((value) => (
@@ -4290,6 +4304,7 @@ export function ReviewQueueClient({
               <select
                 value={triageFilter}
                 onChange={(event) => setTriageFilter(event.target.value as 'all' | TriageLevel)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {(['all', 'act-now', 'worth-a-look', 'low-signal', 'already-reviewed'] as Array<'all' | TriageLevel>).map((value) => (
@@ -4305,6 +4320,7 @@ export function ReviewQueueClient({
               <select
                 value={completenessFilter}
                 onChange={(event) => setCompletenessFilter(event.target.value as 'all' | CompletenessBand)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {(['all', 'thin', 'usable', 'rich'] as Array<'all' | CompletenessBand>).map((value) => (
@@ -4320,6 +4336,7 @@ export function ReviewQueueClient({
               <select
                 value={familyShapeFilter}
                 onChange={(event) => setFamilyShapeFilter(event.target.value as DuplicateShapeFilter)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {Object.entries(DUPLICATE_SHAPE_LABELS).map(([value, label]) => (
@@ -4335,6 +4352,7 @@ export function ReviewQueueClient({
               <select
                 value={sortMode}
                 onChange={(event) => setSortMode(event.target.value as SortMode)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {Object.entries(SORT_MODE_LABELS).map(([value, label]) => (
@@ -6086,6 +6104,7 @@ export function ReviewQueueClient({
               <select
                 value={preferredMergeTargetId ?? ''}
                 onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
+                onKeyDown={handleSelectEscape}
                 className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="">No target selected</option>
@@ -6864,6 +6883,7 @@ export function ReviewQueueClient({
                                 value={preferredMergeTargetId ?? ''}
                                 aria-keyshortcuts={REVIEW_MERGE_TARGET_SHORTCUTS}
                                 onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
+                                onKeyDown={handleSelectEscape}
                                 className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
                               >
                                 <option value="">No target selected</option>
