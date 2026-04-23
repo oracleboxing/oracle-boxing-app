@@ -1839,6 +1839,20 @@ export function ReviewQueueClient({
     }
   )
 
+  const visiblePendingCompletenessCounts = pendingCandidates.reduce<Record<CompletenessBand, number>>(
+    (acc, candidate) => {
+      const insight = candidateInsights.get(candidate.id)
+      if (!insight) return acc
+      acc[getCompletenessBand(insight)] += 1
+      return acc
+    },
+    {
+      thin: 0,
+      usable: 0,
+      rich: 0,
+    }
+  )
+
   const completenessSummaries = useMemo(() => {
     const summary = new Map<
       CompletenessBand,
@@ -1934,6 +1948,10 @@ export function ReviewQueueClient({
   )
 
   const missingSummaryCount = basePendingCandidates.filter(
+    (candidate) => !candidate.summary && !candidate.what_it_trains && !candidate.description
+  ).length
+
+  const visibleMissingSummaryCount = pendingCandidates.filter(
     (candidate) => !candidate.summary && !candidate.what_it_trains && !candidate.description
   ).length
 
@@ -2085,7 +2103,7 @@ export function ReviewQueueClient({
       .filter(([, count]) => count > 0 && count)
       .sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
 
-    const dominantVisibleCompleteness = (Object.entries(completenessCounts) as Array<[CompletenessBand, number]>)
+    const dominantVisibleCompleteness = (Object.entries(visiblePendingCompletenessCounts) as Array<[CompletenessBand, number]>)
       .filter(([, count]) => count > 0)
       .sort((left, right) => right[1] - left[1])[0]?.[0] ?? null
 
@@ -2187,7 +2205,7 @@ export function ReviewQueueClient({
       `Active duplicate lane: ${familyShapeFilter === 'all' ? 'All family shapes' : DUPLICATE_SHAPE_LABELS[familyShapeFilter]}`,
       `Active AI lane: ${getAiDecisionFilterLabel(aiDecisionFilter)}`,
       `Family focus: ${familyFilter ?? 'None'}`,
-      `Missing summary rows: ${missingSummaryCount}`,
+      `Missing summary rows: ${visibleMissingSummaryCount}`,
       `Visible duplicate families: ${duplicateFamilies.length}`,
     ]
 
@@ -2247,7 +2265,7 @@ export function ReviewQueueClient({
       topVisibleFamily,
       handoffText: lines.join('\n'),
     }
-  }, [aiDecisionFilter, candidateInsights, completenessCounts, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, gradeFilter, missingSummaryCount, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visiblePendingTriageCounts])
+  }, [aiDecisionFilter, candidateInsights, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, gradeFilter, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visibleMissingSummaryCount, visiblePendingCompletenessCounts, visiblePendingTriageCounts])
 
   const reviewRoutes = useMemo(() => {
     const routeDefinitions: Array<{
