@@ -3716,21 +3716,25 @@ export function ReviewQueueClient({
     void copyText(selectedMergeHandoff, 'Copied selected merge handoff')
   }, [copyText, selectedMergeHandoff])
 
+  const openCandidateInQueue = useCallback((candidateId: string) => {
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1279px)').matches) {
+      focusCandidateDetailPanel(candidateId)
+      return
+    }
+
+    selectCandidate(candidateId)
+
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => focusCandidateRow(candidateId, { reveal: true }))
+    }
+  }, [focusCandidateDetailPanel, focusCandidateRow, selectCandidate])
+
   const openLeadSearchResult = useCallback(() => {
     const leadCandidate = sortedCandidates[0]
     if (!leadCandidate) return
 
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1279px)').matches) {
-      focusCandidateDetailPanel(leadCandidate.id)
-      return
-    }
-
-    selectCandidate(leadCandidate.id)
-
-    if (typeof window !== 'undefined') {
-      window.requestAnimationFrame(() => focusCandidateRow(leadCandidate.id))
-    }
-  }, [focusCandidateDetailPanel, focusCandidateRow, selectCandidate, sortedCandidates])
+    openCandidateInQueue(leadCandidate.id)
+  }, [openCandidateInQueue, sortedCandidates])
 
   return (
     <>
@@ -4374,7 +4378,7 @@ export function ReviewQueueClient({
             {currentSliceSummary.leadCandidate ? (
               <button
                 type="button"
-                onClick={() => selectCandidate(currentSliceSummary.leadCandidate!.id, { scrollIntoView: false })}
+                onClick={() => openCandidateInQueue(currentSliceSummary.leadCandidate!.id)}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Open lead candidate
@@ -4445,7 +4449,7 @@ export function ReviewQueueClient({
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => selectCandidate(currentSliceSummary.leadCandidate.id, { scrollIntoView: false })}
+                        onClick={() => openCandidateInQueue(currentSliceSummary.leadCandidate.id)}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Open in detail panel
