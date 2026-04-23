@@ -2457,6 +2457,7 @@ export function ReviewQueueClient({
     const insight = candidateInsights.get(selectedCandidate.id)
     if (!insight) return null
 
+    const readinessGaps = getCandidateReadinessGaps(selectedCandidate, insight)
     const lines = [
       'Selected merge handoff',
       `Candidate: ${getDisplayTitle(selectedCandidate)} (${selectedCandidate.id})`,
@@ -2464,14 +2465,16 @@ export function ReviewQueueClient({
       `Suggested action: ${getDecisionLabel(getCandidateDecisionHint(selectedCandidate, insight))}`,
       `Merge target: ${preferredMergeTarget.title} (${preferredMergeTarget.id})`,
       `Target selection: ${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Reviewer-selected target'}`,
+      `Merge readiness: ${mergeTargetNeedsExplicitSelection ? mergeTargetPrompt : 'Merge-ready with the selected target'}`,
       `Match score: ${preferredMergeTarget.matchScore}`,
       `Match reasons: ${preferredMergeTarget.matchReasons.slice(0, 3).join(' • ') || 'No reasons surfaced'}`,
       `Target summary: ${preferredMergeTarget.summary || 'No library summary yet.'}`,
-      `Reviewer next move: Merge this row into the selected canonical drill if the overlap holds up on inspection.`,
+      `Readiness gaps: ${readinessGaps.length > 0 ? readinessGaps.join(' • ') : 'No obvious metadata gaps surfaced'}`,
+      `Reviewer next move: ${mergeTargetNeedsExplicitSelection ? 'Pick the exact canonical drill first, then merge only if the overlap still holds up on inspection.' : 'Merge this row into the selected canonical drill if the overlap holds up on inspection.'}`,
     ]
 
     return lines.join('\n')
-  }, [candidateInsights, isUsingAutoMergeTarget, preferredMergeTarget, selectedCandidate])
+  }, [candidateInsights, isUsingAutoMergeTarget, mergeTargetNeedsExplicitSelection, mergeTargetPrompt, preferredMergeTarget, selectedCandidate])
 
   const selectedCandidateIndex = selectedCandidate ? sortedCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
   const selectedPendingIndex = selectedCandidate ? pendingCandidates.findIndex((candidate) => candidate.id === selectedCandidate.id) : -1
