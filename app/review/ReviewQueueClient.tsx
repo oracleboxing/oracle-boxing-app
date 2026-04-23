@@ -1984,6 +1984,17 @@ export function ReviewQueueClient({
       .sort((left, right) => right.count - left.count || left.dedupeKey.localeCompare(right.dedupeKey))
   }, [candidateInsights, sortedCandidates])
 
+  const visiblePendingDuplicateFamilyCount = useMemo(() => {
+    const families = new Set<string>()
+
+    for (const candidate of pendingCandidates) {
+      if (!candidate.dedupe_key) continue
+      families.add(candidate.dedupe_key)
+    }
+
+    return families.size
+  }, [pendingCandidates])
+
   const visibleSelectedIds = useMemo(
     () => selectedIds.filter((id) => sortedCandidates.some((candidate) => candidate.id === id)),
     [selectedIds, sortedCandidates]
@@ -2213,7 +2224,7 @@ export function ReviewQueueClient({
       `Active AI lane: ${getAiDecisionFilterLabel(aiDecisionFilter)}`,
       `Family focus: ${familyFilter ?? 'None'}`,
       `Missing summary rows: ${visibleMissingSummaryCount}`,
-      `Visible duplicate families: ${duplicateFamilies.length}`,
+      `Visible pending duplicate families: ${visiblePendingDuplicateFamilyCount}`,
     ]
 
     if (dominantVisibleTriage) {
@@ -2272,7 +2283,7 @@ export function ReviewQueueClient({
       topVisibleFamily,
       handoffText: lines.join('\n'),
     }
-  }, [aiDecisionFilter, candidateInsights, categoryFilter, completenessFilter, difficultyFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, gradeFilter, pendingCandidates, pendingFamilyShapeSummary, query, scopeRequestedCount, scopedCandidateIds, sortMode, sortedCandidates, sourceFilter, statusFilter, suggestedActionFilter, triageFilter, visibleMissingSummaryCount, visiblePendingCompletenessCounts, visiblePendingTriageCounts])
+  }, [aiDecisionFilter, candidateInsights, categoryFilter, completenessFilter, difficultyFilter, familyFilter, familyShapeFilter, gradeFilter, pendingCandidates, pendingFamilyShapeSummary, query, scopeRequestedCount, scopedCandidateIds, sortMode, sortedCandidates, sourceFilter, statusFilter, suggestedActionFilter, triageFilter, visibleMissingSummaryCount, visiblePendingCompletenessCounts, visiblePendingDuplicateFamilyCount, visiblePendingTriageCounts])
 
   const reviewRoutes = useMemo(() => {
     const routeDefinitions: Array<{
