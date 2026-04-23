@@ -4457,6 +4457,7 @@ export function ReviewQueueClient({
         <button
           type="button"
           onClick={() => setTriageFilter((current) => (current === 'act-now' ? 'all' : 'act-now'))}
+          aria-pressed={triageFilter === 'act-now'}
           className={`min-h-[168px] rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
             triageFilter === 'act-now' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
           }`}
@@ -4469,6 +4470,7 @@ export function ReviewQueueClient({
         <button
           type="button"
           onClick={() => setTriageFilter((current) => (current === 'worth-a-look' ? 'all' : 'worth-a-look'))}
+          aria-pressed={triageFilter === 'worth-a-look'}
           className={`min-h-[168px] rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
             triageFilter === 'worth-a-look' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
           }`}
@@ -4481,6 +4483,7 @@ export function ReviewQueueClient({
         <button
           type="button"
           onClick={() => setTriageFilter((current) => (current === 'low-signal' ? 'all' : 'low-signal'))}
+          aria-pressed={triageFilter === 'low-signal'}
           className={`min-h-[168px] rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
             triageFilter === 'low-signal' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
           }`}
@@ -4571,6 +4574,7 @@ export function ReviewQueueClient({
               <button
                 type="button"
                 onClick={() => setGradeFilter(currentSliceSummary.dominantVisibleGrade!)}
+                aria-pressed={gradeFilter === currentSliceSummary.dominantVisibleGrade}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus dominant grade
@@ -4580,6 +4584,7 @@ export function ReviewQueueClient({
               <button
                 type="button"
                 onClick={() => setTriageFilter(currentSliceSummary.dominantVisibleTriage!)}
+                aria-pressed={triageFilter === currentSliceSummary.dominantVisibleTriage}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus dominant triage
@@ -4589,6 +4594,7 @@ export function ReviewQueueClient({
               <button
                 type="button"
                 onClick={() => setCompletenessFilter(currentSliceSummary.dominantVisibleCompleteness!)}
+                aria-pressed={completenessFilter === currentSliceSummary.dominantVisibleCompleteness}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus dominant completeness
@@ -4598,6 +4604,7 @@ export function ReviewQueueClient({
               <button
                 type="button"
                 onClick={() => setFamilyShapeFilter(currentSliceSummary.dominantVisibleFamilyShape!)}
+                aria-pressed={familyShapeFilter === currentSliceSummary.dominantVisibleFamilyShape}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus duplicate lane
@@ -4607,6 +4614,7 @@ export function ReviewQueueClient({
               <button
                 type="button"
                 onClick={() => setSuggestedActionFilter(currentSliceSummary.dominantVisibleAction!)}
+                aria-pressed={suggestedActionFilter === currentSliceSummary.dominantVisibleAction}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus suggested action
@@ -4616,6 +4624,7 @@ export function ReviewQueueClient({
               <button
                 type="button"
                 onClick={() => setAiDecisionFilter(currentSliceSummary.dominantVisibleAiDecision!)}
+                aria-pressed={aiDecisionFilter === currentSliceSummary.dominantVisibleAiDecision}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus AI lane
@@ -4625,6 +4634,7 @@ export function ReviewQueueClient({
               <button
                 type="button"
                 onClick={() => setSourceFilter(currentSliceSummary.topVisibleSource![0])}
+                aria-pressed={sourceFilter === currentSliceSummary.topVisibleSource[0]}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus main source
@@ -4634,6 +4644,7 @@ export function ReviewQueueClient({
               <button
                 type="button"
                 onClick={() => focusFamily(currentSliceSummary.topVisibleFamily!.dedupeKey, currentSliceSummary.topVisibleFamily!.leadCandidate?.id)}
+                aria-pressed={familyFilter === currentSliceSummary.topVisibleFamily.dedupeKey}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Focus largest family
