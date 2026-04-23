@@ -28,7 +28,7 @@ const REVIEW_ROUTE_SHORTCUTS: Record<ReviewRouteKey, '1' | '2' | '3'> = {
 
 const MERGE_TARGET_SHORTCUT_KEYS = ['4', '5', '6', '7', '8', '9'] as const
 
-const REVIEW_QUEUE_ROW_SHORTCUTS = 'Enter S X Escape'
+const REVIEW_QUEUE_ROW_SHORTCUTS = 'Enter S X Space Escape'
 const REVIEW_RETURN_TO_QUEUE_SHORTCUTS = 'Escape'
 const REVIEW_SEARCH_SHORTCUTS = '/ Control+K Meta+K Enter ArrowDown ArrowUp Escape'
 const REVIEW_HELP_SHORTCUTS = 'Shift+/'
@@ -6394,7 +6394,7 @@ export function ReviewQueueClient({
                     }`}
                   >
                     <p id={rowSummaryId} className="sr-only">
-                      {`${isSelected ? 'Current queue row.' : 'Queue row.'} Status ${REVIEW_STATUS_LABELS[candidate.review_status]}. ${getTriageLabel(insight.triageLevel)}. Suggested action ${getDecisionLabel(suggestedAction)}.${candidate.dedupe_key ? ` Family ${candidate.dedupe_key}.` : ''} Press Enter or S to apply the suggested action, X to toggle bulk selection, and Escape to return focus to this row from its controls.`}
+                      {`${isSelected ? 'Current queue row.' : 'Queue row.'} Status ${REVIEW_STATUS_LABELS[candidate.review_status]}. ${getTriageLabel(insight.triageLevel)}. Suggested action ${getDecisionLabel(suggestedAction)}.${candidate.dedupe_key ? ` Family ${candidate.dedupe_key}.` : ''} Press Enter or S to apply the suggested action, X or Space to toggle bulk selection, and Escape to return focus to this row from its controls.`}
                     </p>
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 flex-1">
