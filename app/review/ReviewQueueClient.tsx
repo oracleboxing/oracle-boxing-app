@@ -4029,6 +4029,24 @@ export function ReviewQueueClient({
     return `${selectionTone}: ${preferredMergeTarget.title}. Match ${mergeTargetCountLabel}. ${matchReasonLabel}. ${readinessLabel}`
   }, [isUsingAutoMergeTarget, matchedDrills, mergeTargetNeedsExplicitSelection, preferredMergeTarget, preferredMergeTargetId, selectedCandidate])
 
+  const queueListDescription = useMemo(() => {
+    const parts = [
+      `${sortedCandidates.length} visible candidate${sortedCandidates.length === 1 ? '' : 's'} sorted by ${SORT_MODE_LABELS[sortMode]}.`,
+      'Use J and K or the arrow keys to move between visible rows, N and P to jump through pending rows, and L to return to the lead row.',
+      'Press Enter or S to apply the suggested action for the active row, X or Space to toggle bulk selection, and Escape to return focus from row controls to the active queue row.',
+    ]
+
+    if (familyFilter) {
+      parts.push(`Family focus is active for ${familyFilter}.`)
+    }
+
+    if (selectedIds.length > 0) {
+      parts.push(`${selectedIds.length} row${selectedIds.length === 1 ? '' : 's'} currently selected for bulk actions.`)
+    }
+
+    return parts.join(' ')
+  }, [familyFilter, selectedIds.length, sortMode, sortedCandidates.length])
+
   return (
     <>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
@@ -6303,8 +6321,12 @@ export function ReviewQueueClient({
               }
             />
           ) : (
-            <div id="review-queue-list" role="list" aria-label="Review queue candidates" className="space-y-4">
-              <div className="hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] lg:flex lg.items-center lg:justify-between">
+            <>
+              <p id="review-queue-list-description" className="sr-only">
+                {queueListDescription}
+              </p>
+              <div id="review-queue-list" role="list" aria-label="Review queue candidates" aria-describedby="review-queue-list-description" className="space-y-4">
+                <div className="hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] lg:flex lg.items-center lg:justify-between">
                 <span>Sorted by <span className="font-medium text-[var(--text-primary)]">{SORT_MODE_LABELS[sortMode]}</span></span>
                 <span>{sortedCandidates.length} visible candidates</span>
               </div>
@@ -6551,7 +6573,8 @@ export function ReviewQueueClient({
                   </article>
                 )
               })}
-            </div>
+              </div>
+            </>
           )}
         </div>
 
