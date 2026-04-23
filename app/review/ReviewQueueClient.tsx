@@ -3757,12 +3757,16 @@ export function ReviewQueueClient({
       )}
 
       {showShortcutHelp && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm xl:items-center">
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm xl:items-center"
+          onClick={() => setShowShortcutHelp(false)}
+        >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="review-shortcut-help-title"
             aria-describedby="review-shortcut-help-description"
+            onClick={(event) => event.stopPropagation()}
             className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-2xl"
           >
             <div className="flex flex-col gap-3 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
@@ -3770,7 +3774,7 @@ export function ReviewQueueClient({
                 <p className="text-sm font-medium text-[var(--accent-primary)]">Keyboard shortcut help</p>
                 <h3 id="review-shortcut-help-title" className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Stay in flow while triaging</h3>
                 <p id="review-shortcut-help-description" className="mt-1 text-sm text-[var(--text-secondary)]">
-                  This mirrors the queue shortcuts in a scannable layout. Press <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">?</kbd> to open or close it, and <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">Esc</kbd> to return focus to the queue, dismiss feedback, reset the view, or jump back out of row controls into the queue.
+                  This mirrors the queue shortcuts in a scannable layout. Press <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">?</kbd> to open or close it, click the backdrop or press <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5 text-xs">Esc</kbd> to return focus to the queue, dismiss feedback, reset the view, or jump back out of row controls into the queue.
                 </p>
               </div>
               <button
