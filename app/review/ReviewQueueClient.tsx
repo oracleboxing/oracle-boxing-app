@@ -1322,6 +1322,9 @@ export function ReviewQueueClient({
 
     window.requestAnimationFrame(() => {
       detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      window.requestAnimationFrame(() => {
+        detailPanelRef.current?.focus({ preventScroll: true })
+      })
     })
   }, [])
 
@@ -6515,9 +6518,9 @@ export function ReviewQueueClient({
           )}
         </div>
 
-        <aside ref={detailPanelRef} className="xl:sticky xl:top-6 xl:self-start max-xl:order-first">
+        <aside ref={detailPanelRef} tabIndex={-1} aria-labelledby="review-detail-title" className="xl:sticky xl:top-6 xl:self-start max-xl:order-first focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]">
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Review detail</h2>
+            <h2 id="review-detail-title" className="text-lg font-semibold text-[var(--text-primary)]">Review detail</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Honest prep for approve, reject, and merge, with the service-role write path finally wired instead of mocked.
             </p>
@@ -6881,6 +6884,8 @@ export function ReviewQueueClient({
                               <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Merge target</span>
                               <select
                                 value={preferredMergeTargetId ?? ''}
+                                aria-describedby={`${selectedCandidate.id}-merge-target-status${mergeTargetNeedsExplicitSelection ? ` ${selectedCandidate.id}-merge-target-warning` : ''}${matchedDrills.length > 1 ? ` ${selectedCandidate.id}-merge-target-shortcuts` : ''}`}
+                                aria-invalid={mergeTargetNeedsExplicitSelection && !preferredMergeTargetId ? true : undefined}
                                 aria-keyshortcuts={REVIEW_MERGE_TARGET_SHORTCUTS}
                                 onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
                                 onKeyDown={handleSelectEscape}
@@ -6893,18 +6898,18 @@ export function ReviewQueueClient({
                                   </option>
                                 ))}
                               </select>
-                              <span className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
+                              <span id={`${selectedCandidate.id}-merge-target-status`} className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
                                 {preferredMergeTarget
                                   ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
                                   : 'No likely canonical target yet for this candidate.'}
                               </span>
                               {mergeTargetNeedsExplicitSelection ? (
-                                <span className="mt-1 block text-xs leading-5 text-amber-700 dark:text-amber-400">
+                                <span id={`${selectedCandidate.id}-merge-target-warning`} className="mt-1 block text-xs leading-5 text-amber-700 dark:text-amber-400">
                                   Multiple matches found. Pick one target before merging this row.
                                 </span>
                               ) : null}
                               {matchedDrills.length > 1 ? (
-                                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
+                                <span id={`${selectedCandidate.id}-merge-target-shortcuts`} className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
                               ) : null}
                             </label>
 
