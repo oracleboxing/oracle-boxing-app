@@ -2200,10 +2200,11 @@ export function ReviewQueueClient({
       `Pending rows: ${pendingCandidates.length}`,
       `Current sort: ${SORT_MODE_LABELS[sortMode]}`,
       `Active search: ${query.trim() ? `“${query.trim()}”` : 'None'}`,
+      `Active scope: ${scopedCandidateIds ? `${scopeRequestedCount} linked row${scopeRequestedCount === 1 ? '' : 's'}` : 'Full queue'}`,
       `Active status slice: ${statusFilter === 'all' ? 'All statuses' : REVIEW_STATUS_LABELS[statusFilter]}`,
       `Active grade slice: ${gradeFilter === 'all' ? 'All grades' : formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}`,
       `Active category slice: ${categoryFilter === 'all' ? 'All categories' : categoryFilter}`,
-      `Active difficulty slice: ${difficultyFilter === 'all' ? 'All difficulties' : difficultyFilter}`,
+      `Active difficulty slice: ${difficultyFilter === 'all' ? 'All difficulties' : formatDifficultyLabel(difficultyFilter)}`,
       `Active source slice: ${sourceFilter === 'all' ? 'All sources' : sourceFilter}`,
       `Active triage slice: ${triageFilter === 'all' ? 'All visible pending' : getTriageLabel(triageFilter)}`,
       `Active completeness slice: ${completenessFilter === 'all' ? 'All extract levels' : COMPLETENESS_BAND_LABELS[completenessFilter]}`,
@@ -2271,7 +2272,7 @@ export function ReviewQueueClient({
       topVisibleFamily,
       handoffText: lines.join('\n'),
     }
-  }, [aiDecisionFilter, candidateInsights, categoryFilter, completenessFilter, difficultyFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, gradeFilter, pendingCandidates, pendingFamilyShapeSummary, query, sortMode, sortedCandidates, sourceFilter, statusFilter, suggestedActionFilter, triageFilter, visibleMissingSummaryCount, visiblePendingCompletenessCounts, visiblePendingTriageCounts])
+  }, [aiDecisionFilter, candidateInsights, categoryFilter, completenessFilter, difficultyFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, gradeFilter, pendingCandidates, pendingFamilyShapeSummary, query, scopeRequestedCount, scopedCandidateIds, sortMode, sortedCandidates, sourceFilter, statusFilter, suggestedActionFilter, triageFilter, visibleMissingSummaryCount, visiblePendingCompletenessCounts, visiblePendingTriageCounts])
 
   const reviewRoutes = useMemo(() => {
     const routeDefinitions: Array<{
