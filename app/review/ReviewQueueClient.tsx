@@ -3896,6 +3896,26 @@ export function ReviewQueueClient({
     openCandidateInQueue(leadCandidate.id)
   }, [openCandidateInQueue, sortedCandidates])
 
+  const searchStatusMessage = useMemo(() => {
+    const visibleCountLabel = `${sortedCandidates.length} visible candidate${sortedCandidates.length === 1 ? '' : 's'} in the current review slice.`
+    const trimmedQuery = query.trim()
+
+    if (!sortedCandidates.length) {
+      return trimmedQuery
+        ? `No visible candidates match “${trimmedQuery}”. ${hiddenSelectedCandidate ? `${getDisplayTitle(hiddenSelectedCandidate)} is currently outside this slice.` : 'Try clearing a filter or search term.'}`
+        : `${visibleCountLabel} No lead candidate is currently visible.`
+    }
+
+    const leadCandidate = sortedCandidates[0]
+    const leadLabel = `Lead result: ${getDisplayTitle(leadCandidate)}.`
+
+    if (trimmedQuery) {
+      return `${visibleCountLabel} Search query “${trimmedQuery}”. ${leadLabel}`
+    }
+
+    return `${visibleCountLabel} ${leadLabel}`
+  }, [hiddenSelectedCandidate, query, sortedCandidates])
+
   return (
     <>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
@@ -4009,7 +4029,7 @@ export function ReviewQueueClient({
                 Search the review queue by title, source, tags, notes, steps, or coaching cues. Press Enter to open the lead result and return focus to the queue. Use the up and down arrow keys to move from search into the queue. Press Escape to clear search first, then return focus to the selected row.
               </span>
               <span id="review-search-status" className="sr-only" aria-live="polite" aria-atomic="true">
-                {sortedCandidates.length} visible candidate{sortedCandidates.length === 1 ? '' : 's'} in the current review slice.
+                {searchStatusMessage}
               </span>
               <span className="mb-1 flex items-center gap-2">
                 <span>Search</span>
@@ -4066,6 +4086,7 @@ export function ReviewQueueClient({
                   focusCandidateRow(targetCandidate.id, { reveal: true })
                 }}
                 placeholder="Search title, source, tags, notes, steps, or coaching cues"
+                aria-label="Search review queue"
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               />
             </label>
