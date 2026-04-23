@@ -59,7 +59,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['[ / ]', 'Family hop'], description: 'Move to the previous or next pending family.' },
       { keys: [', / .', 'Family row'], description: 'Step through rows inside the current family.' },
       { keys: ['← / → or ; / \'' , 'Merge target'], description: 'Cycle the canonical merge target without leaving the keyboard.' },
-      { keys: ['4 / 5 / 6', 'Pick target'], description: 'Jump straight to the top likely merge targets by rank when multiple drill matches are surfaced.' },
+      { keys: ['4 / 5 / 6 / 7 / 8 / 9', 'Pick target'], description: 'Jump straight to the top visible merge targets by rank when multiple drill matches are surfaced.' },
       { keys: ['Shift + h', 'Copy family notes'], description: 'Copy the current duplicate-family handoff scaffold without leaving the keyboard.' },
     ],
   },
