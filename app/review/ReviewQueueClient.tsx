@@ -39,6 +39,7 @@ const REVIEW_MERGE_SHORTCUTS = 'M'
 const REVIEW_COPY_CANDIDATE_HANDOFF_SHORTCUTS = 'Y'
 const REVIEW_COPY_MERGE_HANDOFF_SHORTCUTS = 'Shift+Y'
 const REVIEW_COPY_QUEUE_HANDOFF_SHORTCUTS = 'H'
+const REVIEW_COPY_VIEW_SHORTCUTS = 'V'
 const REVIEW_RESET_VIEW_SHORTCUTS = '0'
 const REVIEW_PEEL_BACK_SHORTCUTS = 'Backspace'
 const REVIEW_FAMILY_FOCUS_SHORTCUTS = 'F'
@@ -4312,6 +4313,7 @@ export function ReviewQueueClient({
           <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-4">
             <button
               type="button"
+              aria-keyshortcuts={REVIEW_COPY_VIEW_SHORTCUTS}
               onClick={() => copyCurrentView(scopedCandidateIds ? 'Copied scoped review view link' : 'Copied review queue view link')}
               className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
@@ -6114,6 +6116,7 @@ export function ReviewQueueClient({
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
+                    aria-keyshortcuts={REVIEW_COPY_VIEW_SHORTCUTS}
                     onClick={() => copyCurrentView('Copied scoped review view link')}
                     className="inline-flex rounded-xl border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-950 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100 dark:hover:bg-sky-900/30"
                   >
