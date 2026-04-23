@@ -2202,6 +2202,7 @@ export function ReviewQueueClient({
       `Active grade slice: ${gradeFilter === 'all' ? 'All grades' : formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}`,
       `Active triage slice: ${triageFilter === 'all' ? 'All visible pending' : getTriageLabel(triageFilter)}`,
       `Active completeness slice: ${completenessFilter === 'all' ? 'All extract levels' : COMPLETENESS_BAND_LABELS[completenessFilter]}`,
+      `Active suggested-action lane: ${getSuggestedActionFilterLabel(suggestedActionFilter)}`,
       `Active duplicate lane: ${familyShapeFilter === 'all' ? 'All family shapes' : DUPLICATE_SHAPE_LABELS[familyShapeFilter]}`,
       `Active AI lane: ${getAiDecisionFilterLabel(aiDecisionFilter)}`,
       `Family focus: ${familyFilter ?? 'None'}`,
@@ -2265,7 +2266,7 @@ export function ReviewQueueClient({
       topVisibleFamily,
       handoffText: lines.join('\n'),
     }
-  }, [aiDecisionFilter, candidateInsights, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, gradeFilter, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, triageFilter, visibleMissingSummaryCount, visiblePendingCompletenessCounts, visiblePendingTriageCounts])
+  }, [aiDecisionFilter, candidateInsights, completenessFilter, duplicateFamilies.length, familyFilter, familyShapeFilter, gradeFilter, pendingCandidates, pendingFamilyShapeSummary, sortMode, sortedCandidates, suggestedActionFilter, triageFilter, visibleMissingSummaryCount, visiblePendingCompletenessCounts, visiblePendingTriageCounts])
 
   const reviewRoutes = useMemo(() => {
     const routeDefinitions: Array<{
