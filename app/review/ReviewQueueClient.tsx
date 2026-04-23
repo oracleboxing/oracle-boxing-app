@@ -4029,6 +4029,32 @@ export function ReviewQueueClient({
     return `${selectionTone}: ${preferredMergeTarget.title}. Match ${mergeTargetCountLabel}. ${matchReasonLabel}. ${readinessLabel}`
   }, [isUsingAutoMergeTarget, matchedDrills, mergeTargetNeedsExplicitSelection, preferredMergeTarget, preferredMergeTargetId, selectedCandidate])
 
+  const bulkSelectionAnnouncement = useMemo(() => {
+    if (selectedIds.length === 0) {
+      return 'No rows selected for bulk actions.'
+    }
+
+    const parts = [
+      `${selectedIds.length} row${selectedIds.length === 1 ? '' : 's'} selected for bulk actions.`,
+      `${visibleSelectedIds.length} visible in the current slice.`,
+      `${actionableSelectedIds.length} visible pending row${actionableSelectedIds.length === 1 ? '' : 's'} ready right now.`,
+    ]
+
+    if (hiddenSelectedCount > 0) {
+      parts.push(`${hiddenSelectedCount} hidden selected row${hiddenSelectedCount === 1 ? '' : 's'} will stay untouched until visible again.`)
+    }
+
+    if (skippedSelectedCount > 0) {
+      parts.push(`${skippedSelectedCount} visible reviewed row${skippedSelectedCount === 1 ? '' : 's'} will be skipped by bulk actions.`)
+    }
+
+    if (actionableSelectedIds.length > 0) {
+      parts.push(canRunMergeAction ? 'Bulk merge is ready with the current target.' : mergeTargetPrompt)
+    }
+
+    return parts.join(' ')
+  }, [actionableSelectedIds.length, canRunMergeAction, hiddenSelectedCount, mergeTargetPrompt, selectedIds.length, skippedSelectedCount, visibleSelectedIds.length])
+
   const queueListDescription = useMemo(() => {
     const parts = [
       `${sortedCandidates.length} visible candidate${sortedCandidates.length === 1 ? '' : 's'} sorted by ${SORT_MODE_LABELS[sortMode]}.`,
@@ -4054,6 +4080,9 @@ export function ReviewQueueClient({
       </div>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {mergeTargetAnnouncement}
+      </div>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {bulkSelectionAnnouncement}
       </div>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {isSubmitting ? 'Saving review action.' : null}
