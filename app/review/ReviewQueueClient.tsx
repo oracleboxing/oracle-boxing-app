@@ -402,6 +402,11 @@ function getReviewerNextMove(candidate: RawDrillCandidate, insight: CandidateIns
     : `Probably reject. Main issue: ${gaps[0].toLowerCase()}.`
 }
 
+function formatReadinessGapsForHandoff(candidate: RawDrillCandidate, insight: CandidateInsight) {
+  const gaps = getCandidateReadinessGaps(candidate, insight)
+  return gaps.length > 0 ? gaps.join(' • ') : 'No obvious readiness gaps surfaced'
+}
+
 function getStatusTone(status: ReviewStatus) {
   switch (status) {
     case 'pending':
@@ -2312,6 +2317,7 @@ export function ReviewQueueClient({
       lines.push(`Lead visible candidate: ${getDisplayTitle(leadCandidate)}`)
       lines.push(`Lead status: ${REVIEW_STATUS_LABELS[leadCandidate.review_status]} • ${getTriageLabel(leadInsight.triageLevel)}`)
       lines.push(`Lead next move: ${getReviewerNextMove(leadCandidate, leadInsight)}`)
+      lines.push(`Lead readiness gaps: ${formatReadinessGapsForHandoff(leadCandidate, leadInsight)}`)
       lines.push(`Lead source: ${getSourceLabel(leadCandidate)}`)
       if (leadCandidate.dedupe_key) {
         lines.push(`Lead family: ${leadCandidate.dedupe_key} (${leadInsight.familySize} rows)`)
@@ -2411,6 +2417,7 @@ export function ReviewQueueClient({
       `Lead status: ${REVIEW_STATUS_LABELS[leadFamily.leadCandidate.review_status]} • ${getTriageLabel(leadFamily.leadInsight.triageLevel)}`,
       `Recommended move: ${getDecisionLabel(leadFamily.leadDecision)}`,
       `Reviewer next move: ${getReviewerNextMove(leadFamily.leadCandidate, leadFamily.leadInsight)}`,
+      `Lead readiness gaps: ${formatReadinessGapsForHandoff(leadFamily.leadCandidate, leadFamily.leadInsight)}`,
       `Sample titles: ${leadFamily.sampleTitles.join(' • ')}`,
     ]
 
@@ -2433,6 +2440,7 @@ export function ReviewQueueClient({
       `Status: ${REVIEW_STATUS_LABELS[selectedCandidate.review_status]} • ${getTriageLabel(insight.triageLevel)}`,
       `Suggested action: ${getDecisionLabel(suggestedAction)}`,
       `Reviewer next move: ${getReviewerNextMove(selectedCandidate, insight)}`,
+      `Readiness gaps: ${formatReadinessGapsForHandoff(selectedCandidate, insight)}`,
       `Source: ${getSourceLabel(selectedCandidate)}`,
       `Completeness: ${insight.completenessLabel}`,
       `Difficulty: ${formatDifficultyLabel(selectedCandidate.difficulty)}`,
