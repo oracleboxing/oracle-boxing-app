@@ -962,6 +962,7 @@ export function ReviewQueueClient({
   const [selectedCanonicalDrillId, setSelectedCanonicalDrillId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const shortcutHelpDialogRef = useRef<HTMLDivElement | null>(null)
   const shortcutHelpCloseButtonRef = useRef<HTMLButtonElement | null>(null)
   const shortcutHelpTriggerRef = useRef<HTMLElement | null>(null)
 
@@ -1189,8 +1190,47 @@ export function ReviewQueueClient({
       shortcutHelpCloseButtonRef.current?.focus()
     })
 
+    const handleShortcutHelpTabTrap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+
+      const dialog = shortcutHelpDialogRef.current
+      if (!dialog) return
+
+      const focusableElements = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((element) => element.getAttribute('aria-hidden') !== 'true')
+
+      if (focusableElements.length === 0) {
+        event.preventDefault()
+        shortcutHelpCloseButtonRef.current?.focus()
+        return
+      }
+
+      const firstFocusable = focusableElements[0]
+      const lastFocusable = focusableElements[focusableElements.length - 1]
+      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
+
+      if (event.shiftKey) {
+        if (!activeElement || activeElement === firstFocusable || !dialog.contains(activeElement)) {
+          event.preventDefault()
+          lastFocusable.focus()
+        }
+        return
+      }
+
+      if (!activeElement || activeElement === lastFocusable || !dialog.contains(activeElement)) {
+        event.preventDefault()
+        firstFocusable.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleShortcutHelpTabTrap)
+
     return () => {
       window.cancelAnimationFrame(frame)
+      document.removeEventListener('keydown', handleShortcutHelpTabTrap)
     }
   }, [showShortcutHelp])
 
@@ -2515,6 +2555,46 @@ export function ReviewQueueClient({
   const previousFamilyWraps = selectedFamilyIndex === 0 && selectedFamilyCandidates.length > 1
   const nextFamilyWraps = selectedFamilyIndex === selectedFamilyCandidates.length - 1 && selectedFamilyCandidates.length > 1
 
+  const selectedCandidateAnnouncement = useMemo(() => {
+    if (sortedCandidates.length === 0) {
+      return 'No visible candidates in the current review slice.'
+    }
+
+    if (!selectedCandidate) {
+      return `${sortedCandidates.length} visible candidates. No candidate selected.`
+    }
+
+    const insight = candidateInsights.get(selectedCandidate.id)
+    const parts = [
+      `Selected ${getDisplayTitle(selectedCandidate)}.`,
+      `Visible row ${selectedCandidateIndex + 1} of ${sortedCandidates.length}.`,
+      `Status ${REVIEW_STATUS_LABELS[selectedCandidate.review_status]}.`,
+    ]
+
+    if (selectedPendingIndex >= 0) {
+      parts.push(`Pending row ${selectedPendingIndex + 1} of ${pendingCandidates.length}.`)
+    }
+
+    if (insight) {
+      parts.push(`${getTriageLabel(insight.triageLevel)}.`)
+      parts.push(`Suggested action ${getDecisionLabel(getCandidateDecisionHint(selectedCandidate, insight))}.`)
+    }
+
+    if (selectedCandidate.dedupe_key && selectedFamilyIndex >= 0) {
+      parts.push(`Family row ${selectedFamilyIndex + 1} of ${selectedFamilyCandidates.length}.`)
+    }
+
+    if (familyFilter && selectedCandidate.dedupe_key === familyFilter) {
+      parts.push('Family focus active.')
+    }
+
+    if (selectedIds.length > 0) {
+      parts.push(`${selectedIds.length} row${selectedIds.length === 1 ? '' : 's'} selected for bulk actions.`)
+    }
+
+    return parts.join(' ')
+  }, [candidateInsights, familyFilter, pendingCandidates.length, selectedCandidate, selectedCandidateIndex, selectedFamilyCandidates.length, selectedFamilyIndex, selectedIds.length, selectedPendingIndex, sortedCandidates.length])
+
   const nextDuplicateFamily = useMemo(() => {
     const currentFamilyKey = familyFilter ?? selectedCandidate?.dedupe_key ?? null
     return getAdjacentPendingDuplicateFamily(duplicateFamilies, currentFamilyKey, 'next')
@@ -3818,6 +3898,10 @@ export function ReviewQueueClient({
 
   return (
     <>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {selectedCandidateAnnouncement}
+      </div>
+
       {copyFeedback && (
         <div
           role="status"
@@ -3834,6 +3918,7 @@ export function ReviewQueueClient({
           onClick={() => setShowShortcutHelp(false)}
         >
           <div
+            ref={shortcutHelpDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="review-shortcut-help-title"
