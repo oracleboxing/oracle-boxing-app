@@ -1155,13 +1155,17 @@ export function ReviewQueueClient({
     void copyText(text, 'Copied family review notes')
   }, [copyText])
 
-  const focusCandidateRow = useCallback((candidateId: string) => {
+  const focusCandidateRow = useCallback((candidateId: string, options?: { reveal?: boolean }) => {
     if (typeof document === 'undefined') return
 
     const row = document.getElementById(`candidate-${candidateId}`)
     if (!(row instanceof HTMLElement)) return
 
-    row.focus({ preventScroll: true })
+    if (options?.reveal) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+
+    row.focus({ preventScroll: !options?.reveal })
   }, [])
 
   useEffect(() => {
@@ -2976,7 +2980,7 @@ export function ReviewQueueClient({
           const queueCandidate = selectedCandidate ?? sortedCandidates[0]
           if (queueCandidate) {
             window.setTimeout(() => {
-              focusCandidateRow(queueCandidate.id)
+              focusCandidateRow(queueCandidate.id, { reveal: true })
             }, 0)
           }
           return
@@ -2999,7 +3003,7 @@ export function ReviewQueueClient({
             searchInputRef.current?.blur()
             const queueCandidate = selectedCandidate ?? sortedCandidates[0]
             if (queueCandidate) {
-              focusCandidateRow(queueCandidate.id)
+              focusCandidateRow(queueCandidate.id, { reveal: true })
             }
           }
           return
@@ -3843,7 +3847,7 @@ export function ReviewQueueClient({
 
                   event.preventDefault()
                   selectCandidate(targetCandidate.id, { scrollIntoView: false })
-                  focusCandidateRow(targetCandidate.id)
+                  focusCandidateRow(targetCandidate.id, { reveal: true })
                 }}
                 placeholder="Title, source, summary, dedupe key"
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
