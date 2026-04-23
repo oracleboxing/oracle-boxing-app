@@ -1235,6 +1235,19 @@ export function ReviewQueueClient({
     })
   }, [])
 
+  const openCandidateInQueue = useCallback((candidateId: string) => {
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1279px)').matches) {
+      focusCandidateDetailPanel(candidateId)
+      return
+    }
+
+    selectCandidate(candidateId)
+
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => focusCandidateRow(candidateId, { reveal: true }))
+    }
+  }, [focusCandidateDetailPanel, focusCandidateRow, selectCandidate])
+
   const copyCurrentView = useCallback((label: string) => {
     if (typeof window === 'undefined') return
     void copyText(window.location.href, label)
@@ -2668,13 +2681,13 @@ export function ReviewQueueClient({
         openLeadRow: () => {
           onClick()
           if (leadCandidate) {
-            selectCandidate(leadCandidate.id)
+            openCandidateInQueue(leadCandidate.id)
           }
         },
         openNextOtherRow: () => {
           onClick()
           if (nextOtherCandidate) {
-            selectCandidate(nextOtherCandidate.id)
+            openCandidateInQueue(nextOtherCandidate.id)
           }
         },
         handoffText: handoffLines.join('\n'),
@@ -2765,6 +2778,7 @@ export function ReviewQueueClient({
     completenessFilter,
     difficultyFilter,
     gradeFilter,
+    openCandidateInQueue,
     selectCandidate,
     selectedCandidate,
     sourceFilter,
@@ -3727,19 +3741,6 @@ export function ReviewQueueClient({
     void copyText(selectedMergeHandoff, 'Copied selected merge handoff')
   }, [copyText, selectedMergeHandoff])
 
-  const openCandidateInQueue = useCallback((candidateId: string) => {
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1279px)').matches) {
-      focusCandidateDetailPanel(candidateId)
-      return
-    }
-
-    selectCandidate(candidateId)
-
-    if (typeof window !== 'undefined') {
-      window.requestAnimationFrame(() => focusCandidateRow(candidateId, { reveal: true }))
-    }
-  }, [focusCandidateDetailPanel, focusCandidateRow, selectCandidate])
-
   const openLeadSearchResult = useCallback(() => {
     const leadCandidate = sortedCandidates[0]
     if (!leadCandidate) return
@@ -4599,7 +4600,7 @@ export function ReviewQueueClient({
                   onClick={() => {
                     if (!route.leadCandidate) return
                     applyReviewRoute(route.key)
-                    selectCandidate(route.leadCandidate.id, { scrollIntoView: false })
+                    openCandidateInQueue(route.leadCandidate.id)
                   }}
                   className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                 >
