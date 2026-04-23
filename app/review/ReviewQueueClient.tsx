@@ -3819,7 +3819,11 @@ export function ReviewQueueClient({
   return (
     <>
       {copyFeedback && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 shadow-lg">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 shadow-lg"
+        >
           <p className="text-sm font-medium text-[var(--text-primary)]">{copyFeedback}</p>
         </div>
       )}
