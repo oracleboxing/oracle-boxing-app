@@ -381,7 +381,19 @@ function getCandidateReadinessGaps(candidate: RawDrillCandidate, insight: Candid
   return gaps
 }
 
+function getSuggestedActionLabelForHandoff(candidate: RawDrillCandidate, insight: CandidateInsight) {
+  if (candidate.review_status !== 'pending') {
+    return `Already ${REVIEW_STATUS_LABELS[candidate.review_status].toLowerCase()} (reference only, no pending action)`
+  }
+
+  return getDecisionLabel(getCandidateDecisionHint(candidate, insight))
+}
+
 function getReviewerNextMove(candidate: RawDrillCandidate, insight: CandidateInsight) {
+  if (candidate.review_status !== 'pending') {
+    return `Leave this row as-is unless a reviewer is double-checking the earlier ${REVIEW_STATUS_LABELS[candidate.review_status].toLowerCase()} decision.`
+  }
+
   const decision = getCandidateDecisionHint(candidate, insight)
   const gaps = getCandidateReadinessGaps(candidate, insight)
 
@@ -2483,7 +2495,7 @@ export function ReviewQueueClient({
       'Selected candidate handoff',
       `Candidate: ${getDisplayTitle(selectedCandidate)}`,
       `Status: ${REVIEW_STATUS_LABELS[selectedCandidate.review_status]} • ${getTriageLabel(insight.triageLevel)}`,
-      `Suggested action: ${getDecisionLabel(suggestedAction)}`,
+      `Suggested action: ${getSuggestedActionLabelForHandoff(selectedCandidate, insight)}`,
       `Reviewer next move: ${getReviewerNextMove(selectedCandidate, insight)}`,
       `Readiness gaps: ${formatReadinessGapsForHandoff(selectedCandidate, insight)}`,
       `Source: ${getSourceLabel(selectedCandidate)}`,
@@ -2515,7 +2527,7 @@ export function ReviewQueueClient({
       'Selected merge handoff',
       `Candidate: ${getDisplayTitle(selectedCandidate)} (${selectedCandidate.id})`,
       `Candidate status: ${REVIEW_STATUS_LABELS[selectedCandidate.review_status]} • ${getTriageLabel(insight.triageLevel)}`,
-      `Suggested action: ${getDecisionLabel(getCandidateDecisionHint(selectedCandidate, insight))}`,
+      `Suggested action: ${getSuggestedActionLabelForHandoff(selectedCandidate, insight)}`,
       `Merge target: ${preferredMergeTarget.title} (${preferredMergeTarget.id})`,
       `Target selection: ${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Reviewer-selected target'}`,
       `Merge readiness: ${mergeTargetNeedsExplicitSelection ? mergeTargetPrompt : 'Merge-ready with the selected target'}`,
