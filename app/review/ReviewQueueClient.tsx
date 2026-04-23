@@ -1331,6 +1331,19 @@ export function ReviewQueueClient({
     }
   }, [focusCandidateDetailPanel, focusCandidateRow, selectCandidate])
 
+  const openCandidateFromSummary = useCallback((candidateId: string, applySummaryFilter: () => void) => {
+    applySummaryFilter()
+
+    if (typeof window === 'undefined') {
+      openCandidateInQueue(candidateId)
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      openCandidateInQueue(candidateId)
+    })
+  }, [openCandidateInQueue])
+
   const copyCurrentView = useCallback((label: string) => {
     if (typeof window === 'undefined') return
     void copyText(window.location.href, label)
@@ -5012,8 +5025,7 @@ export function ReviewQueueClient({
                             disabled={!gradeSummary?.leadCandidate}
                             onClick={() => {
                               if (!gradeSummary?.leadCandidate) return
-                              toggleGradeFocus(grade)
-                              selectCandidate(gradeSummary.leadCandidate.id, { scrollIntoView: false })
+                              openCandidateFromSummary(gradeSummary.leadCandidate.id, () => toggleGradeFocus(grade))
                             }}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
@@ -5116,8 +5128,7 @@ export function ReviewQueueClient({
                           disabled={!decisionSummary?.leadCandidate}
                           onClick={() => {
                             if (!decisionSummary?.leadCandidate) return
-                            toggleAiDecisionFocus(decision)
-                            selectCandidate(decisionSummary.leadCandidate.id, { scrollIntoView: false })
+                            openCandidateFromSummary(decisionSummary.leadCandidate.id, () => toggleAiDecisionFocus(decision))
                           }}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                         >
@@ -5220,8 +5231,7 @@ export function ReviewQueueClient({
                           disabled={!triageSummary?.leadCandidate}
                           onClick={() => {
                             if (!triageSummary?.leadCandidate) return
-                            setTriageFilter(level)
-                            selectCandidate(triageSummary.leadCandidate.id, { scrollIntoView: false })
+                            openCandidateFromSummary(triageSummary.leadCandidate.id, () => setTriageFilter(level))
                           }}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                         >
@@ -5322,8 +5332,7 @@ export function ReviewQueueClient({
                           disabled={!completenessSummary?.leadCandidate}
                           onClick={() => {
                             if (!completenessSummary?.leadCandidate) return
-                            toggleCompletenessFocus(band)
-                            selectCandidate(completenessSummary.leadCandidate.id, { scrollIntoView: false })
+                            openCandidateFromSummary(completenessSummary.leadCandidate.id, () => toggleCompletenessFocus(band))
                           }}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                         >
