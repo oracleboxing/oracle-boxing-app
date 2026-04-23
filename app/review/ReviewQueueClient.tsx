@@ -4005,6 +4005,12 @@ export function ReviewQueueClient({
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             <label className="text-sm text-[var(--text-secondary)]">
+              <span id="review-search-help" className="sr-only">
+                Search the review queue by title, source, tags, notes, steps, or coaching cues. Press Enter to open the lead result and return focus to the queue. Use the up and down arrow keys to move from search into the queue. Press Escape to clear search first, then return focus to the selected row.
+              </span>
+              <span id="review-search-status" className="sr-only" aria-live="polite" aria-atomic="true">
+                {sortedCandidates.length} visible candidate{sortedCandidates.length === 1 ? '' : 's'} in the current review slice.
+              </span>
               <span className="mb-1 flex items-center gap-2">
                 <span>Search</span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
@@ -4037,6 +4043,8 @@ export function ReviewQueueClient({
               </span>
               <input
                 ref={searchInputRef}
+                aria-describedby="review-search-help review-search-status"
+                aria-controls="review-queue-list"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
@@ -6113,7 +6121,7 @@ export function ReviewQueueClient({
               }
             />
           ) : (
-            <div className="space-y-4">
+            <div id="review-queue-list" className="space-y-4">
               <div className="hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] lg:flex lg.items-center lg:justify-between">
                 <span>Sorted by <span className="font-medium text-[var(--text-primary)]">{SORT_MODE_LABELS[sortMode]}</span></span>
                 <span>{sortedCandidates.length} visible candidates</span>
