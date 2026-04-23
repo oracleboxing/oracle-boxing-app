@@ -81,6 +81,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['o / Shift + o', 'Cycle sort'], description: 'Step through queue sort modes without leaving the keyboard or opening the sort dropdown.' },
       { keys: ['b / t / d', 'Focus current row context'], description: 'Toggle the selected row’s source batch, drill type, or difficulty filter without leaving the keyboard.' },
       { keys: ['h', 'Copy queue handoff'], description: 'Copy the current review-slice handoff without leaving the keyboard.' },
+      { keys: ['v', 'Copy view link'], description: 'Copy the current review queue URL, including any active filters or scoped review set.' },
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
       { keys: ['0', 'Reset view'], description: 'Snap the queue back to the default pending triage view and clear bulk selection in one move.' },
       { keys: ['Backspace', 'Peel back'], description: 'Clear bulk selection first, then peel back the most recent active view modifier.' },
@@ -3282,6 +3283,12 @@ export function ReviewQueueClient({
         return
       }
 
+      if (key === 'v') {
+        event.preventDefault()
+        copyCurrentView(scopedCandidateIds ? 'Copied scoped review view link' : 'Copied review queue view link')
+        return
+      }
+
       if (key === 'y') {
         event.preventDefault()
 
@@ -3471,6 +3478,7 @@ export function ReviewQueueClient({
     copyFeedback,
     copyText,
     currentSliceSummary.handoffText,
+    copyCurrentView,
     cycleMergeTarget,
     difficultyFilter,
     familyFilter,
@@ -4011,7 +4019,7 @@ export function ReviewQueueClient({
               onClick={() => copyCurrentView(scopedCandidateIds ? 'Copied scoped review view link' : 'Copied review queue view link')}
               className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
-              Copy current view
+              Copy current view (V)
             </button>
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
               {sortedCandidates.length} visible
@@ -5806,7 +5814,7 @@ export function ReviewQueueClient({
                     onClick={() => copyCurrentView('Copied scoped review view link')}
                     className="inline-flex rounded-xl border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-950 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100 dark:hover:bg-sky-900/30"
                   >
-                    Copy scope link
+                    Copy scope link (V)
                   </button>
                   <button
                     type="button"
