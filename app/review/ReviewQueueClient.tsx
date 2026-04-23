@@ -6412,6 +6412,10 @@ export function ReviewQueueClient({
 
                           <button
                             type="button"
+                            aria-controls="review-detail-panel"
+                            aria-describedby={rowSummaryId}
+                            aria-pressed={isSelected}
+                            aria-label={`${isSelected ? 'Viewing' : 'Open'} details for ${getDisplayTitle(candidate)}`}
                             onClick={() => focusCandidateDetailPanel(candidate.id)}
                             className="min-w-0 flex-1 text-left"
                           >
@@ -6612,7 +6616,7 @@ export function ReviewQueueClient({
           )}
         </div>
 
-        <aside ref={detailPanelRef} tabIndex={-1} aria-labelledby="review-detail-title" aria-keyshortcuts={REVIEW_RETURN_TO_QUEUE_SHORTCUTS} className="xl:sticky xl:top-6 xl:self-start max-xl:order-first focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]">
+        <aside id="review-detail-panel" ref={detailPanelRef} tabIndex={-1} aria-labelledby="review-detail-title" aria-keyshortcuts={REVIEW_RETURN_TO_QUEUE_SHORTCUTS} className="xl:sticky xl:top-6 xl:self-start max-xl:order-first focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]">
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
             <h2 id="review-detail-title" className="text-lg font-semibold text-[var(--text-primary)]">Review detail</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
