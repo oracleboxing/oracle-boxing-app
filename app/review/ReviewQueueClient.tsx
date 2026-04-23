@@ -28,6 +28,23 @@ const REVIEW_ROUTE_SHORTCUTS: Record<ReviewRouteKey, '1' | '2' | '3'> = {
 
 const MERGE_TARGET_SHORTCUT_KEYS = ['4', '5', '6', '7', '8', '9'] as const
 
+const REVIEW_QUEUE_ROW_SHORTCUTS = 'Enter S X Escape'
+const REVIEW_SEARCH_SHORTCUTS = '/ Control+K Meta+K Enter ArrowDown ArrowUp Escape'
+const REVIEW_HELP_SHORTCUTS = 'Shift+/'
+const REVIEW_SUGGESTED_ACTION_SHORTCUTS = 'Enter S'
+const REVIEW_SELECT_SHORTCUTS = 'X Space'
+const REVIEW_APPROVE_SHORTCUTS = 'A'
+const REVIEW_REJECT_SHORTCUTS = 'R'
+const REVIEW_MERGE_SHORTCUTS = 'M'
+const REVIEW_COPY_CANDIDATE_HANDOFF_SHORTCUTS = 'Y'
+const REVIEW_COPY_MERGE_HANDOFF_SHORTCUTS = 'Shift+Y'
+const REVIEW_FAMILY_FOCUS_SHORTCUTS = 'F'
+const REVIEW_PREVIOUS_DUPLICATE_FAMILY_SHORTCUTS = '['
+const REVIEW_NEXT_DUPLICATE_FAMILY_SHORTCUTS = ']'
+const REVIEW_PREVIOUS_FAMILY_ROW_SHORTCUTS = ','
+const REVIEW_NEXT_FAMILY_ROW_SHORTCUTS = '.'
+const REVIEW_MERGE_TARGET_SHORTCUTS = "4 5 6 7 8 9 ArrowLeft ArrowRight ; '"
+
 const REVIEW_SHORTCUT_GROUPS = [
   {
     title: 'Navigate the queue',
@@ -3977,6 +3994,7 @@ export function ReviewQueueClient({
               <button
                 ref={shortcutHelpCloseButtonRef}
                 type="button"
+                aria-keyshortcuts="Escape Shift+/"
                 onClick={() => setShowShortcutHelp(false)}
                 className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
               >
@@ -4020,6 +4038,7 @@ export function ReviewQueueClient({
               </div>
               <button
                 type="button"
+                aria-keyshortcuts={REVIEW_HELP_SHORTCUTS}
                 onClick={() => setShowShortcutHelp(true)}
                 className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
               >
@@ -4085,6 +4104,7 @@ export function ReviewQueueClient({
                 ref={searchInputRef}
                 aria-describedby="review-search-help review-search-status"
                 aria-controls="review-queue-list"
+                aria-keyshortcuts={REVIEW_SEARCH_SHORTCUTS}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
@@ -6191,6 +6211,7 @@ export function ReviewQueueClient({
                     aria-current={isSelected ? 'true' : undefined}
                     aria-labelledby={rowTitleId}
                     aria-describedby={rowSummaryId}
+                    aria-keyshortcuts={REVIEW_QUEUE_ROW_SHORTCUTS}
                     onFocusCapture={() => {
                       if (selectedCandidateId === candidate.id) return
                       selectCandidate(candidate.id, { scrollIntoView: false })
@@ -6209,6 +6230,7 @@ export function ReviewQueueClient({
                             <input
                               type="checkbox"
                               checked={isBulkSelected}
+                              aria-keyshortcuts={REVIEW_SELECT_SHORTCUTS}
                               onChange={() => toggleSelected(candidate.id)}
                               className="h-4 w-4 rounded border-[var(--border)] bg-[var(--surface-primary)] text-[var(--accent-primary)]"
                             />
@@ -6258,6 +6280,7 @@ export function ReviewQueueClient({
                       <div className="grid gap-2 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-2">
                         <button
                           type="button"
+                          aria-keyshortcuts={REVIEW_SUGGESTED_ACTION_SHORTCUTS}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || (suggestedAction === 'merge' && (!isSelected || !canRunMergeAction))}
                           onClick={() => {
                             if (suggestedAction === 'keep') {
@@ -6334,6 +6357,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
+                          aria-keyshortcuts={REVIEW_APPROVE_SHORTCUTS}
                           disabled={isSubmitting || candidate.review_status !== 'pending'}
                           onClick={() =>
                             runReviewAction({
@@ -6349,6 +6373,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
+                          aria-keyshortcuts={REVIEW_REJECT_SHORTCUTS}
                           disabled={isSubmitting || candidate.review_status !== 'pending'}
                           onClick={() =>
                             runReviewAction({
@@ -6364,6 +6389,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
+                          aria-keyshortcuts={REVIEW_MERGE_SHORTCUTS}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || !isSelected || !canRunMergeAction}
                           onClick={() =>
                             canRunMergeAction && preferredMergeTargetId
@@ -6559,6 +6585,7 @@ export function ReviewQueueClient({
                     <div className="mt-2 grid gap-2 sm:grid-cols-3">
                       <button
                         type="button"
+                        aria-keyshortcuts={REVIEW_FAMILY_FOCUS_SHORTCUTS}
                         onClick={() =>
                           familyFilter === selectedCandidate.dedupe_key
                             ? clearFamilyFocus()
@@ -6574,6 +6601,7 @@ export function ReviewQueueClient({
 
                       <button
                         type="button"
+                        aria-keyshortcuts={REVIEW_PREVIOUS_DUPLICATE_FAMILY_SHORTCUTS}
                         disabled={!previousDuplicateFamily || previousDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
                         onClick={() => previousDuplicateFamily ? focusFamily(previousDuplicateFamily.dedupeKey, previousDuplicateFamily.leadCandidate?.id ?? null) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -6586,6 +6614,7 @@ export function ReviewQueueClient({
 
                       <button
                         type="button"
+                        aria-keyshortcuts={REVIEW_NEXT_DUPLICATE_FAMILY_SHORTCUTS}
                         disabled={!nextDuplicateFamily || nextDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
                         onClick={() => nextDuplicateFamily ? focusFamily(nextDuplicateFamily.dedupeKey, nextDuplicateFamily.leadCandidate?.id ?? null) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -6602,6 +6631,7 @@ export function ReviewQueueClient({
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       <button
                         type="button"
+                        aria-keyshortcuts={REVIEW_PREVIOUS_FAMILY_ROW_SHORTCUTS}
                         disabled={!previousFamilyCandidate || previousFamilyCandidate.id === selectedCandidate.id}
                         onClick={() => previousFamilyCandidate ? selectCandidate(previousFamilyCandidate.id, { scrollIntoView: false }) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -6616,6 +6646,7 @@ export function ReviewQueueClient({
 
                       <button
                         type="button"
+                        aria-keyshortcuts={REVIEW_NEXT_FAMILY_ROW_SHORTCUTS}
                         disabled={!nextFamilyCandidate || nextFamilyCandidate.id === selectedCandidate.id}
                         onClick={() => nextFamilyCandidate ? selectCandidate(nextFamilyCandidate.id, { scrollIntoView: false }) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -6655,6 +6686,7 @@ export function ReviewQueueClient({
                             {selectedCandidateHandoff ? (
                               <button
                                 type="button"
+                                aria-keyshortcuts={REVIEW_COPY_CANDIDATE_HANDOFF_SHORTCUTS}
                                 onClick={copySelectedCandidateHandoff}
                                 className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
@@ -6677,6 +6709,7 @@ export function ReviewQueueClient({
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
                           <button
                             type="button"
+                            aria-keyshortcuts={REVIEW_SUGGESTED_ACTION_SHORTCUTS}
                             disabled={!selectedCandidateIsPending || isSubmitting || (suggestedAction === 'merge' && !canRunMergeAction)}
                             onClick={() => {
                               if (suggestedAction === 'keep') {
@@ -6731,6 +6764,7 @@ export function ReviewQueueClient({
 
                           <button
                             type="button"
+                            aria-keyshortcuts={REVIEW_APPROVE_SHORTCUTS}
                             disabled={!selectedCandidateIsPending || isSubmitting}
                             onClick={() =>
                               runReviewAction({
@@ -6747,6 +6781,7 @@ export function ReviewQueueClient({
 
                           <button
                             type="button"
+                            aria-keyshortcuts={REVIEW_REJECT_SHORTCUTS}
                             disabled={!selectedCandidateIsPending || isSubmitting}
                             onClick={() =>
                               runReviewAction({
@@ -6768,6 +6803,7 @@ export function ReviewQueueClient({
                               <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Merge target</span>
                               <select
                                 value={preferredMergeTargetId ?? ''}
+                                aria-keyshortcuts={REVIEW_MERGE_TARGET_SHORTCUTS}
                                 onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
                                 className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
                               >
@@ -6796,6 +6832,7 @@ export function ReviewQueueClient({
                             {selectedMergeHandoff ? (
                               <button
                                 type="button"
+                                aria-keyshortcuts={REVIEW_COPY_MERGE_HANDOFF_SHORTCUTS}
                                 onClick={copySelectedMergeHandoff}
                                 className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
@@ -6807,6 +6844,7 @@ export function ReviewQueueClient({
 
                           <button
                             type="button"
+                            aria-keyshortcuts={REVIEW_MERGE_SHORTCUTS}
                             disabled={!selectedCandidateIsPending || isSubmitting || !canRunMergeAction}
                             onClick={() =>
                               canRunMergeAction && preferredMergeTargetId
