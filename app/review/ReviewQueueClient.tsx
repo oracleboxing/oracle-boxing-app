@@ -3134,13 +3134,14 @@ export function ReviewQueueClient({
       }
 
       const shortcutTargetContext = getShortcutTargetContext(event.target)
-      const isRowControlTarget = shortcutTargetContext === 'row-control'
+      const candidateIdFromTarget = getCandidateIdFromTarget(event.target)
+      const shouldKeepQueueFocus = shortcutTargetContext === 'row-control' || Boolean(candidateIdFromTarget)
 
       if (shortcutTargetContext === 'text-entry' || shortcutTargetContext === 'interactive') {
         return
       }
 
-      if (isRowControlTarget && (event.key === 'Enter' || event.key === ' ')) {
+      if (shortcutTargetContext === 'row-control' && (event.key === 'Enter' || event.key === ' ')) {
         return
       }
 
@@ -3245,7 +3246,7 @@ export function ReviewQueueClient({
         if (sortedCandidates.length === 0) return
 
         const targetCandidate = event.key === 'End' || (key === 'g' && event.shiftKey) ? sortedCandidates[sortedCandidates.length - 1] : sortedCandidates[0]
-        moveKeyboardSelection(targetCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
+        moveKeyboardSelection(targetCandidate?.id ?? null, { focusQueueRow: shouldKeepQueueFocus })
         return
       }
 
@@ -3254,7 +3255,7 @@ export function ReviewQueueClient({
         if (sortedCandidates.length === 0) return
 
         const targetCandidate = getOffsetCandidate(sortedCandidates, selectedCandidateId, event.key === 'PageDown' ? 10 : -10)
-        moveKeyboardSelection(targetCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
+        moveKeyboardSelection(targetCandidate?.id ?? null, { focusQueueRow: shouldKeepQueueFocus })
         return
       }
 
@@ -3265,25 +3266,25 @@ export function ReviewQueueClient({
         const shouldMoveForward = key === 'j' || event.key === 'ArrowDown'
         const adjacentCandidate = getAdjacentCandidate(sortedCandidates, selectedCandidateId, shouldMoveForward ? 'next' : 'previous')
 
-        moveKeyboardSelection(adjacentCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
+        moveKeyboardSelection(adjacentCandidate?.id ?? null, { focusQueueRow: shouldKeepQueueFocus })
         return
       }
 
       if (key === 'n') {
         event.preventDefault()
-        moveKeyboardSelection(nextPendingCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
+        moveKeyboardSelection(nextPendingCandidate?.id ?? null, { focusQueueRow: shouldKeepQueueFocus })
         return
       }
 
       if (key === 'p') {
         event.preventDefault()
-        moveKeyboardSelection(previousPendingCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
+        moveKeyboardSelection(previousPendingCandidate?.id ?? null, { focusQueueRow: shouldKeepQueueFocus })
         return
       }
 
       if (key === 'l') {
         event.preventDefault()
-        moveKeyboardSelection(leadVisibleCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
+        moveKeyboardSelection(leadVisibleCandidate?.id ?? null, { focusQueueRow: shouldKeepQueueFocus })
         return
       }
 
@@ -3323,7 +3324,7 @@ export function ReviewQueueClient({
         if (nextDuplicateFamily) {
           focusFamily(nextDuplicateFamily.dedupeKey, nextDuplicateFamily.leadCandidate?.id ?? null)
 
-          if (isRowControlTarget && nextDuplicateFamily.leadCandidate?.id) {
+          if (shouldKeepQueueFocus && nextDuplicateFamily.leadCandidate?.id) {
             window.requestAnimationFrame(() => {
               focusCandidateRow(nextDuplicateFamily.leadCandidate?.id ?? '')
             })
@@ -3337,7 +3338,7 @@ export function ReviewQueueClient({
         if (previousDuplicateFamily) {
           focusFamily(previousDuplicateFamily.dedupeKey, previousDuplicateFamily.leadCandidate?.id ?? null)
 
-          if (isRowControlTarget && previousDuplicateFamily.leadCandidate?.id) {
+          if (shouldKeepQueueFocus && previousDuplicateFamily.leadCandidate?.id) {
             window.requestAnimationFrame(() => {
               focusCandidateRow(previousDuplicateFamily.leadCandidate?.id ?? '')
             })
@@ -3348,13 +3349,13 @@ export function ReviewQueueClient({
 
       if (event.key === '.') {
         event.preventDefault()
-        moveKeyboardSelection(nextFamilyCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
+        moveKeyboardSelection(nextFamilyCandidate?.id ?? null, { focusQueueRow: shouldKeepQueueFocus })
         return
       }
 
       if (event.key === ',') {
         event.preventDefault()
-        moveKeyboardSelection(previousFamilyCandidate?.id ?? null, { focusQueueRow: isRowControlTarget })
+        moveKeyboardSelection(previousFamilyCandidate?.id ?? null, { focusQueueRow: shouldKeepQueueFocus })
         return
       }
 
@@ -3420,7 +3421,7 @@ export function ReviewQueueClient({
         applyReviewRoute(route.key)
         if (route.leadCandidate) {
           shouldScrollSelectedCandidateIntoViewRef.current = true
-          shouldFocusSelectedCandidateRowRef.current = isRowControlTarget
+          shouldFocusSelectedCandidateRowRef.current = shouldKeepQueueFocus
           selectCandidate(route.leadCandidate.id, { scrollIntoView: false })
         }
         return
