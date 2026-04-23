@@ -29,6 +29,7 @@ const REVIEW_ROUTE_SHORTCUTS: Record<ReviewRouteKey, '1' | '2' | '3'> = {
 const MERGE_TARGET_SHORTCUT_KEYS = ['4', '5', '6', '7', '8', '9'] as const
 
 const REVIEW_QUEUE_ROW_SHORTCUTS = 'Enter S X Escape'
+const REVIEW_RETURN_TO_QUEUE_SHORTCUTS = 'Escape'
 const REVIEW_SEARCH_SHORTCUTS = '/ Control+K Meta+K Enter ArrowDown ArrowUp Escape'
 const REVIEW_HELP_SHORTCUTS = 'Shift+/'
 const REVIEW_SUGGESTED_ACTION_SHORTCUTS = 'Enter S'
@@ -106,7 +107,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
       { keys: ['0', 'Reset view'], description: 'Snap the queue back to the default pending triage view and clear bulk selection in one move.' },
       { keys: ['Backspace', 'Peel back'], description: 'Clear bulk selection first, then peel back the most recent active view modifier.' },
-      { keys: ['Esc', 'Dismiss, reset, or return'], description: 'Close help and hand focus back to the queue, dismiss feedback, clear active modifiers, or jump back from row controls into the active queue row.' },
+      { keys: ['Esc', 'Dismiss, reset, or return'], description: 'Close help and hand focus back to the queue, dismiss feedback, jump back from detail-panel or row controls into the active queue row, or clear active modifiers when nothing else is in the way.' },
       { keys: ['?', 'Shortcut help'], description: 'Open or close this keyboard reference.' },
     ],
   },
@@ -3266,6 +3267,20 @@ export function ReviewQueueClient({
             }
           }
           return
+        }
+
+        const isDetailPanelFocused =
+          event.target instanceof Node &&
+          detailPanelRef.current instanceof HTMLElement &&
+          detailPanelRef.current.contains(event.target)
+
+        if (isDetailPanelFocused) {
+          const queueCandidate = selectedCandidate ?? sortedCandidates[0]
+          if (queueCandidate) {
+            event.preventDefault()
+            focusCandidateRow(queueCandidate.id, { reveal: true })
+            return
+          }
         }
 
         if (selectedIds.length > 0) {
@@ -6540,11 +6555,11 @@ export function ReviewQueueClient({
           )}
         </div>
 
-        <aside ref={detailPanelRef} tabIndex={-1} aria-labelledby="review-detail-title" className="xl:sticky xl:top-6 xl:self-start max-xl:order-first focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]">
+        <aside ref={detailPanelRef} tabIndex={-1} aria-labelledby="review-detail-title" aria-keyshortcuts={REVIEW_RETURN_TO_QUEUE_SHORTCUTS} className="xl:sticky xl:top-6 xl:self-start max-xl:order-first focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]">
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
             <h2 id="review-detail-title" className="text-lg font-semibold text-[var(--text-primary)]">Review detail</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Honest prep for approve, reject, and merge, with the service-role write path finally wired instead of mocked.
+              Honest prep for approve, reject, and merge, with the service-role write path finally wired instead of mocked. Press Esc to jump back to the active queue row.
             </p>
 
             {!selectedCandidate ? (
