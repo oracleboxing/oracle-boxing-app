@@ -1109,6 +1109,7 @@ export function ReviewQueueClient({
 
     document.body.appendChild(textarea)
 
+    const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const selection = document.getSelection()
     const originalRanges = selection ? Array.from({ length: selection.rangeCount }, (_, index) => selection.getRangeAt(index)) : []
 
@@ -1129,6 +1130,10 @@ export function ReviewQueueClient({
     if (selection) {
       selection.removeAllRanges()
       originalRanges.forEach((range) => selection.addRange(range))
+    }
+
+    if (activeElement?.isConnected) {
+      activeElement.focus({ preventScroll: true })
     }
 
     return didCopy
