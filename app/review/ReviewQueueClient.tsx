@@ -6154,7 +6154,7 @@ export function ReviewQueueClient({
               }
             />
           ) : (
-            <div id="review-queue-list" className="space-y-4">
+            <div id="review-queue-list" role="list" aria-label="Review queue candidates" className="space-y-4">
               <div className="hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] lg:flex lg.items-center lg:justify-between">
                 <span>Sorted by <span className="font-medium text-[var(--text-primary)]">{SORT_MODE_LABELS[sortMode]}</span></span>
                 <span>{sortedCandidates.length} visible candidates</span>
@@ -6167,12 +6167,18 @@ export function ReviewQueueClient({
                 if (!insight) return null
 
                 const suggestedAction = getCandidateDecisionHint(candidate, insight)
+                const rowTitleId = `candidate-title-${candidate.id}`
+                const rowSummaryId = `candidate-summary-${candidate.id}`
 
                 return (
                   <article
                     key={candidate.id}
                     id={`candidate-${candidate.id}`}
+                    role="listitem"
                     tabIndex={-1}
+                    aria-current={isSelected ? 'true' : undefined}
+                    aria-labelledby={rowTitleId}
+                    aria-describedby={rowSummaryId}
                     onFocusCapture={() => {
                       if (selectedCandidateId === candidate.id) return
                       selectCandidate(candidate.id, { scrollIntoView: false })
@@ -6181,6 +6187,9 @@ export function ReviewQueueClient({
                       isSelected ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)]'
                     }`}
                   >
+                    <p id={rowSummaryId} className="sr-only">
+                      {`${isSelected ? 'Current queue row.' : 'Queue row.'} Status ${REVIEW_STATUS_LABELS[candidate.review_status]}. ${getTriageLabel(insight.triageLevel)}. Suggested action ${getDecisionLabel(suggestedAction)}.${candidate.dedupe_key ? ` Family ${candidate.dedupe_key}.` : ''} Press Enter or S to apply the suggested action, X to toggle bulk selection, and Escape to return focus to this row from its controls.`}
+                    </p>
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-start gap-3">
@@ -6200,7 +6209,7 @@ export function ReviewQueueClient({
                             className="min-w-0 flex-1 text-left"
                           >
                             <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-lg font-semibold text-[var(--text-primary)]">{getDisplayTitle(candidate)}</h3>
+                              <h3 id={rowTitleId} className="text-lg font-semibold text-[var(--text-primary)]">{getDisplayTitle(candidate)}</h3>
                               <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
                                 {REVIEW_STATUS_LABELS[candidate.review_status]}
                               </span>
