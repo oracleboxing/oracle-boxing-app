@@ -79,7 +79,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     shortcuts: [
       { keys: ['1 / 2 / 3', 'Route jump'], description: 'Jump into the highest-value review route.' },
       { keys: ['o / Shift + o', 'Cycle sort'], description: 'Step through queue sort modes without leaving the keyboard or opening the sort dropdown.' },
-      { keys: ['b / t / d', 'Focus current row context'], description: 'Toggle the selected row’s source batch, drill type, or difficulty filter without leaving the keyboard.' },
+      { keys: ['b / t / d / i', 'Focus current row context'], description: 'Toggle the selected row’s source batch, drill type, difficulty, or AI recommendation filter without leaving the keyboard.' },
       { keys: ['h', 'Copy queue handoff'], description: 'Copy the current review-slice handoff without leaving the keyboard.' },
       { keys: ['v', 'Copy view link'], description: 'Copy the current review queue URL, including any active filters or scoped review set.' },
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
@@ -3353,6 +3353,13 @@ export function ReviewQueueClient({
         return
       }
 
+      if (key === 'i') {
+        event.preventDefault()
+        if (!selectedCandidate) return
+        toggleAiDecisionFocus(getAiDecisionFilterValue(selectedCandidate.ai_decision ?? null))
+        return
+      }
+
       const mergeTargetShortcutIndex = MERGE_TARGET_SHORTCUT_KEYS.indexOf(key as (typeof MERGE_TARGET_SHORTCUT_KEYS)[number])
       if (mergeTargetShortcutIndex !== -1) {
         const shortcutTarget = matchedDrills[mergeTargetShortcutIndex]
@@ -3517,6 +3524,7 @@ export function ReviewQueueClient({
     sourceFilter,
     statusFilter,
     suggestedActionFilter,
+    toggleAiDecisionFocus,
     toggleCategoryFocus,
     toggleDifficultyFocus,
     toggleSelectAllVisiblePending,
