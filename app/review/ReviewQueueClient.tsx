@@ -6403,6 +6403,7 @@ export function ReviewQueueClient({
                             <input
                               type="checkbox"
                               checked={isBulkSelected}
+                              aria-describedby={rowSummaryId}
                               aria-keyshortcuts={REVIEW_SELECT_SHORTCUTS}
                               onChange={() => toggleSelected(candidate.id)}
                               className="h-4 w-4 rounded border-[var(--border)] bg-[var(--surface-primary)] text-[var(--accent-primary)]"
@@ -6457,6 +6458,7 @@ export function ReviewQueueClient({
                       <div className="grid gap-2 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-2">
                         <button
                           type="button"
+                          aria-describedby={rowSummaryId}
                           aria-keyshortcuts={REVIEW_SUGGESTED_ACTION_SHORTCUTS}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || (suggestedAction === 'merge' && (!isSelected || !canRunMergeAction))}
                           onClick={() => {
@@ -6534,6 +6536,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
+                          aria-describedby={rowSummaryId}
                           aria-keyshortcuts={REVIEW_APPROVE_SHORTCUTS}
                           disabled={isSubmitting || candidate.review_status !== 'pending'}
                           onClick={() =>
@@ -6550,6 +6553,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
+                          aria-describedby={rowSummaryId}
                           aria-keyshortcuts={REVIEW_REJECT_SHORTCUTS}
                           disabled={isSubmitting || candidate.review_status !== 'pending'}
                           onClick={() =>
@@ -6566,6 +6570,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
+                          aria-describedby={rowSummaryId}
                           aria-keyshortcuts={REVIEW_MERGE_SHORTCUTS}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || !isSelected || !canRunMergeAction}
                           onClick={() =>
