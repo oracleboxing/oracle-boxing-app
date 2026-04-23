@@ -38,6 +38,9 @@ const REVIEW_REJECT_SHORTCUTS = 'R'
 const REVIEW_MERGE_SHORTCUTS = 'M'
 const REVIEW_COPY_CANDIDATE_HANDOFF_SHORTCUTS = 'Y'
 const REVIEW_COPY_MERGE_HANDOFF_SHORTCUTS = 'Shift+Y'
+const REVIEW_COPY_QUEUE_HANDOFF_SHORTCUTS = 'H'
+const REVIEW_RESET_VIEW_SHORTCUTS = '0'
+const REVIEW_PEEL_BACK_SHORTCUTS = 'Backspace'
 const REVIEW_FAMILY_FOCUS_SHORTCUTS = 'F'
 const REVIEW_PREVIOUS_DUPLICATE_FAMILY_SHORTCUTS = '['
 const REVIEW_NEXT_DUPLICATE_FAMILY_SHORTCUTS = ']'
@@ -3975,6 +3978,7 @@ export function ReviewQueueClient({
           onClick={() => setShowShortcutHelp(false)}
         >
           <div
+            id="review-shortcut-help-dialog"
             ref={shortcutHelpDialogRef}
             role="dialog"
             aria-modal="true"
@@ -4038,6 +4042,9 @@ export function ReviewQueueClient({
               </div>
               <button
                 type="button"
+                aria-haspopup="dialog"
+                aria-expanded={showShortcutHelp}
+                aria-controls="review-shortcut-help-dialog"
                 aria-keyshortcuts={REVIEW_HELP_SHORTCUTS}
                 onClick={() => setShowShortcutHelp(true)}
                 className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
@@ -4372,6 +4379,7 @@ export function ReviewQueueClient({
                     <button
                       type="button"
                       onClick={clearLastViewModifier}
+                      aria-keyshortcuts={REVIEW_PEEL_BACK_SHORTCUTS}
                       className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                     >
                       Peel back last
@@ -4381,6 +4389,7 @@ export function ReviewQueueClient({
                   <button
                     type="button"
                     onClick={clearAllViewFilters}
+                    aria-keyshortcuts={REVIEW_RESET_VIEW_SHORTCUTS}
                     className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                   >
                     Reset view
@@ -4502,6 +4511,7 @@ export function ReviewQueueClient({
             <button
               type="button"
               onClick={copyCurrentSliceHandoff}
+              aria-keyshortcuts={REVIEW_COPY_QUEUE_HANDOFF_SHORTCUTS}
               className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
               Copy queue handoff
@@ -6148,6 +6158,7 @@ export function ReviewQueueClient({
                         <button
                           type="button"
                           onClick={clearLastViewModifier}
+                          aria-keyshortcuts={REVIEW_PEEL_BACK_SHORTCUTS}
                           className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                         >
                           Peel back last
@@ -6157,6 +6168,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={clearAllViewFilters}
+                        aria-keyshortcuts={REVIEW_RESET_VIEW_SHORTCUTS}
                         className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Reset view
@@ -6463,6 +6475,7 @@ export function ReviewQueueClient({
                     <button
                       type="button"
                       onClick={clearAllViewFilters}
+                      aria-keyshortcuts={REVIEW_RESET_VIEW_SHORTCUTS}
                       className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                     >
                       Reset view
