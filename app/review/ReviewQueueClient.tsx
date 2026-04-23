@@ -2032,6 +2032,7 @@ export function ReviewQueueClient({
           ? 'No pending rows selected. Bulk actions only run on pending rows in the current slice.'
           : 'Select at least one visible pending row to run a bulk action.'
 
+  const selectedCandidateLookupId = selectedCandidateFromUrl ?? selectedCandidateId
   const selectedCandidate =
     (selectedCandidateFromUrl
       ? sortedCandidates.find((candidate) => candidate.id === selectedCandidateFromUrl)
@@ -2039,17 +2040,51 @@ export function ReviewQueueClient({
     sortedCandidates.find((candidate) => candidate.id === selectedCandidateId) ??
     sortedCandidates[0] ??
     null
+  const hiddenSelectedCandidate =
+    !selectedCandidate && selectedCandidateLookupId
+      ? candidates.find((candidate) => candidate.id === selectedCandidateLookupId) ?? null
+      : null
   const selectedCandidateIsPending = selectedCandidate?.review_status === 'pending'
+
+  const revealHiddenSelectedCandidate = useCallback(() => {
+    if (!hiddenSelectedCandidate) return
+
+    setSelectedIds([])
+    setQuery('')
+    setStatusFilter(hiddenSelectedCandidate.review_status === 'pending' ? 'pending' : 'all')
+    setGradeFilter('all')
+    setDifficultyFilter('all')
+    setCategoryFilter('all')
+    setSourceFilter('all')
+    setAiDecisionFilter('all')
+    setTriageFilter('all')
+    setCompletenessFilter('all')
+    setSuggestedActionFilter('all')
+    setFamilyShapeFilter('all')
+    setFamilyFilter(null)
+    setSortMode('triage')
+    setSelectedCandidateId(hiddenSelectedCandidate.id)
+    shouldScrollSelectedCandidateIntoViewRef.current = true
+    shouldFocusSelectedCandidateRowRef.current = true
+
+    if (scopedCandidateIds) {
+      clearScopedReview()
+    }
+  }, [clearScopedReview, hiddenSelectedCandidate, scopedCandidateIds])
 
   useEffect(() => {
     const nextVisibleSelectedId = selectedCandidate?.id ?? null
+
+    if (!nextVisibleSelectedId && hiddenSelectedCandidate) {
+      return
+    }
 
     if (selectedCandidateId === nextVisibleSelectedId) {
       return
     }
 
     setSelectedCandidateId(nextVisibleSelectedId)
-  }, [selectedCandidate, selectedCandidateId])
+  }, [hiddenSelectedCandidate, selectedCandidate, selectedCandidateId])
 
   useEffect(() => {
     if (!selectedCandidateId || typeof document === 'undefined') {
@@ -5889,14 +5924,25 @@ export function ReviewQueueClient({
             <EmptyState
               title="No matching candidates"
               body={
-                activeViewChips.length > 0
-                  ? 'Nothing in raw_drill_candidates matches the current filter combination. Peel back the last modifier or reset the queue to get back to a wider slice.'
-                  : 'Nothing in raw_drill_candidates matches the current filter combination.'
+                hiddenSelectedCandidate
+                  ? `${getDisplayTitle(hiddenSelectedCandidate)} is still selected, but the current slice hides it. Reveal that row or peel back the active modifiers to get back to it.`
+                  : activeViewChips.length > 0
+                    ? 'Nothing in raw_drill_candidates matches the current filter combination. Peel back the last modifier or reset the queue to get back to a wider slice.'
+                    : 'Nothing in raw_drill_candidates matches the current filter combination.'
               }
               footer={
-                activeViewChips.length > 0 ? (
+                activeViewChips.length > 0 || hiddenSelectedCandidate ? (
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
+                      {hiddenSelectedCandidate ? (
+                        <button
+                          type="button"
+                          onClick={revealHiddenSelectedCandidate}
+                          className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                        >
+                          Reveal selected row
+                        </button>
+                      ) : null}
                       {lastActiveViewModifierLabel ? (
                         <button
                           type="button"
@@ -6184,7 +6230,32 @@ export function ReviewQueueClient({
             </p>
 
             {!selectedCandidate ? (
-              <p className="mt-5 text-sm text-[var(--text-secondary)]">Pick a visible candidate to inspect its detail panel.</p>
+              hiddenSelectedCandidate ? (
+                <div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-900/30 dark:bg-amber-950/20">
+                  <p className="text-sm font-medium text-amber-950 dark:text-amber-100">{getDisplayTitle(hiddenSelectedCandidate)} is selected, but hidden by the current slice.</p>
+                  <p className="mt-2 text-sm text-amber-900/80 dark:text-amber-200/80">
+                    Status: {REVIEW_STATUS_LABELS[hiddenSelectedCandidate.review_status]} • Source: {getSourceLabel(hiddenSelectedCandidate)}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={revealHiddenSelectedCandidate}
+                      className="inline-flex rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-950 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-100 dark:hover:bg-amber-900/30"
+                    >
+                      Reveal selected row
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearAllViewFilters}
+                      className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                    >
+                      Reset view
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-5 text-sm text-[var(--text-secondary)]">Pick a visible candidate to inspect its detail panel.</p>
+              )
             ) : (
               <div className="mt-5 space-y-5">
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
