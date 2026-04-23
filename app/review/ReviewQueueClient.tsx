@@ -3904,6 +3904,9 @@ export function ReviewQueueClient({
                   Enter applies suggestion when the queue is focused
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                  Search also matches tags, notes, steps, and coaching cues
+                </span>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   ← / → cycles merge targets
                 </span>
               </span>
@@ -3929,7 +3932,7 @@ export function ReviewQueueClient({
                   selectCandidate(targetCandidate.id, { scrollIntoView: false })
                   focusCandidateRow(targetCandidate.id, { reveal: true })
                 }}
-                placeholder="Title, source, summary, dedupe key"
+                placeholder="Search title, source, tags, notes, steps, or coaching cues"
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               />
             </label>
