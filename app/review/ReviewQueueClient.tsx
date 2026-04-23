@@ -995,6 +995,7 @@ export function ReviewQueueClient({
   const [selectedCanonicalDrillId, setSelectedCanonicalDrillId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const copyFeedbackTimeoutRef = useRef<number | null>(null)
   const shortcutHelpDialogRef = useRef<HTMLDivElement | null>(null)
   const shortcutHelpCloseButtonRef = useRef<HTMLButtonElement | null>(null)
   const shortcutHelpTriggerRef = useRef<HTMLElement | null>(null)
@@ -1173,6 +1174,27 @@ export function ReviewQueueClient({
     return didCopy
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && copyFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(copyFeedbackTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const scheduleCopyFeedbackClear = useCallback(() => {
+    if (typeof window === 'undefined') return
+
+    if (copyFeedbackTimeoutRef.current !== null) {
+      window.clearTimeout(copyFeedbackTimeoutRef.current)
+    }
+
+    copyFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setCopyFeedback(null)
+      copyFeedbackTimeoutRef.current = null
+    }, 3000)
+  }, [])
+
   const copyText = useCallback(async (value: string, label: string) => {
     if (typeof window === 'undefined') return
 
@@ -1192,8 +1214,8 @@ export function ReviewQueueClient({
     }
 
     setCopyFeedback(didCopy ? label : 'Copy failed, try again.')
-    window.setTimeout(() => setCopyFeedback(null), 3000)
-  }, [fallbackCopyText])
+    scheduleCopyFeedbackClear()
+  }, [fallbackCopyText, scheduleCopyFeedbackClear])
 
   const copyFamilyHandoff = useCallback((text: string) => {
     void copyText(text, 'Copied family review notes')
@@ -1676,7 +1698,7 @@ export function ReviewQueueClient({
 
         setCopyFeedback(payload?.message || successLabel)
         setSelectedIds((current) => current.filter((id) => !candidateIds.includes(id)))
-        window.setTimeout(() => setCopyFeedback(null), 3000)
+        scheduleCopyFeedbackClear()
         router.refresh()
       } catch (error) {
         setActionError(error instanceof Error ? error.message : 'Review action failed.')
@@ -1684,7 +1706,7 @@ export function ReviewQueueClient({
         setIsSubmitting(false)
       }
     },
-    [isSubmitting, pendingCandidates, router, selectedCandidateId, sortedCandidates, statusFilter]
+    [isSubmitting, pendingCandidates, router, scheduleCopyFeedbackClear, selectedCandidateId, sortedCandidates, statusFilter]
   )
 
   const statusCounts = REVIEW_STATUSES.map((status) => ({
