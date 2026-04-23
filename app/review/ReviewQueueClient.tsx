@@ -3921,6 +3921,14 @@ export function ReviewQueueClient({
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {selectedCandidateAnnouncement}
       </div>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {isSubmitting ? 'Saving review action.' : null}
+      </div>
+      {actionError ? (
+        <div className="sr-only" role="alert" aria-live="assertive" aria-atomic="true">
+          {actionError}
+        </div>
+      ) : null}
 
       {copyFeedback && (
         <div
@@ -3988,7 +3996,7 @@ export function ReviewQueueClient({
         </div>
       )}
 
-      <section className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
+      <section aria-busy={isSubmitting} className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
         <div className="flex flex-col gap-5">
           <div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -4311,7 +4319,11 @@ export function ReviewQueueClient({
           </div>
 
           {actionError ? (
-            <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300"
+            >
               {actionError}
             </div>
           ) : null}
