@@ -3962,10 +3962,33 @@ export function ReviewQueueClient({
     return `${visibleCountLabel} ${leadLabel}`
   }, [hiddenSelectedCandidate, query, sortedCandidates])
 
+  const mergeTargetAnnouncement = useMemo(() => {
+    if (!selectedCandidate) return 'No review row selected.'
+
+    if (matchedDrills.length === 0) {
+      return `No merge targets surfaced for ${getDisplayTitle(selectedCandidate)}.`
+    }
+
+    if (!preferredMergeTargetId || !preferredMergeTarget) {
+      return `Merge targets are available for ${getDisplayTitle(selectedCandidate)}, but no target is selected yet.`
+    }
+
+    const mergeTargetIndex = matchedDrills.findIndex((drill) => drill.id === preferredMergeTargetId)
+    const mergeTargetCountLabel = `${mergeTargetIndex + 1} of ${matchedDrills.length}`
+    const selectionTone = isUsingAutoMergeTarget ? 'Auto-selected merge target' : 'Selected merge target'
+    const matchReasonLabel = preferredMergeTarget.matchReasons.slice(0, 2).join(' • ') || 'No match reasons surfaced'
+    const readinessLabel = mergeTargetNeedsExplicitSelection ? 'Explicit target selection required before merging.' : 'Merge-ready with this target.'
+
+    return `${selectionTone}: ${preferredMergeTarget.title}. Match ${mergeTargetCountLabel}. ${matchReasonLabel}. ${readinessLabel}`
+  }, [isUsingAutoMergeTarget, matchedDrills, mergeTargetNeedsExplicitSelection, preferredMergeTarget, preferredMergeTargetId, selectedCandidate])
+
   return (
     <>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {selectedCandidateAnnouncement}
+      </div>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {mergeTargetAnnouncement}
       </div>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {isSubmitting ? 'Saving review action.' : null}
