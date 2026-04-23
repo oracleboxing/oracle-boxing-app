@@ -1339,14 +1339,19 @@ export function ReviewQueueClient({
   const focusCandidateDetailPanel = useCallback((candidateId: string) => {
     setSelectedCandidateId(candidateId)
 
-    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 1279px)').matches) {
+    if (typeof window === 'undefined') {
       return
     }
 
+    const shouldScrollIntoDetailPanel = window.matchMedia('(max-width: 1279px)').matches
+
     window.requestAnimationFrame(() => {
-      detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (shouldScrollIntoDetailPanel) {
+        detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+
       window.requestAnimationFrame(() => {
-        detailPanelRef.current?.focus({ preventScroll: true })
+        detailPanelRef.current?.focus({ preventScroll: !shouldScrollIntoDetailPanel })
       })
     })
   }, [])
