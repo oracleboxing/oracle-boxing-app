@@ -3312,7 +3312,9 @@ export function ReviewQueueClient({
 
         applyReviewRoute(route.key)
         if (route.leadCandidate) {
-          selectCandidate(route.leadCandidate.id)
+          shouldScrollSelectedCandidateIntoViewRef.current = true
+          shouldFocusSelectedCandidateRowRef.current = isRowControlTarget
+          selectCandidate(route.leadCandidate.id, { scrollIntoView: false })
         }
         return
       }
