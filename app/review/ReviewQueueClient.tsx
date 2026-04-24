@@ -5058,6 +5058,7 @@ export function ReviewQueueClient({
                     disabled={route.count === 0}
                     onClick={() => applyReviewRoute(route.key)}
                     aria-pressed={route.isActive}
+                    aria-keyshortcuts={REVIEW_ROUTE_SHORTCUTS[route.key]}
                     aria-describedby={`${routeSummaryId} ${routeLeadId}`}
                     className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                   >
@@ -5079,6 +5080,7 @@ export function ReviewQueueClient({
                       applyReviewRoute(route.key)
                       openCandidateInQueue(route.leadCandidate.id)
                     }}
+                    aria-controls="review-detail-panel"
                     aria-describedby={`${routeSummaryId} ${routeLeadId}`}
                     className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                   >
