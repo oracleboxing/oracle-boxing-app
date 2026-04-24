@@ -7132,6 +7132,9 @@ export function ReviewQueueClient({
                   }
 
                   const suggestedAction = getCandidateDecisionHint(selectedCandidate, insight)
+                  const detailActionsDescriptionId = `${selectedCandidate.id}-detail-actions-description`
+                  const detailNextPendingId = `${selectedCandidate.id}-detail-next-pending`
+                  const detailActionsContextIds = `${detailActionsDescriptionId} ${detailNextPendingId}`
 
                   return (
                     <>
@@ -7139,7 +7142,7 @@ export function ReviewQueueClient({
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Quick review actions</p>
-                            <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                            <p id={detailActionsDescriptionId} className="mt-2 text-sm text-[var(--text-secondary)]">
                               {selectedCandidateIsPending
                                 ? 'Review this row from the detail panel, then keep moving through the pending queue without bouncing back to the list.'
                                 : `This row is already ${REVIEW_STATUS_LABELS[selectedCandidate.review_status].toLowerCase()}, so actions are locked to prevent accidental re-review.`}
@@ -7150,6 +7153,7 @@ export function ReviewQueueClient({
                               <button
                                 type="button"
                                 aria-keyshortcuts={REVIEW_COPY_CANDIDATE_HANDOFF_SHORTCUTS}
+                                aria-describedby={detailActionsContextIds}
                                 onClick={copySelectedCandidateHandoff}
                                 className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
@@ -7158,11 +7162,11 @@ export function ReviewQueueClient({
                               </button>
                             ) : null}
                             {nextPendingCandidate && nextPendingCandidate.id !== selectedCandidate.id ? (
-                              <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                              <span id={detailNextPendingId} className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
                                 Next pending: {getDisplayTitle(nextPendingCandidate)}
                               </span>
                             ) : (
-                              <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                              <span id={detailNextPendingId} className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
                                 No later pending row in this view
                               </span>
                             )}
@@ -7173,6 +7177,7 @@ export function ReviewQueueClient({
                           <button
                             type="button"
                             aria-keyshortcuts={REVIEW_SUGGESTED_ACTION_SHORTCUTS}
+                            aria-describedby={detailActionsContextIds}
                             disabled={!selectedCandidateIsPending || isSubmitting || (suggestedAction === 'merge' && !canRunMergeAction)}
                             onClick={() => {
                               if (suggestedAction === 'keep') {
@@ -7228,6 +7233,7 @@ export function ReviewQueueClient({
                           <button
                             type="button"
                             aria-keyshortcuts={REVIEW_APPROVE_SHORTCUTS}
+                            aria-describedby={detailActionsContextIds}
                             disabled={!selectedCandidateIsPending || isSubmitting}
                             onClick={() =>
                               runReviewAction({
@@ -7245,6 +7251,7 @@ export function ReviewQueueClient({
                           <button
                             type="button"
                             aria-keyshortcuts={REVIEW_REJECT_SHORTCUTS}
+                            aria-describedby={detailActionsContextIds}
                             disabled={!selectedCandidateIsPending || isSubmitting}
                             onClick={() =>
                               runReviewAction({
@@ -7300,6 +7307,7 @@ export function ReviewQueueClient({
                               <button
                                 type="button"
                                 aria-keyshortcuts={REVIEW_COPY_MERGE_HANDOFF_SHORTCUTS}
+                                aria-describedby={detailActionsContextIds}
                                 onClick={copySelectedMergeHandoff}
                                 className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
@@ -7312,6 +7320,7 @@ export function ReviewQueueClient({
                           <button
                             type="button"
                             aria-keyshortcuts={REVIEW_MERGE_SHORTCUTS}
+                            aria-describedby={detailActionsContextIds}
                             disabled={!selectedCandidateIsPending || isSubmitting || !canRunMergeAction}
                             onClick={() =>
                               canRunMergeAction && preferredMergeTargetId
