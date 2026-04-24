@@ -7724,15 +7724,20 @@ export function ReviewQueueClient({
                           <div className="mt-4 space-y-3">
                             {selectedFamilyWorkspace.ranked.map(({ candidate, insight }) => {
                               const decision = getCandidateDecisionHint(candidate, insight)
+                              const isSelected = candidate.id === selectedCandidate.id
+                              const familyCandidateSummaryId = `family-candidate-summary-${candidate.id}`
+                              const familyCandidateMetricsId = `family-candidate-metrics-${candidate.id}`
 
                               return (
                                 <button
                                   key={candidate.id}
                                   type="button"
-                                  aria-pressed={candidate.id === selectedCandidate.id}
+                                  aria-controls="review-detail-panel"
+                                  aria-describedby={`${familyCandidateSummaryId} ${familyCandidateMetricsId}`}
+                                  aria-pressed={isSelected}
                                   onClick={() => selectCandidate(candidate.id, { scrollIntoView: false })}
                                   className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
-                                    candidate.id === selectedCandidate.id
+                                    isSelected
                                       ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)]'
                                       : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
                                   }`}
@@ -7745,9 +7750,9 @@ export function ReviewQueueClient({
                                           {getDecisionLabel(decision)}
                                         </span>
                                       </div>
-                                      <p className="mt-2 text-xs leading-5 text-[var(--text-tertiary)]">{getShortSummary(candidate)}</p>
+                                      <p id={familyCandidateSummaryId} className="mt-2 text-xs leading-5 text-[var(--text-tertiary)]">{getShortSummary(candidate)}</p>
                                     </div>
-                                    <div className="text-right text-xs text-[var(--text-tertiary)]">
+                                    <div id={familyCandidateMetricsId} className="text-right text-xs text-[var(--text-tertiary)]">
                                       <p>{insight.completenessScore}/6 completeness</p>
                                       <p className="mt-1">{insight.stepsCount} steps • {insight.focusPointsCount} focus</p>
                                     </div>
