@@ -39,6 +39,7 @@ const REVIEW_REJECT_SHORTCUTS = 'R'
 const REVIEW_MERGE_SHORTCUTS = 'M'
 const REVIEW_COPY_CANDIDATE_HANDOFF_SHORTCUTS = 'Y'
 const REVIEW_COPY_MERGE_HANDOFF_SHORTCUTS = 'Shift+Y'
+const REVIEW_COPY_FAMILY_HANDOFF_SHORTCUTS = 'Shift+H'
 const REVIEW_COPY_QUEUE_HANDOFF_SHORTCUTS = 'H'
 const REVIEW_COPY_VIEW_SHORTCUTS = 'V'
 const REVIEW_RESET_VIEW_SHORTCUTS = '0'
@@ -1220,10 +1221,6 @@ export function ReviewQueueClient({
     setCopyFeedback(didCopy ? label : 'Copy failed, try again.')
     scheduleCopyFeedbackClear()
   }, [fallbackCopyText, scheduleCopyFeedbackClear])
-
-  const copyFamilyHandoff = useCallback((text: string) => {
-    void copyText(text, 'Copied family review notes')
-  }, [copyText])
 
   const focusCandidateRow = useCallback((candidateId: string, options?: { reveal?: boolean }) => {
     if (typeof document === 'undefined') return
@@ -3022,6 +3019,11 @@ export function ReviewQueueClient({
     toggleSuggestedActionFocus,
   ])
 
+  const copyFamilyHandoff = useCallback(() => {
+    if (!selectedFamilyWorkspace) return
+    void copyText(selectedFamilyWorkspace.handoffText, 'Copied family review notes')
+  }, [copyText, selectedFamilyWorkspace])
+
   const bulkSelectionCounts = visibleSelectedIds.reduce<Record<ReviewStatus, number>>(
     (acc, id) => {
       const candidate = sortedCandidates.find((item) => item.id === id)
@@ -3569,8 +3571,7 @@ export function ReviewQueueClient({
 
       if (event.shiftKey && key === 'h') {
         event.preventDefault()
-        if (!selectedFamilyWorkspace) return
-        void copyText(selectedFamilyWorkspace.handoffText, 'Copied family review notes')
+        copyFamilyHandoff()
         return
       }
 
@@ -3794,6 +3795,7 @@ export function ReviewQueueClient({
     clearSelectedRows,
     completenessFilter,
     copyFeedback,
+    copyFamilyHandoff,
     copyText,
     currentSliceSummary.handoffText,
     copyCurrentView,
@@ -3823,7 +3825,6 @@ export function ReviewQueueClient({
     scopedCandidateIds,
     searchInputRef,
     selectCandidate,
-    selectedFamilyWorkspace,
     selectedCandidate,
     selectedCandidateHandoff,
     selectedCandidateId,
@@ -7690,11 +7691,13 @@ export function ReviewQueueClient({
                               </div>
                               <button
                                 type="button"
-                                onClick={() => copyFamilyHandoff(selectedFamilyWorkspace.handoffText)}
+                                aria-keyshortcuts={REVIEW_COPY_FAMILY_HANDOFF_SHORTCUTS}
+                                onClick={copyFamilyHandoff}
                                 className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
                                 Copy notes
-                                <span className="ml-2 text-xs font-normal text-[var(--text-tertiary)]">Shift + H</span>
+                                <span className="ml-2 text-xs font-normal text-[var(--text-tertiary)]" aria-hidden="true">Shift + H</span>
+                                <span className="sr-only">Shortcut Shift H</span>
                               </button>
                             </div>
                             <textarea
