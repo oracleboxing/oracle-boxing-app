@@ -1261,6 +1261,20 @@ export function ReviewQueueClient({
   }, [])
 
   useEffect(() => {
+    if (!showShortcutHelp || typeof document === 'undefined') {
+      return
+    }
+
+    const { body } = document
+    const previousBodyOverflow = body.style.overflow
+    body.style.overflow = 'hidden'
+
+    return () => {
+      body.style.overflow = previousBodyOverflow
+    }
+  }, [showShortcutHelp])
+
+  useEffect(() => {
     if (!showShortcutHelp || typeof document === 'undefined' || typeof window === 'undefined') {
       return
     }
