@@ -6607,6 +6607,8 @@ export function ReviewQueueClient({
                 const rowTitleId = `candidate-title-${candidate.id}`
                 const rowSummaryId = `candidate-summary-${candidate.id}`
                 const suggestedActionLabel = getDecisionLabel(suggestedAction)
+                const rowPositionSummary = `Visible row ${index + 1} of ${sortedCandidates.length}.`
+                const rowLeadSummary = leadVisibleCandidate?.id === candidate.id ? 'Lead visible candidate in the current queue slice.' : ''
                 const rowBulkSelectionSummary = isBulkSelected ? 'Selected for bulk actions.' : 'Not selected for bulk actions.'
                 const rowSuggestedActionSummary =
                   candidate.review_status !== 'pending'
@@ -6657,7 +6659,7 @@ export function ReviewQueueClient({
                     }`}
                   >
                     <p id={rowSummaryId} className="sr-only">
-                      {`${isSelected ? 'Current queue row.' : 'Queue row.'} Status ${REVIEW_STATUS_LABELS[candidate.review_status]}. ${getTriageLabel(insight.triageLevel)}. ${rowBulkSelectionSummary} ${rowSuggestedActionSummary}${candidate.dedupe_key ? ` Family ${candidate.dedupe_key}.` : ''} Press Enter or S to apply the suggested action, X or Space to toggle bulk selection, and Escape to return focus to this row from its controls.`}
+                      {`${isSelected ? 'Current queue row.' : 'Queue row.'} ${rowPositionSummary} Status ${REVIEW_STATUS_LABELS[candidate.review_status]}. ${getTriageLabel(insight.triageLevel)}. ${rowLeadSummary} ${rowBulkSelectionSummary} ${rowSuggestedActionSummary}${candidate.dedupe_key ? ` Family ${candidate.dedupe_key}.` : ''} Press Enter or S to apply the suggested action, X or Space to toggle bulk selection, and Escape to return focus to this row from its controls.`}
                     </p>
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 flex-1">
