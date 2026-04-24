@@ -4063,6 +4063,7 @@ export function ReviewQueueClient({
   const queueListDescription = useMemo(() => {
     const parts = [
       `${sortedCandidates.length} visible candidate${sortedCandidates.length === 1 ? '' : 's'} sorted by ${SORT_MODE_LABELS[sortMode]}.`,
+      'Tab lands on the active queue row first, so you can start keyboard navigation before moving into row controls.',
       'Use J and K or the arrow keys to move between visible rows, N and P to jump through pending rows, and L to return to the lead row.',
       'Press Enter or S to apply the suggested action for the active row, X or Space to toggle bulk selection, and Escape to return focus from row controls to the active queue row.',
     ]
@@ -6390,7 +6391,7 @@ export function ReviewQueueClient({
                     key={candidate.id}
                     id={`candidate-${candidate.id}`}
                     role="listitem"
-                    tabIndex={-1}
+                    tabIndex={isSelected ? 0 : -1}
                     aria-current={isSelected ? 'true' : undefined}
                     aria-labelledby={rowTitleId}
                     aria-describedby={rowSummaryId}
