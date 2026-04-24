@@ -4656,7 +4656,7 @@ export function ReviewQueueClient({
 
         <div className="min-h-[168px] rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5 shadow-sm">
           <p className="text-sm font-medium text-[var(--text-secondary)]">Needs summary</p>
-          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{missingSummaryCount}</p>
+          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{visibleMissingSummaryCount}</p>
           <p className="mt-3 text-xs text-[var(--text-tertiary)]">Visible pending rows with no summary, description, or training note.</p>
         </div>
       </section>
@@ -4721,7 +4721,7 @@ export function ReviewQueueClient({
               value={currentSliceSummary.topVisibleFamily?.dedupeKey ?? 'No family'}
               subdued={currentSliceSummary.topVisibleFamily ? `${currentSliceSummary.topVisibleFamily.count} pending rows` : 'No duplicate family in slice'}
             />
-            <InfoBlock label="Visible families" value={String(duplicateFamilies.length)} subdued={`${missingSummaryCount} rows still need a summary`} />
+            <InfoBlock label="Visible families" value={String(duplicateFamilies.length)} subdued={`${visibleMissingSummaryCount} rows still need a summary`} />
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
