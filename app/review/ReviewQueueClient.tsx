@@ -2733,6 +2733,38 @@ export function ReviewQueueClient({
     return parts.join(' ')
   }, [candidateInsights, familyFilter, pendingCandidates.length, selectedCandidate, selectedCandidateIndex, selectedFamilyCandidates.length, selectedFamilyIndex, selectedIds.length, selectedPendingIndex, sortedCandidates.length])
 
+  const selectedCandidateDetailDescription = useMemo(() => {
+    if (hiddenSelectedCandidate) {
+      return `${getDisplayTitle(hiddenSelectedCandidate)} is selected, but hidden by the current slice. Status ${REVIEW_STATUS_LABELS[hiddenSelectedCandidate.review_status]}. Source ${getSourceLabel(hiddenSelectedCandidate)}.`
+    }
+
+    if (!selectedCandidate) {
+      return 'No visible candidate is selected in the review detail panel yet.'
+    }
+
+    const insight = candidateInsights.get(selectedCandidate.id)
+    const parts = [
+      `${getDisplayTitle(selectedCandidate)} is selected.`,
+      `Visible row ${selectedCandidateIndex + 1} of ${sortedCandidates.length}.`,
+      `Status ${REVIEW_STATUS_LABELS[selectedCandidate.review_status]}.`,
+    ]
+
+    if (selectedPendingIndex >= 0) {
+      parts.push(`Pending row ${selectedPendingIndex + 1} of ${pendingCandidates.length}.`)
+    }
+
+    if (insight) {
+      parts.push(`${getTriageLabel(insight.triageLevel)}.`)
+      parts.push(`Suggested action ${getDecisionLabel(getCandidateDecisionHint(selectedCandidate, insight))}.`)
+    }
+
+    if (selectedCandidate.dedupe_key && selectedFamilyIndex >= 0) {
+      parts.push(`Family row ${selectedFamilyIndex + 1} of ${selectedFamilyCandidates.length}.`)
+    }
+
+    return parts.join(' ')
+  }, [candidateInsights, hiddenSelectedCandidate, pendingCandidates.length, selectedCandidate, selectedCandidateIndex, selectedFamilyCandidates.length, selectedFamilyIndex, selectedPendingIndex, sortedCandidates.length])
+
   const nextDuplicateFamily = useMemo(() => {
     const currentFamilyKey = familyFilter ?? selectedCandidate?.dedupe_key ?? null
     return getAdjacentPendingDuplicateFamily(duplicateFamilies, currentFamilyKey, 'next')
@@ -6794,11 +6826,14 @@ export function ReviewQueueClient({
           )}
         </div>
 
-        <aside id="review-detail-panel" ref={detailPanelRef} tabIndex={-1} aria-labelledby="review-detail-title" aria-keyshortcuts={REVIEW_RETURN_TO_QUEUE_SHORTCUTS} className="xl:sticky xl:top-6 xl:self-start max-xl:order-first focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]">
+        <aside id="review-detail-panel" ref={detailPanelRef} tabIndex={-1} aria-labelledby="review-detail-title" aria-describedby="review-detail-intro review-detail-selection-context" aria-keyshortcuts={REVIEW_RETURN_TO_QUEUE_SHORTCUTS} className="xl:sticky xl:top-6 xl:self-start max-xl:order-first focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]">
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
             <h2 id="review-detail-title" className="text-lg font-semibold text-[var(--text-primary)]">Review detail</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            <p id="review-detail-intro" className="mt-1 text-sm text-[var(--text-secondary)]">
               Honest prep for approve, reject, and merge, with the service-role write path finally wired instead of mocked. Press Esc to jump back to the active queue row.
+            </p>
+            <p id="review-detail-selection-context" className="sr-only">
+              {selectedCandidateDetailDescription}
             </p>
 
             {!selectedCandidate ? (
