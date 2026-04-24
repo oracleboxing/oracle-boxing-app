@@ -45,6 +45,11 @@ const REVIEW_COPY_VIEW_SHORTCUTS = 'V'
 const REVIEW_RESET_VIEW_SHORTCUTS = '0'
 const REVIEW_PEEL_BACK_SHORTCUTS = 'Backspace'
 const REVIEW_FAMILY_FOCUS_SHORTCUTS = 'F'
+const REVIEW_PREVIOUS_VISIBLE_SHORTCUTS = 'K ArrowUp'
+const REVIEW_NEXT_VISIBLE_SHORTCUTS = 'J ArrowDown'
+const REVIEW_PREVIOUS_PENDING_SHORTCUTS = 'P'
+const REVIEW_NEXT_PENDING_SHORTCUTS = 'N'
+const REVIEW_LEAD_VISIBLE_SHORTCUTS = 'L'
 const REVIEW_PREVIOUS_DUPLICATE_FAMILY_SHORTCUTS = '['
 const REVIEW_NEXT_DUPLICATE_FAMILY_SHORTCUTS = ']'
 const REVIEW_PREVIOUS_FAMILY_ROW_SHORTCUTS = ','
@@ -6919,6 +6924,7 @@ export function ReviewQueueClient({
                   <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     <button
                       type="button"
+                      aria-keyshortcuts={REVIEW_PREVIOUS_VISIBLE_SHORTCUTS}
                       disabled={!previousVisibleCandidate || previousVisibleCandidate.id === selectedCandidate.id}
                       onClick={() => previousVisibleCandidate ? selectCandidate(previousVisibleCandidate.id) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -6933,6 +6939,7 @@ export function ReviewQueueClient({
 
                     <button
                       type="button"
+                      aria-keyshortcuts={REVIEW_NEXT_VISIBLE_SHORTCUTS}
                       disabled={!nextVisibleCandidate || nextVisibleCandidate.id === selectedCandidate.id}
                       onClick={() => nextVisibleCandidate ? selectCandidate(nextVisibleCandidate.id) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -6947,6 +6954,7 @@ export function ReviewQueueClient({
 
                     <button
                       type="button"
+                      aria-keyshortcuts={REVIEW_PREVIOUS_PENDING_SHORTCUTS}
                       disabled={!previousPendingCandidate || previousPendingCandidate.id === selectedCandidate.id}
                       onClick={() => previousPendingCandidate ? selectCandidate(previousPendingCandidate.id, { scrollIntoView: false }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -6961,6 +6969,7 @@ export function ReviewQueueClient({
 
                     <button
                       type="button"
+                      aria-keyshortcuts={REVIEW_NEXT_PENDING_SHORTCUTS}
                       disabled={!nextPendingCandidate || nextPendingCandidate.id === selectedCandidate.id}
                       onClick={() => nextPendingCandidate ? selectCandidate(nextPendingCandidate.id, { scrollIntoView: false }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -6975,6 +6984,7 @@ export function ReviewQueueClient({
 
                     <button
                       type="button"
+                      aria-keyshortcuts={REVIEW_LEAD_VISIBLE_SHORTCUTS}
                       disabled={!leadVisibleCandidate || leadVisibleCandidate.id === selectedCandidate.id}
                       onClick={() => leadVisibleCandidate ? selectCandidate(leadVisibleCandidate.id, { scrollIntoView: false }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
