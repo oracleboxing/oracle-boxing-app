@@ -5779,6 +5779,8 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               onClick={() => selectCandidate(decisionSummary.leadCandidate!.id, { scrollIntoView: false })}
+                              aria-controls="review-detail-panel"
+                              aria-pressed={decisionSummary.leadCandidate.id === selectedCandidate?.id ? true : undefined}
                               className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                             >
                               Open lead row
@@ -5787,6 +5789,7 @@ export function ReviewQueueClient({
                               <button
                                 type="button"
                                 onClick={() => focusFamily(decisionSummary.leadCandidate!.dedupe_key!, decisionSummary.leadCandidate!.id)}
+                                aria-pressed={familyFilter === decisionSummary.leadCandidate.dedupe_key}
                                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
                                 Focus this family
@@ -5891,6 +5894,8 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               onClick={() => selectCandidate(summary.leadCandidate!.id, { scrollIntoView: false })}
+                              aria-controls="review-detail-panel"
+                              aria-pressed={summary.leadCandidate.id === selectedCandidate?.id ? true : undefined}
                               className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                             >
                               Open lead row
@@ -5899,6 +5904,7 @@ export function ReviewQueueClient({
                               <button
                                 type="button"
                                 onClick={() => focusFamily(summary.leadCandidate!.dedupe_key!, summary.leadCandidate!.id)}
+                                aria-pressed={familyFilter === summary.leadCandidate.dedupe_key}
                                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
                                 Focus this family
@@ -7622,6 +7628,8 @@ export function ReviewQueueClient({
                                       </button>
                                       <button
                                         type="button"
+                                        aria-describedby={`${drillMatchReasonId} ${drillSummaryId}`}
+                                        aria-label={`Merge ${getDisplayTitle(selectedCandidate)} into ${drill.title} now`}
                                         disabled={isSubmitting}
                                         onClick={() =>
                                           runReviewAction({
@@ -7637,6 +7645,8 @@ export function ReviewQueueClient({
                                       </button>
                                       <Link
                                         href={returnToLibraryHref ? `${returnToLibraryHref}${returnToLibraryHref.includes('?') ? '&' : '?'}selected=${drill.id}` : `/drills?selected=${drill.id}`}
+                                        aria-describedby={`${drillMatchReasonId} ${drillSummaryId}`}
+                                        aria-label={`Open ${drill.title} in the drill library`}
                                         className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                                       >
                                         Open in library
