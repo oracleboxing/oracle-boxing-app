@@ -34,9 +34,14 @@ const REVIEW_SEARCH_SHORTCUTS = '/ Control+K Meta+K Enter ArrowDown ArrowUp Esca
 const REVIEW_HELP_SHORTCUTS = 'Shift+/'
 const REVIEW_SUGGESTED_ACTION_SHORTCUTS = 'Enter S'
 const REVIEW_SELECT_SHORTCUTS = 'X Space'
+const REVIEW_SELECT_ALL_VISIBLE_PENDING_SHORTCUTS = 'Shift+X'
+const REVIEW_CLEAR_SELECTION_SHORTCUTS = 'C'
 const REVIEW_APPROVE_SHORTCUTS = 'A'
 const REVIEW_REJECT_SHORTCUTS = 'R'
 const REVIEW_MERGE_SHORTCUTS = 'M'
+const REVIEW_BULK_APPROVE_SHORTCUTS = 'Shift+A'
+const REVIEW_BULK_REJECT_SHORTCUTS = 'Shift+R'
+const REVIEW_BULK_MERGE_SHORTCUTS = 'Shift+M'
 const REVIEW_COPY_CANDIDATE_HANDOFF_SHORTCUTS = 'Y'
 const REVIEW_COPY_MERGE_HANDOFF_SHORTCUTS = 'Shift+Y'
 const REVIEW_COPY_FAMILY_HANDOFF_SHORTCUTS = 'Shift+H'
@@ -6382,6 +6387,7 @@ export function ReviewQueueClient({
             <button
               type="button"
               onClick={toggleSelectAllVisiblePending}
+              aria-keyshortcuts={REVIEW_SELECT_ALL_VISIBLE_PENDING_SHORTCUTS}
               className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
               {allVisiblePendingSelected ? 'Clear visible pending selection' : 'Select all visible pending'}
@@ -6391,6 +6397,7 @@ export function ReviewQueueClient({
               type="button"
               disabled={selectedIds.length === 0}
               onClick={clearSelectedRows}
+              aria-keyshortcuts={REVIEW_CLEAR_SELECTION_SHORTCUTS}
               className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
             >
               Clear all selected rows
@@ -6409,6 +6416,7 @@ export function ReviewQueueClient({
                       : `Approved ${actionableSelectedIds.length} candidates into the drill library.`,
                 })
               }
+              aria-keyshortcuts={REVIEW_BULK_APPROVE_SHORTCUTS}
               title={bulkActionTitle}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
             >
@@ -6426,6 +6434,7 @@ export function ReviewQueueClient({
                   successLabel: actionableSelectedIds.length === 1 ? 'Rejected candidate.' : `Rejected ${actionableSelectedIds.length} candidates.`,
                 })
               }
+              aria-keyshortcuts={REVIEW_BULK_REJECT_SHORTCUTS}
               title={bulkActionTitle}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
             >
@@ -6483,6 +6492,7 @@ export function ReviewQueueClient({
                     })
                   : setActionError(mergeTargetPrompt)
               }
+              aria-keyshortcuts={REVIEW_BULK_MERGE_SHORTCUTS}
               title={canRunMergeAction ? bulkActionTitle : mergeTargetPrompt}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
             >
