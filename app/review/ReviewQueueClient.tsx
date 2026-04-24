@@ -6478,6 +6478,17 @@ export function ReviewQueueClient({
                 const suggestedAction = getCandidateDecisionHint(candidate, insight)
                 const rowTitleId = `candidate-title-${candidate.id}`
                 const rowSummaryId = `candidate-summary-${candidate.id}`
+                const suggestedActionLabel = getDecisionLabel(suggestedAction)
+                const suggestedActionAriaLabel =
+                  candidate.review_status !== 'pending'
+                    ? `${suggestedActionLabel} suggestion unavailable for ${getDisplayTitle(candidate)} because this row is already ${REVIEW_STATUS_LABELS[candidate.review_status].toLowerCase()}.`
+                    : suggestedAction === 'merge'
+                      ? isSelected
+                        ? canRunMergeAction
+                          ? `Apply suggested merge for ${getDisplayTitle(candidate)} using the selected canonical target.`
+                          : `Suggested merge for ${getDisplayTitle(candidate)} is unavailable until a canonical target is explicitly chosen.`
+                        : `Suggested merge for ${getDisplayTitle(candidate)} is unavailable until this row is selected.`
+                      : `Apply suggested ${suggestedActionLabel.toLowerCase()} action for ${getDisplayTitle(candidate)}.`
 
                 return (
                   <article
@@ -6566,6 +6577,7 @@ export function ReviewQueueClient({
                           type="button"
                           aria-describedby={rowSummaryId}
                           aria-keyshortcuts={REVIEW_SUGGESTED_ACTION_SHORTCUTS}
+                          aria-label={suggestedActionAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || (suggestedAction === 'merge' && (!isSelected || !canRunMergeAction))}
                           onClick={() => {
                             if (suggestedAction === 'keep') {
@@ -6630,7 +6642,7 @@ export function ReviewQueueClient({
                                 ? 'text-sky-700 dark:text-sky-400'
                                 : 'text-rose-700 dark:text-rose-400'
                           }`}>
-                            {getDecisionLabel(suggestedAction)} • {getSuggestedActionShortcutLabel(suggestedAction)}
+                            {suggestedActionLabel} • {getSuggestedActionShortcutLabel(suggestedAction)}
                             {suggestedAction === 'merge'
                               ? isSelected
                                 ? canRunMergeAction
