@@ -6261,6 +6261,8 @@ export function ReviewQueueClient({
               <span className="mb-1 block">Merge target</span>
               <select
                 value={preferredMergeTargetId ?? ''}
+                aria-describedby={`bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}${matchedDrills.length > 1 ? ' bulk-merge-target-shortcuts' : ''}`}
+                aria-invalid={mergeTargetNeedsExplicitSelection ? true : undefined}
                 onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
                 onKeyDown={handleSelectEscape}
                 className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
@@ -6272,18 +6274,18 @@ export function ReviewQueueClient({
                   </option>
                 ))}
               </select>
-              <span className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
+              <span id="bulk-merge-target-status" className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
                 {preferredMergeTarget
                   ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
                   : 'Select a candidate with likely library matches to enable merge actions.'}
               </span>
               {mergeTargetNeedsExplicitSelection ? (
-                <span className="mt-1 block text-xs leading-5 text-amber-700 dark:text-amber-400">
+                <span id="bulk-merge-target-warning" className="mt-1 block text-xs leading-5 text-amber-700 dark:text-amber-400">
                   Multiple matches found. Pick one target before running merge actions.
                 </span>
               ) : null}
               {matchedDrills.length > 1 ? (
-                <span className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
+                <span id="bulk-merge-target-shortcuts" className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
               ) : null}
             </label>
 
@@ -7057,7 +7059,7 @@ export function ReviewQueueClient({
                               <select
                                 value={preferredMergeTargetId ?? ''}
                                 aria-describedby={`${selectedCandidate.id}-merge-target-status${mergeTargetNeedsExplicitSelection ? ` ${selectedCandidate.id}-merge-target-warning` : ''}${matchedDrills.length > 1 ? ` ${selectedCandidate.id}-merge-target-shortcuts` : ''}`}
-                                aria-invalid={mergeTargetNeedsExplicitSelection && !preferredMergeTargetId ? true : undefined}
+                                aria-invalid={mergeTargetNeedsExplicitSelection ? true : undefined}
                                 aria-keyshortcuts={REVIEW_MERGE_TARGET_SHORTCUTS}
                                 onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
                                 onKeyDown={handleSelectEscape}
