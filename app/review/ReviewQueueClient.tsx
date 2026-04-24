@@ -6876,6 +6876,8 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         aria-keyshortcuts={REVIEW_FAMILY_FOCUS_SHORTCUTS}
+                        aria-pressed={familyFilter === selectedCandidate.dedupe_key}
+                        aria-describedby={`${selectedCandidate.id}-family-focus-status`}
                         onClick={() =>
                           familyFilter === selectedCandidate.dedupe_key
                             ? clearFamilyFocus()
@@ -6884,8 +6886,8 @@ export function ReviewQueueClient({
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         {familyFilter === selectedCandidate.dedupe_key ? 'Clear family focus' : 'Focus this family'}
-                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                          Shortcut F • {selectedCandidate.dedupe_key}
+                        <span id={`${selectedCandidate.id}-family-focus-status`} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                          Shortcut F • {selectedCandidate.dedupe_key} • {familyFilter === selectedCandidate.dedupe_key ? 'family focus active' : 'family focus inactive'}
                         </span>
                       </button>
 
