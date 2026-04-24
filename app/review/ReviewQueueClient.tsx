@@ -7729,6 +7729,7 @@ export function ReviewQueueClient({
                                 <button
                                   key={candidate.id}
                                   type="button"
+                                  aria-pressed={candidate.id === selectedCandidate.id}
                                   onClick={() => selectCandidate(candidate.id, { scrollIntoView: false })}
                                   className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
                                     candidate.id === selectedCandidate.id
