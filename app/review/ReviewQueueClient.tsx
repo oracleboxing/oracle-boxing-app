@@ -49,6 +49,8 @@ const REVIEW_NEXT_DUPLICATE_FAMILY_SHORTCUTS = ']'
 const REVIEW_PREVIOUS_FAMILY_ROW_SHORTCUTS = ','
 const REVIEW_NEXT_FAMILY_ROW_SHORTCUTS = '.'
 const REVIEW_MERGE_TARGET_SHORTCUTS = "4 5 6 7 8 9 ArrowLeft ArrowRight ; '"
+const REVIEW_FILTER_SELECT_SHORTCUTS = 'Escape'
+const REVIEW_FILTER_SELECT_HELP_ID = 'review-filter-select-help'
 
 const REVIEW_SHORTCUT_GROUPS = [
   {
@@ -4214,6 +4216,10 @@ export function ReviewQueueClient({
             </p>
           </div>
 
+          <p id={REVIEW_FILTER_SELECT_HELP_ID} className="sr-only">
+            Press Escape from any review filter to leave the dropdown and return focus to the active queue row.
+          </p>
+
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             <label className="text-sm text-[var(--text-secondary)]">
               <span id="review-search-help" className="sr-only">
@@ -4289,6 +4295,8 @@ export function ReviewQueueClient({
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as 'all' | ReviewStatus)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All statuses</option>
@@ -4306,6 +4314,8 @@ export function ReviewQueueClient({
                 value={gradeFilter}
                 onChange={(event) => setGradeFilter(event.target.value)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All grades</option>
@@ -4323,6 +4333,8 @@ export function ReviewQueueClient({
                 value={categoryFilter}
                 onChange={(event) => setCategoryFilter(event.target.value)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All categories</option>
@@ -4340,6 +4352,8 @@ export function ReviewQueueClient({
                 value={difficultyFilter}
                 onChange={(event) => setDifficultyFilter(event.target.value)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All difficulties</option>
@@ -4357,6 +4371,8 @@ export function ReviewQueueClient({
                 value={sourceFilter}
                 onChange={(event) => setSourceFilter(event.target.value)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="all">All sources</option>
@@ -4374,6 +4390,8 @@ export function ReviewQueueClient({
                 value={aiDecisionFilter}
                 onChange={(event) => setAiDecisionFilter(event.target.value as AiDecisionFilter)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {(['all', 'approve', 'merge', 'review', 'reject', 'none'] as AiDecisionFilter[]).map((value) => (
@@ -4390,6 +4408,8 @@ export function ReviewQueueClient({
                 value={suggestedActionFilter}
                 onChange={(event) => setSuggestedActionFilter(event.target.value as SuggestedActionFilter)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {(['all', 'keep', 'merge', 'reject'] as SuggestedActionFilter[]).map((value) => (
@@ -4406,6 +4426,8 @@ export function ReviewQueueClient({
                 value={triageFilter}
                 onChange={(event) => setTriageFilter(event.target.value as 'all' | TriageLevel)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {(['all', 'act-now', 'worth-a-look', 'low-signal', 'already-reviewed'] as Array<'all' | TriageLevel>).map((value) => (
@@ -4422,6 +4444,8 @@ export function ReviewQueueClient({
                 value={completenessFilter}
                 onChange={(event) => setCompletenessFilter(event.target.value as 'all' | CompletenessBand)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {(['all', 'thin', 'usable', 'rich'] as Array<'all' | CompletenessBand>).map((value) => (
@@ -4438,6 +4462,8 @@ export function ReviewQueueClient({
                 value={familyShapeFilter}
                 onChange={(event) => setFamilyShapeFilter(event.target.value as DuplicateShapeFilter)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {Object.entries(DUPLICATE_SHAPE_LABELS).map(([value, label]) => (
@@ -4454,6 +4480,8 @@ export function ReviewQueueClient({
                 value={sortMode}
                 onChange={(event) => setSortMode(event.target.value as SortMode)}
                 onKeyDown={handleSelectEscape}
+                aria-describedby={REVIEW_FILTER_SELECT_HELP_ID}
+                aria-keyshortcuts={REVIEW_FILTER_SELECT_SHORTCUTS}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 {Object.entries(SORT_MODE_LABELS).map(([value, label]) => (
