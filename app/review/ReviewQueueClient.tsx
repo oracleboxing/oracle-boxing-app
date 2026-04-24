@@ -4954,6 +4954,9 @@ export function ReviewQueueClient({
             <div className="mt-4">
               {(() => {
                 const leadDecision = getCandidateDecisionHint(currentSliceSummary.leadCandidate, currentSliceSummary.leadInsight)
+                const leadVisibleCandidateSummaryId = 'lead-visible-candidate-summary'
+                const leadVisibleCandidateActionsId = 'lead-visible-candidate-actions'
+                const leadCandidateAlreadySelected = selectedCandidateId === currentSliceSummary.leadCandidate.id
 
                 return (
                   <>
@@ -4966,7 +4969,7 @@ export function ReviewQueueClient({
                         {getDecisionLabel(leadDecision)}
                       </span>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{getReviewerNextMove(currentSliceSummary.leadCandidate, currentSliceSummary.leadInsight)}</p>
+                    <p id={leadVisibleCandidateSummaryId} className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{getReviewerNextMove(currentSliceSummary.leadCandidate, currentSliceSummary.leadInsight)}</p>
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
                       <InfoBlock label="Source" value={getSourceLabel(currentSliceSummary.leadCandidate)} />
                       <InfoBlock
@@ -5005,10 +5008,16 @@ export function ReviewQueueClient({
                         subdued={currentSliceSummary.leadInsight.completenessLabel}
                       />
                     </div>
+                    <p id={leadVisibleCandidateActionsId} className="sr-only">
+                      These actions reuse the current lead visible candidate and queue slice context. Buttons that focus a slice expose whether that slice is already active.
+                    </p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => openCandidateInQueue(currentSliceSummary.leadCandidate.id)}
+                        aria-controls="review-detail-panel"
+                        aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
+                        aria-pressed={leadCandidateAlreadySelected ? 'true' : undefined}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Open in detail panel
@@ -5016,6 +5025,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setSourceFilter(getSourceLabel(currentSliceSummary.leadCandidate))}
+                        aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
                         aria-pressed={sourceFilter === getSourceLabel(currentSliceSummary.leadCandidate)}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
@@ -5024,6 +5034,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => toggleGradeFocus(currentSliceSummary.leadCandidate.grade_level ?? 'unassigned')}
+                        aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
                         aria-pressed={gradeFilter === (currentSliceSummary.leadCandidate.grade_level ?? 'unassigned')}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
@@ -5032,6 +5043,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setTriageFilter(currentSliceSummary.leadInsight!.triageLevel)}
+                        aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
                         aria-pressed={triageFilter === currentSliceSummary.leadInsight.triageLevel}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
@@ -5040,6 +5052,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setSuggestedActionFilter(leadDecision)}
+                        aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
                         aria-pressed={suggestedActionFilter === leadDecision}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
@@ -5048,6 +5061,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => toggleDifficultyFocus(currentSliceSummary.leadCandidate.difficulty || 'unassigned', currentSliceSummary.leadCandidate.id)}
+                        aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
                         aria-pressed={difficultyFilter === (currentSliceSummary.leadCandidate.difficulty || 'unassigned')}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
@@ -5056,6 +5070,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setCompletenessFilter(getCompletenessBand(currentSliceSummary.leadInsight!))}
+                        aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
                         aria-pressed={completenessFilter === getCompletenessBand(currentSliceSummary.leadInsight)}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
@@ -5064,6 +5079,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setAiDecisionFilter(getAiDecisionFilterValue(currentSliceSummary.leadCandidate.ai_decision ?? null))}
+                        aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
                         aria-pressed={aiDecisionFilter === getAiDecisionFilterValue(currentSliceSummary.leadCandidate.ai_decision ?? null)}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
@@ -5073,6 +5089,7 @@ export function ReviewQueueClient({
                         <button
                           type="button"
                           onClick={() => focusFamily(currentSliceSummary.leadCandidate!.dedupe_key!, currentSliceSummary.leadCandidate!.id)}
+                          aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
                           aria-pressed={familyFilter === currentSliceSummary.leadCandidate.dedupe_key}
                           className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                         >
