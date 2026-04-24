@@ -7233,6 +7233,7 @@ export function ReviewQueueClient({
                             <div className="flex flex-wrap gap-2">
                               <button
                                 type="button"
+                                aria-pressed={sourceFilter === getSourceLabel(selectedCandidate)}
                                 onClick={() => toggleSourceFocus(getSourceLabel(selectedCandidate), selectedCandidate.id)}
                                 className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
@@ -7241,6 +7242,7 @@ export function ReviewQueueClient({
                               {selectedCandidate.category ? (
                                 <button
                                   type="button"
+                                  aria-pressed={categoryFilter === selectedCandidate.category}
                                   onClick={() => toggleCategoryFocus(selectedCandidate.category, selectedCandidate.id)}
                                   className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                                 >
@@ -7250,6 +7252,7 @@ export function ReviewQueueClient({
                               {selectedCandidate.difficulty ? (
                                 <button
                                   type="button"
+                                  aria-pressed={difficultyFilter === selectedCandidate.difficulty}
                                   onClick={() => toggleDifficultyFocus(selectedCandidate.difficulty, selectedCandidate.id)}
                                   className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                                 >
