@@ -6375,7 +6375,7 @@ export function ReviewQueueClient({
                 <span>Sorted by <span className="font-medium text-[var(--text-primary)]">{SORT_MODE_LABELS[sortMode]}</span></span>
                 <span>{sortedCandidates.length} visible candidates</span>
               </div>
-              {sortedCandidates.map((candidate) => {
+              {sortedCandidates.map((candidate, index) => {
                 const insight = candidateInsights.get(candidate.id)
                 const isSelected = selectedCandidate?.id === candidate.id
                 const isBulkSelected = visibleSelectedIds.includes(candidate.id)
@@ -6391,6 +6391,8 @@ export function ReviewQueueClient({
                     key={candidate.id}
                     id={`candidate-${candidate.id}`}
                     role="listitem"
+                    aria-posinset={index + 1}
+                    aria-setsize={sortedCandidates.length}
                     tabIndex={isSelected ? 0 : -1}
                     aria-current={isSelected ? 'true' : undefined}
                     aria-labelledby={rowTitleId}
