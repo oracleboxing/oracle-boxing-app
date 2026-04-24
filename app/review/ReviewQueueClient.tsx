@@ -49,6 +49,7 @@ const REVIEW_NEXT_DUPLICATE_FAMILY_SHORTCUTS = ']'
 const REVIEW_PREVIOUS_FAMILY_ROW_SHORTCUTS = ','
 const REVIEW_NEXT_FAMILY_ROW_SHORTCUTS = '.'
 const REVIEW_MERGE_TARGET_SHORTCUTS = "4 5 6 7 8 9 ArrowLeft ArrowRight ; '"
+const REVIEW_MERGE_TARGET_HELP_ID = 'review-merge-target-help'
 const REVIEW_FILTER_SELECT_SHORTCUTS = 'Escape'
 const REVIEW_FILTER_SELECT_HELP_ID = 'review-filter-select-help'
 
@@ -4231,6 +4232,9 @@ export function ReviewQueueClient({
           <p id={REVIEW_FILTER_SELECT_HELP_ID} className="sr-only">
             Press Escape from any review filter to leave the dropdown and return focus to the active queue row.
           </p>
+          <p id={REVIEW_MERGE_TARGET_HELP_ID} className="sr-only">
+            Press Escape from the merge target picker to return focus to the active queue row. While the queue is focused, use 4 to 9 to choose the top visible merge targets by rank, or Arrow Left, Arrow Right, semicolon, and apostrophe to keep cycling targets.
+          </p>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             <label className="text-sm text-[var(--text-secondary)]">
@@ -6261,8 +6265,9 @@ export function ReviewQueueClient({
               <span className="mb-1 block">Merge target</span>
               <select
                 value={preferredMergeTargetId ?? ''}
-                aria-describedby={`bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}${matchedDrills.length > 1 ? ' bulk-merge-target-shortcuts' : ''}`}
+                aria-describedby={`${REVIEW_MERGE_TARGET_HELP_ID} bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}${matchedDrills.length > 1 ? ' bulk-merge-target-shortcuts' : ''}`}
                 aria-invalid={mergeTargetNeedsExplicitSelection ? true : undefined}
+                aria-keyshortcuts={REVIEW_MERGE_TARGET_SHORTCUTS}
                 onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
                 onKeyDown={handleSelectEscape}
                 className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
@@ -7058,7 +7063,7 @@ export function ReviewQueueClient({
                               <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Merge target</span>
                               <select
                                 value={preferredMergeTargetId ?? ''}
-                                aria-describedby={`${selectedCandidate.id}-merge-target-status${mergeTargetNeedsExplicitSelection ? ` ${selectedCandidate.id}-merge-target-warning` : ''}${matchedDrills.length > 1 ? ` ${selectedCandidate.id}-merge-target-shortcuts` : ''}`}
+                                aria-describedby={`${REVIEW_MERGE_TARGET_HELP_ID} ${selectedCandidate.id}-merge-target-status${mergeTargetNeedsExplicitSelection ? ` ${selectedCandidate.id}-merge-target-warning` : ''}${matchedDrills.length > 1 ? ` ${selectedCandidate.id}-merge-target-shortcuts` : ''}`}
                                 aria-invalid={mergeTargetNeedsExplicitSelection ? true : undefined}
                                 aria-keyshortcuts={REVIEW_MERGE_TARGET_SHORTCUTS}
                                 onChange={(event) => setSelectedCanonicalDrillId(event.target.value || null)}
