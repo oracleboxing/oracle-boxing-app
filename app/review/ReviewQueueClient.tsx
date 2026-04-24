@@ -188,6 +188,7 @@ type DrillMatch = Pick<
 type ActiveViewChip = {
   key: string
   label: string
+  clearLabel: string
   onClear: () => void
 }
 
@@ -3947,6 +3948,7 @@ export function ReviewQueueClient({
         ? {
             key: 'query',
             label: `Search: ${query.trim()}`,
+            clearLabel: `Clear search filter for ${query.trim()}`,
             onClear: () => setQuery(''),
           }
         : null,
@@ -3957,6 +3959,7 @@ export function ReviewQueueClient({
               hiddenSelectedCount > 0
                 ? `Selection: ${visibleSelectedIds.length} visible, ${hiddenSelectedCount} hidden`
                 : `Selection: ${visibleSelectedIds.length} row${visibleSelectedIds.length === 1 ? '' : 's'}`,
+            clearLabel: 'Clear selected review rows',
             onClear: clearSelectedRows,
           }
         : null,
@@ -3964,6 +3967,7 @@ export function ReviewQueueClient({
         ? {
             key: 'status',
             label: `Status: ${statusFilter === 'all' ? 'All statuses' : REVIEW_STATUS_LABELS[statusFilter]}`,
+            clearLabel: 'Clear status filter and return to pending rows',
             onClear: () => setStatusFilter('pending'),
           }
         : null,
@@ -3971,6 +3975,7 @@ export function ReviewQueueClient({
         ? {
             key: 'grade',
             label: `Grade: ${formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}`,
+            clearLabel: `Clear grade filter ${formatGradeLevel(gradeFilter === 'unassigned' ? null : gradeFilter)}`,
             onClear: () => setGradeFilter('all'),
           }
         : null,
@@ -3978,6 +3983,7 @@ export function ReviewQueueClient({
         ? {
             key: 'difficulty',
             label: `Difficulty: ${formatDifficultyLabel(difficultyFilter)}`,
+            clearLabel: `Clear difficulty filter ${formatDifficultyLabel(difficultyFilter)}`,
             onClear: () => setDifficultyFilter('all'),
           }
         : null,
@@ -3985,6 +3991,7 @@ export function ReviewQueueClient({
         ? {
             key: 'category',
             label: `Category: ${categoryFilter}`,
+            clearLabel: `Clear category filter ${categoryFilter}`,
             onClear: () => setCategoryFilter('all'),
           }
         : null,
@@ -3992,6 +3999,7 @@ export function ReviewQueueClient({
         ? {
             key: 'source',
             label: `Source: ${sourceFilter}`,
+            clearLabel: `Clear source filter ${sourceFilter}`,
             onClear: () => setSourceFilter('all'),
           }
         : null,
@@ -3999,6 +4007,7 @@ export function ReviewQueueClient({
         ? {
             key: 'ai',
             label: `AI recommendation: ${getAiDecisionFilterLabel(aiDecisionFilter)}`,
+            clearLabel: `Clear AI recommendation filter ${getAiDecisionFilterLabel(aiDecisionFilter)}`,
             onClear: () => setAiDecisionFilter('all'),
           }
         : null,
@@ -4006,6 +4015,7 @@ export function ReviewQueueClient({
         ? {
             key: 'triage',
             label: `Triage: ${getTriageLabel(triageFilter)}`,
+            clearLabel: `Clear triage filter ${getTriageLabel(triageFilter)}`,
             onClear: () => setTriageFilter('all'),
           }
         : null,
@@ -4013,6 +4023,7 @@ export function ReviewQueueClient({
         ? {
             key: 'completeness',
             label: `Completeness: ${COMPLETENESS_BAND_LABELS[completenessFilter]}`,
+            clearLabel: `Clear completeness filter ${COMPLETENESS_BAND_LABELS[completenessFilter]}`,
             onClear: () => setCompletenessFilter('all'),
           }
         : null,
@@ -4020,6 +4031,7 @@ export function ReviewQueueClient({
         ? {
             key: 'action',
             label: `Suggested action: ${getSuggestedActionFilterLabel(suggestedActionFilter)}`,
+            clearLabel: `Clear suggested action filter ${getSuggestedActionFilterLabel(suggestedActionFilter)}`,
             onClear: () => setSuggestedActionFilter('all'),
           }
         : null,
@@ -4027,6 +4039,7 @@ export function ReviewQueueClient({
         ? {
             key: 'family-shape',
             label: `Family shape: ${DUPLICATE_SHAPE_LABELS[familyShapeFilter]}`,
+            clearLabel: `Clear family shape filter ${DUPLICATE_SHAPE_LABELS[familyShapeFilter]}`,
             onClear: () => setFamilyShapeFilter('all'),
           }
         : null,
@@ -4034,6 +4047,7 @@ export function ReviewQueueClient({
         ? {
             key: 'family',
             label: `Family: ${familyFilter}`,
+            clearLabel: `Clear family focus for ${familyFilter}`,
             onClear: () => setFamilyFilter(null),
           }
         : null,
@@ -4041,6 +4055,7 @@ export function ReviewQueueClient({
         ? {
             key: 'sort',
             label: `Sort: ${SORT_MODE_LABELS[sortMode]}`,
+            clearLabel: `Clear sort override ${SORT_MODE_LABELS[sortMode]}`,
             onClear: () => setSortMode('triage'),
           }
         : null,
@@ -4048,6 +4063,7 @@ export function ReviewQueueClient({
         ? {
             key: 'scope',
             label: `Scope: ${scopeRequestedCount} linked row${scopeRequestedCount === 1 ? '' : 's'}`,
+            clearLabel: `Clear scoped review of ${scopeRequestedCount} linked row${scopeRequestedCount === 1 ? '' : 's'}`,
             onClear: clearScopedReview,
           }
         : null,
@@ -4694,6 +4710,8 @@ export function ReviewQueueClient({
                     key={chip.key}
                     type="button"
                     onClick={chip.onClear}
+                    aria-label={chip.clearLabel}
+                    title={chip.clearLabel}
                     className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-primary)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                   >
                     <span>{chip.label}</span>
@@ -6543,6 +6561,8 @@ export function ReviewQueueClient({
                             key={`empty-${chip.key}`}
                             type="button"
                             onClick={chip.onClear}
+                            aria-label={chip.clearLabel}
+                            title={chip.clearLabel}
                             className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-primary)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                           >
                             <span>{chip.label}</span>
