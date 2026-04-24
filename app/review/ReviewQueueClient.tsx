@@ -6149,6 +6149,7 @@ export function ReviewQueueClient({
             <div className="mt-5 space-y-3">
               {duplicateFamilies.slice(0, 8).map((family) => {
                 const isFocusedFamily = familyFilter === family.dedupeKey
+                const familyFocusStatusId = `${family.dedupeKey}-family-focus-status`
 
                 return (
                   <div
@@ -6200,11 +6201,13 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => focusFamily(family.dedupeKey)}
+                        aria-pressed={isFocusedFamily}
+                        aria-describedby={familyFocusStatusId}
                         className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         {isFocusedFamily ? 'Current family focus' : 'Focus this family'}
-                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                          Narrow the queue to this duplicate cluster.
+                        <span id={familyFocusStatusId} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                          {isFocusedFamily ? 'This duplicate cluster is already focused in the queue.' : 'Narrow the queue to this duplicate cluster.'}
                         </span>
                       </button>
 
