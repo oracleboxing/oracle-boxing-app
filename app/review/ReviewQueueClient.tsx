@@ -4068,6 +4068,8 @@ export function ReviewQueueClient({
       'Tab lands on the active queue row first, so you can start keyboard navigation before moving into row controls.',
       'Use J and K or the arrow keys to move between visible rows, N and P to jump through pending rows, and L to return to the lead row.',
       'Press Enter or S to apply the suggested action for the active row, X or Space to toggle bulk selection, and Escape to return focus from row controls to the active queue row.',
+      'Use 1, 2, and 3 to jump into the main review routes, B, T, D, I, E, and U to pivot into the selected row context, and O or Shift plus O to cycle sort without leaving the keyboard.',
+      'Use Backspace to clear bulk selection first, then peel back the most recent active view modifier, and 0 to reset the queue to the default pending triage view.',
     ]
 
     if (familyFilter) {
