@@ -7928,14 +7928,15 @@ export function ReviewQueueClient({
                           <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] px-4 py-4">
                             <div className="flex items-center justify-between gap-4">
                               <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Reviewer handoff scaffold</p>
-                                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                                <p id="family-handoff-title" className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Reviewer handoff scaffold</p>
+                                <p id="family-handoff-description" className="mt-1 text-sm text-[var(--text-secondary)]">
                                   Copy-ready notes for Jordan or Sha-Lyn when turning this family into a real curation pass.
                                 </p>
                               </div>
                               <button
                                 type="button"
                                 aria-keyshortcuts={REVIEW_COPY_FAMILY_HANDOFF_SHORTCUTS}
+                                aria-describedby="family-handoff-title family-handoff-description"
                                 onClick={copyFamilyHandoff}
                                 className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
