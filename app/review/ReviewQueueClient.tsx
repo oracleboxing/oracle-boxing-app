@@ -6509,6 +6509,17 @@ export function ReviewQueueClient({
                 const rowTitleId = `candidate-title-${candidate.id}`
                 const rowSummaryId = `candidate-summary-${candidate.id}`
                 const suggestedActionLabel = getDecisionLabel(suggestedAction)
+                const rowBulkSelectionSummary = isBulkSelected ? 'Selected for bulk actions.' : 'Not selected for bulk actions.'
+                const rowSuggestedActionSummary =
+                  candidate.review_status !== 'pending'
+                    ? `Suggested action unavailable because this row is already ${REVIEW_STATUS_LABELS[candidate.review_status].toLowerCase()}.`
+                    : suggestedAction === 'merge'
+                      ? isSelected
+                        ? canRunMergeAction
+                          ? 'Suggested merge is ready with the current canonical target.'
+                          : 'Suggested merge is blocked until a canonical target is explicitly chosen.'
+                        : 'Suggested merge is available after selecting this row.'
+                      : `Suggested action is ${suggestedActionLabel}.`
                 const suggestedActionAriaLabel =
                   candidate.review_status !== 'pending'
                     ? `${suggestedActionLabel} suggestion unavailable for ${getDisplayTitle(candidate)} because this row is already ${REVIEW_STATUS_LABELS[candidate.review_status].toLowerCase()}.`
@@ -6541,7 +6552,7 @@ export function ReviewQueueClient({
                     }`}
                   >
                     <p id={rowSummaryId} className="sr-only">
-                      {`${isSelected ? 'Current queue row.' : 'Queue row.'} Status ${REVIEW_STATUS_LABELS[candidate.review_status]}. ${getTriageLabel(insight.triageLevel)}. Suggested action ${getDecisionLabel(suggestedAction)}.${candidate.dedupe_key ? ` Family ${candidate.dedupe_key}.` : ''} Press Enter or S to apply the suggested action, X or Space to toggle bulk selection, and Escape to return focus to this row from its controls.`}
+                      {`${isSelected ? 'Current queue row.' : 'Queue row.'} Status ${REVIEW_STATUS_LABELS[candidate.review_status]}. ${getTriageLabel(insight.triageLevel)}. ${rowBulkSelectionSummary} ${rowSuggestedActionSummary}${candidate.dedupe_key ? ` Family ${candidate.dedupe_key}.` : ''} Press Enter or S to apply the suggested action, X or Space to toggle bulk selection, and Escape to return focus to this row from its controls.`}
                     </p>
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 flex-1">
