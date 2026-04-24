@@ -5206,6 +5206,7 @@ export function ReviewQueueClient({
                       openCandidateInQueue(route.leadCandidate.id)
                     }}
                     aria-controls="review-detail-panel"
+                    aria-pressed={route.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                     aria-describedby={`${routeSummaryId} ${routeLeadId}`}
                     className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                   >
@@ -5357,6 +5358,8 @@ export function ReviewQueueClient({
                               if (!gradeSummary?.leadCandidate) return
                               openCandidateFromSummary(gradeSummary.leadCandidate.id, () => toggleGradeFocus(grade))
                             }}
+                            aria-controls="review-detail-panel"
+                            aria-pressed={gradeSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
                             Open lead row
@@ -5460,6 +5463,8 @@ export function ReviewQueueClient({
                             if (!decisionSummary?.leadCandidate) return
                             openCandidateFromSummary(decisionSummary.leadCandidate.id, () => toggleAiDecisionFocus(decision))
                           }}
+                          aria-controls="review-detail-panel"
+                          aria-pressed={decisionSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                         >
                           Open lead row
@@ -5563,6 +5568,8 @@ export function ReviewQueueClient({
                             if (!triageSummary?.leadCandidate) return
                             openCandidateFromSummary(triageSummary.leadCandidate.id, () => setTriageFilter(level))
                           }}
+                          aria-controls="review-detail-panel"
+                          aria-pressed={triageSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                         >
                           Open lead row
@@ -5664,6 +5671,8 @@ export function ReviewQueueClient({
                             if (!completenessSummary?.leadCandidate) return
                             openCandidateFromSummary(completenessSummary.leadCandidate.id, () => toggleCompletenessFocus(band))
                           }}
+                          aria-controls="review-detail-panel"
+                          aria-pressed={completenessSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                         >
                           Open lead row
