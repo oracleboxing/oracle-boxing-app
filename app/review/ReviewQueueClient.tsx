@@ -5900,7 +5900,11 @@ export function ReviewQueueClient({
                           <button
                             type="button"
                             disabled={!sourceSummary?.leadCandidate}
-                            onClick={() => (sourceSummary?.leadCandidate ? toggleSourceFocus(source, sourceSummary.leadCandidate.id) : null)}
+                            onClick={() => {
+                              const leadCandidate = sourceSummary?.leadCandidate
+                              if (!leadCandidate) return
+                              openCandidateFromSummary(leadCandidate.id, () => toggleSourceFocus(source, leadCandidate.id))
+                            }}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
                             Open lead row
@@ -5997,7 +6001,11 @@ export function ReviewQueueClient({
                           <button
                             type="button"
                             disabled={!difficultySummary?.leadCandidate}
-                            onClick={() => (difficultySummary?.leadCandidate ? toggleDifficultyFocus(difficulty, difficultySummary.leadCandidate.id) : null)}
+                            onClick={() => {
+                              const leadCandidate = difficultySummary?.leadCandidate
+                              if (!leadCandidate) return
+                              openCandidateFromSummary(leadCandidate.id, () => toggleDifficultyFocus(difficulty, leadCandidate.id))
+                            }}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
                             Open lead row
@@ -6095,7 +6103,11 @@ export function ReviewQueueClient({
                           <button
                             type="button"
                             disabled={!categorySummary?.leadCandidate}
-                            onClick={() => (categorySummary?.leadCandidate ? toggleCategoryFocus(category, categorySummary.leadCandidate.id) : null)}
+                            onClick={() => {
+                              const leadCandidate = categorySummary?.leadCandidate
+                              if (!leadCandidate) return
+                              openCandidateFromSummary(leadCandidate.id, () => toggleCategoryFocus(category, leadCandidate.id))
+                            }}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
                             Open lead row
@@ -6199,7 +6211,11 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         disabled={!family.leadCandidate}
-                        onClick={() => (family.leadCandidate ? focusFamily(family.dedupeKey, family.leadCandidate.id) : null)}
+                        onClick={() => {
+                          const leadCandidate = family.leadCandidate
+                          if (!leadCandidate) return
+                          openCandidateFromSummary(leadCandidate.id, () => focusFamily(family.dedupeKey, leadCandidate.id))
+                        }}
                         className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         Open lead row
