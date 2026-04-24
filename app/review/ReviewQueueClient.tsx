@@ -1000,6 +1000,8 @@ export function ReviewQueueClient({
   const [selectedCanonicalDrillId, setSelectedCanonicalDrillId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const bulkMergeTargetSelectRef = useRef<HTMLSelectElement | null>(null)
+  const detailMergeTargetSelectRef = useRef<HTMLSelectElement | null>(null)
   const copyFeedbackTimeoutRef = useRef<number | null>(null)
   const shortcutHelpDialogRef = useRef<HTMLDivElement | null>(null)
   const shortcutHelpCloseButtonRef = useRef<HTMLButtonElement | null>(null)
@@ -1241,6 +1243,22 @@ export function ReviewQueueClient({
     event.preventDefault()
     focusCandidateRow(selectedCandidateId, { reveal: true })
   }, [focusCandidateRow, selectedCandidateId])
+
+  const focusPreferredMergeTargetSelect = useCallback(() => {
+    if (typeof window === 'undefined') return
+
+    const target = detailMergeTargetSelectRef.current ?? bulkMergeTargetSelectRef.current
+    if (!target) return
+
+    const shouldReveal = window.matchMedia('(max-width: 1279px)').matches
+    if (shouldReveal) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+
+    window.requestAnimationFrame(() => {
+      target.focus({ preventScroll: shouldReveal ? false : target === detailMergeTargetSelectRef.current })
+    })
+  }, [])
 
   useEffect(() => {
     if (!showShortcutHelp || typeof document === 'undefined' || typeof window === 'undefined') {
@@ -2725,6 +2743,14 @@ export function ReviewQueueClient({
 
     setActionError(null)
   }, [actionError, canRunMergeAction])
+
+  useEffect(() => {
+    if (!isMergeTargetActionError(actionError)) {
+      return
+    }
+
+    focusPreferredMergeTargetSelect()
+  }, [actionError, focusPreferredMergeTargetSelect])
 
   const selectedFamilyWorkspace = useMemo(() => {
     if (!selectedCandidate || !selectedCandidate.dedupe_key || selectedFamilyCandidates.length === 0) {
@@ -6267,6 +6293,7 @@ export function ReviewQueueClient({
             <label className="block text-sm text-[var(--text-secondary)]">
               <span className="mb-1 block">Merge target</span>
               <select
+                ref={bulkMergeTargetSelectRef}
                 value={preferredMergeTargetId ?? ''}
                 aria-describedby={`${REVIEW_MERGE_TARGET_HELP_ID} bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}${matchedDrills.length > 1 ? ' bulk-merge-target-shortcuts' : ''}`}
                 aria-invalid={mergeTargetNeedsExplicitSelection ? true : undefined}
@@ -7065,6 +7092,7 @@ export function ReviewQueueClient({
                             <label className="block">
                               <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Merge target</span>
                               <select
+                                ref={detailMergeTargetSelectRef}
                                 value={preferredMergeTargetId ?? ''}
                                 aria-describedby={`${REVIEW_MERGE_TARGET_HELP_ID} ${selectedCandidate.id}-merge-target-status${mergeTargetNeedsExplicitSelection ? ` ${selectedCandidate.id}-merge-target-warning` : ''}${matchedDrills.length > 1 ? ` ${selectedCandidate.id}-merge-target-shortcuts` : ''}`}
                                 aria-invalid={mergeTargetNeedsExplicitSelection ? true : undefined}
