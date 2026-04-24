@@ -5012,73 +5012,81 @@ export function ReviewQueueClient({
         </div>
 
         <div className="mt-5 grid gap-3 xl:grid-cols-3">
-          {reviewRoutes.map((route) => (
-            <div
-              key={route.key}
-              className={`rounded-3xl border px-5 py-5 transition-colors ${
-                route.isActive ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm' : 'border-[var(--border)] bg-[var(--surface-primary)]'
-              }`}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getReviewRouteTone(route.key)}`}>
-                  {route.label}
-                </span>
-                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
-                  Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}
-                </span>
-                {route.isActive ? (
-                  <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                    Active
+          {reviewRoutes.map((route) => {
+            const routeSummaryId = `review-route-${route.key}-summary`
+            const routeLeadId = `review-route-${route.key}-lead`
+
+            return (
+              <div
+                key={route.key}
+                className={`rounded-3xl border px-5 py-5 transition-colors ${
+                  route.isActive ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm' : 'border-[var(--border)] bg-[var(--surface-primary)]'
+                }`}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getReviewRouteTone(route.key)}`}>
+                    {route.label}
                   </span>
-                ) : null}
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{route.description}</p>
-              <p className="mt-4 text-3xl font-bold text-[var(--text-primary)]">{route.count}</p>
-              <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">{route.countLabel} in the current context</p>
-              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Lead row</p>
-                <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">
-                  {route.leadCandidate ? getDisplayTitle(route.leadCandidate) : 'No matching row in this slice'}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
-                  {route.leadCandidate && route.leadInsight ? getReviewerNextMove(route.leadCandidate, route.leadInsight) : 'Try a broader search or clear a source/grade filter.'}
-                </p>
-              </div>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  disabled={route.count === 0}
-                  onClick={() => applyReviewRoute(route.key)}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
-                >
-                  {route.isActive ? 'Current route' : 'Apply route'}
-                  <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}</span>
-                  <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                    {route.key === 'approve-ready'
-                      ? 'Suggested keep + completeness ordering'
-                      : route.key === 'merge-sweep'
-                        ? 'Suggested merge + duplicate-pressure ordering'
-                        : 'Suggested reject + thin extracts'}
+                  <span className="rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
+                    Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}
                   </span>
-                </button>
-                <button
-                  type="button"
-                  disabled={!route.leadCandidate}
-                  onClick={() => {
-                    if (!route.leadCandidate) return
-                    applyReviewRoute(route.key)
-                    openCandidateInQueue(route.leadCandidate.id)
-                  }}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
-                >
-                  Open lead row
-                  <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                    {route.leadCandidate ? `${getSourceLabel(route.leadCandidate)} • applies this route first` : 'No matching row in this route'}
-                  </span>
-                </button>
+                  {route.isActive ? (
+                    <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                      Active
+                    </span>
+                  ) : null}
+                </div>
+                <p id={routeSummaryId} className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{route.description}</p>
+                <p className="mt-4 text-3xl font-bold text-[var(--text-primary)]">{route.count}</p>
+                <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">{route.countLabel} in the current context</p>
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Lead row</p>
+                  <p id={routeLeadId} className="mt-2 text-sm font-medium text-[var(--text-primary)]">
+                    {route.leadCandidate ? getDisplayTitle(route.leadCandidate) : 'No matching row in this slice'}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
+                    {route.leadCandidate && route.leadInsight ? getReviewerNextMove(route.leadCandidate, route.leadInsight) : 'Try a broader search or clear a source/grade filter.'}
+                  </p>
+                </div>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={route.count === 0}
+                    onClick={() => applyReviewRoute(route.key)}
+                    aria-pressed={route.isActive}
+                    aria-describedby={`${routeSummaryId} ${routeLeadId}`}
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {route.isActive ? 'Current route' : 'Apply route'}
+                    <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}</span>
+                    <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                      {route.key === 'approve-ready'
+                        ? 'Suggested keep + completeness ordering'
+                        : route.key === 'merge-sweep'
+                          ? 'Suggested merge + duplicate-pressure ordering'
+                          : 'Suggested reject + thin extracts'}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!route.leadCandidate}
+                    onClick={() => {
+                      if (!route.leadCandidate) return
+                      applyReviewRoute(route.key)
+                      openCandidateInQueue(route.leadCandidate.id)
+                    }}
+                    aria-describedby={`${routeSummaryId} ${routeLeadId}`}
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    Open lead row
+                    <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                      {route.leadCandidate ? `${getSourceLabel(route.leadCandidate)} • applies this route first` : 'No matching row in this route'}
+                    </span>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </section>
 
