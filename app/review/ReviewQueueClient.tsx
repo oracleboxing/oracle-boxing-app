@@ -7332,76 +7332,97 @@ export function ReviewQueueClient({
                           <p className="mt-4 text-sm text-[var(--text-secondary)]">No likely drill matches surfaced yet from the current library.</p>
                         ) : (
                           <div className="mt-4 space-y-3">
-                            {matchedDrills.map((drill, index) => (
-                              <div key={drill.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <p className="text-sm font-semibold text-[var(--text-primary)]">{drill.title}</p>
-                                      <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
-                                        Match {drill.matchScore}
-                                      </span>
-                                      {getMergeTargetShortcutKey(index) ? (
+                            {matchedDrills.map((drill, index) => {
+                              const isSelectedMergeTarget = preferredMergeTargetId === drill.id
+                              const drillMatchReasonId = `${selectedCandidate.id}-merge-target-reasons-${drill.id}`
+                              const drillSummaryId = `${selectedCandidate.id}-merge-target-summary-${drill.id}`
+
+                              return (
+                                <div
+                                  key={drill.id}
+                                  className={`rounded-2xl border p-3 ${
+                                    isSelectedMergeTarget
+                                      ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)] shadow-sm'
+                                      : 'border-[var(--border)] bg-[var(--surface-elevated)]'
+                                  }`}
+                                >
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-sm font-semibold text-[var(--text-primary)]">{drill.title}</p>
                                         <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
-                                          Shortcut {getMergeTargetShortcutKey(index)}
+                                          Match {drill.matchScore}
                                         </span>
-                                      ) : null}
-                                      {drill.is_curated ? (
-                                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
-                                          Curated
-                                        </span>
-                                      ) : null}
-                                      {!drill.is_active ? (
-                                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300">
-                                          Inactive
-                                        </span>
-                                      ) : null}
+                                        {getMergeTargetShortcutKey(index) ? (
+                                          <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
+                                            Shortcut {getMergeTargetShortcutKey(index)}
+                                          </span>
+                                        ) : null}
+                                        {isSelectedMergeTarget ? (
+                                          <span className="rounded-full border border-[var(--accent-primary)] bg-[var(--surface-secondary)] px-2 py-0.5 text-xs font-medium text-[var(--text-primary)]">
+                                            Selected target
+                                          </span>
+                                        ) : null}
+                                        {drill.is_curated ? (
+                                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                                            Curated
+                                          </span>
+                                        ) : null}
+                                        {!drill.is_active ? (
+                                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-300">
+                                            Inactive
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                      <p id={drillMatchReasonId} className="mt-2 text-xs text-[var(--text-tertiary)]">
+                                        {drill.matchReasons.slice(0, 3).join(' • ')}
+                                      </p>
                                     </div>
-                                    <p className="mt-2 text-xs text-[var(--text-tertiary)]">
-                                      {drill.matchReasons.slice(0, 3).join(' • ')}
-                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      <button
+                                        type="button"
+                                        aria-pressed={isSelectedMergeTarget}
+                                        aria-describedby={`${drillMatchReasonId} ${drillSummaryId}`}
+                                        aria-label={isSelectedMergeTarget ? `${drill.title} is the selected merge target` : `Use ${drill.title} as the merge target`}
+                                        onClick={() => setSelectedCanonicalDrillId(drill.id)}
+                                        className={`inline-flex shrink-0 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
+                                          isSelectedMergeTarget
+                                            ? 'border-[var(--accent-primary)] bg-[var(--surface-secondary)] text-[var(--text-primary)]'
+                                            : 'border-[var(--border)] bg-[var(--surface-primary)] text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
+                                        }`}
+                                      >
+                                        {isSelectedMergeTarget ? 'Merge target selected' : 'Use as merge target'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={isSubmitting}
+                                        onClick={() =>
+                                          runReviewAction({
+                                            action: 'merge',
+                                            candidateIds: [selectedCandidate.id],
+                                            canonicalDrillId: drill.id,
+                                            successLabel: `Merged candidate into ${drill.title}.`,
+                                          })
+                                        }
+                                        className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+                                      >
+                                        Merge now
+                                      </button>
+                                      <Link
+                                        href={returnToLibraryHref ? `${returnToLibraryHref}${returnToLibraryHref.includes('?') ? '&' : '?'}selected=${drill.id}` : `/drills?selected=${drill.id}`}
+                                        className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                      >
+                                        Open in library
+                                      </Link>
+                                    </div>
                                   </div>
-                                  <div className="flex flex-wrap gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => setSelectedCanonicalDrillId(drill.id)}
-                                      className={`inline-flex shrink-0 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
-                                        preferredMergeTargetId === drill.id
-                                          ? 'border-[var(--accent-primary)] bg-[var(--surface-secondary)] text-[var(--text-primary)]'
-                                          : 'border-[var(--border)] bg-[var(--surface-primary)] text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
-                                      }`}
-                                    >
-                                      {preferredMergeTargetId === drill.id ? 'Merge target selected' : 'Use as merge target'}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={isSubmitting}
-                                      onClick={() =>
-                                        runReviewAction({
-                                          action: 'merge',
-                                          candidateIds: [selectedCandidate.id],
-                                          canonicalDrillId: drill.id,
-                                          successLabel: `Merged candidate into ${drill.title}.`,
-                                        })
-                                      }
-                                      className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
-                                    >
-                                      Merge now
-                                    </button>
-                                    <Link
-                                      href={returnToLibraryHref ? `${returnToLibraryHref}${returnToLibraryHref.includes('?') ? '&' : '?'}selected=${drill.id}` : `/drills?selected=${drill.id}`}
-                                      className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
-                                    >
-                                      Open in library
-                                    </Link>
-                                  </div>
+                                  <p id={drillSummaryId} className="mt-2 text-sm text-[var(--text-secondary)]">{drill.summary || 'No library summary yet.'}</p>
+                                  <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                                    {formatGradeLevel(drill.grade_level)} • {drill.category || 'Uncategorised'} • {drill.difficulty}
+                                  </p>
                                 </div>
-                                <p className="mt-2 text-sm text-[var(--text-secondary)]">{drill.summary || 'No library summary yet.'}</p>
-                                <p className="mt-2 text-xs text-[var(--text-tertiary)]">
-                                  {formatGradeLevel(drill.grade_level)} • {drill.category || 'Uncategorised'} • {drill.difficulty}
-                                </p>
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         )}
                       </div>
