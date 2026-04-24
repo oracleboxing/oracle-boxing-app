@@ -2389,11 +2389,21 @@ export function ReviewQueueClient({
         .sort((left, right) => right.count - left.count || left.dedupeKey.localeCompare(right.dedupeKey))[0] ?? null
     })()
 
+    const activeReviewRouteLabel =
+      suggestedActionFilter === 'keep' && sortMode === 'completeness' && completenessFilter === 'all' && triageFilter === 'all' && familyShapeFilter === 'all' && !familyFilter
+        ? 'Approve-ready'
+        : suggestedActionFilter === 'merge' && sortMode === 'duplicate-pressure' && completenessFilter === 'all' && triageFilter === 'all' && familyShapeFilter === 'all' && !familyFilter
+          ? 'Merge sweep'
+          : suggestedActionFilter === 'reject' && completenessFilter === 'thin' && sortMode === 'triage' && triageFilter === 'all' && familyShapeFilter === 'all' && !familyFilter
+            ? 'Thin cleanup'
+            : null
+
     const lines = [
       'Review queue handoff',
       `Visible rows: ${sortedCandidates.length}`,
       `Pending rows: ${pendingCandidates.length}`,
       `Current sort: ${SORT_MODE_LABELS[sortMode]}`,
+      `Active review route: ${activeReviewRouteLabel ?? 'None'}`,
       `Active search: ${query.trim() ? `“${query.trim()}”` : 'None'}`,
       `Active scope: ${scopedCandidateIds ? `${scopeRequestedCount} linked row${scopeRequestedCount === 1 ? '' : 's'}` : 'Full queue'}`,
       `Active status slice: ${statusFilter === 'all' ? 'All statuses' : REVIEW_STATUS_LABELS[statusFilter]}`,
