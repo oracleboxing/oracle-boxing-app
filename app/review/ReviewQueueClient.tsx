@@ -4918,6 +4918,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setSourceFilter(getSourceLabel(currentSliceSummary.leadCandidate))}
+                        aria-pressed={sourceFilter === getSourceLabel(currentSliceSummary.leadCandidate)}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this source
@@ -4925,6 +4926,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => toggleGradeFocus(currentSliceSummary.leadCandidate.grade_level ?? 'unassigned')}
+                        aria-pressed={gradeFilter === (currentSliceSummary.leadCandidate.grade_level ?? 'unassigned')}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this grade
@@ -4932,6 +4934,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setTriageFilter(currentSliceSummary.leadInsight!.triageLevel)}
+                        aria-pressed={triageFilter === currentSliceSummary.leadInsight.triageLevel}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this triage
@@ -4939,6 +4942,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setSuggestedActionFilter(leadDecision)}
+                        aria-pressed={suggestedActionFilter === leadDecision}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this action
@@ -4946,6 +4950,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => toggleDifficultyFocus(currentSliceSummary.leadCandidate.difficulty || 'unassigned', currentSliceSummary.leadCandidate.id)}
+                        aria-pressed={difficultyFilter === (currentSliceSummary.leadCandidate.difficulty || 'unassigned')}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this difficulty
@@ -4953,6 +4958,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setCompletenessFilter(getCompletenessBand(currentSliceSummary.leadInsight!))}
+                        aria-pressed={completenessFilter === getCompletenessBand(currentSliceSummary.leadInsight)}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this completeness
@@ -4960,6 +4966,7 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         onClick={() => setAiDecisionFilter(getAiDecisionFilterValue(currentSliceSummary.leadCandidate.ai_decision ?? null))}
+                        aria-pressed={aiDecisionFilter === getAiDecisionFilterValue(currentSliceSummary.leadCandidate.ai_decision ?? null)}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Focus this AI lane
@@ -4968,6 +4975,7 @@ export function ReviewQueueClient({
                         <button
                           type="button"
                           onClick={() => focusFamily(currentSliceSummary.leadCandidate!.dedupe_key!, currentSliceSummary.leadCandidate!.id)}
+                          aria-pressed={familyFilter === currentSliceSummary.leadCandidate.dedupe_key}
                           className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                         >
                           Focus this family
