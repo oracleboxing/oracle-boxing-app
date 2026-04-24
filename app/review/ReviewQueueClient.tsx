@@ -1400,6 +1400,18 @@ export function ReviewQueueClient({
     })
   }, [openCandidateInQueue])
 
+  const focusCandidateInQueue = useCallback((candidateId: string) => {
+    selectCandidate(candidateId, { scrollIntoView: false })
+
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      focusCandidateRow(candidateId, { reveal: true })
+    })
+  }, [focusCandidateRow, selectCandidate])
+
   const copyCurrentView = useCallback((label: string) => {
     if (typeof window === 'undefined') return
     void copyText(window.location.href, label)
@@ -4031,8 +4043,8 @@ export function ReviewQueueClient({
     const leadCandidate = sortedCandidates[0]
     if (!leadCandidate) return
 
-    openCandidateInQueue(leadCandidate.id)
-  }, [openCandidateInQueue, sortedCandidates])
+    focusCandidateInQueue(leadCandidate.id)
+  }, [focusCandidateInQueue, sortedCandidates])
 
   const searchStatusMessage = useMemo(() => {
     const visibleCountLabel = `${sortedCandidates.length} visible candidate${sortedCandidates.length === 1 ? '' : 's'} in the current review slice.`
@@ -4323,8 +4335,7 @@ export function ReviewQueueClient({
                   if (!targetCandidate) return
 
                   event.preventDefault()
-                  selectCandidate(targetCandidate.id, { scrollIntoView: false })
-                  focusCandidateRow(targetCandidate.id, { reveal: true })
+                  focusCandidateInQueue(targetCandidate.id)
                 }}
                 placeholder="Search title, source, tags, notes, steps, or coaching cues"
                 aria-label="Search review queue"
