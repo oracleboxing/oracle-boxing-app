@@ -6628,6 +6628,13 @@ export function ReviewQueueClient({
                           : `Suggested merge for ${getDisplayTitle(candidate)} is unavailable until a canonical target is explicitly chosen.`
                         : `Suggested merge for ${getDisplayTitle(candidate)} is unavailable until this row is selected.`
                       : `Apply suggested ${suggestedActionLabel.toLowerCase()} action for ${getDisplayTitle(candidate)}.`
+                const approveButtonAriaLabel = `Approve ${getDisplayTitle(candidate)} and create a drill.`
+                const rejectButtonAriaLabel = `Reject ${getDisplayTitle(candidate)}.`
+                const mergeButtonAriaLabel = !isSelected
+                  ? `Merge ${getDisplayTitle(candidate)} after selecting this row and choosing a canonical target.`
+                  : canRunMergeAction
+                    ? `Merge ${getDisplayTitle(candidate)} into the selected canonical target.`
+                    : `Merge ${getDisplayTitle(candidate)} after choosing a canonical target.`
 
                 return (
                   <article
@@ -6795,6 +6802,7 @@ export function ReviewQueueClient({
                           type="button"
                           aria-describedby={rowSummaryId}
                           aria-keyshortcuts={REVIEW_APPROVE_SHORTCUTS}
+                          aria-label={approveButtonAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending'}
                           onClick={() =>
                             runReviewAction({
@@ -6812,6 +6820,7 @@ export function ReviewQueueClient({
                           type="button"
                           aria-describedby={rowSummaryId}
                           aria-keyshortcuts={REVIEW_REJECT_SHORTCUTS}
+                          aria-label={rejectButtonAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending'}
                           onClick={() =>
                             runReviewAction({
@@ -6829,6 +6838,7 @@ export function ReviewQueueClient({
                           type="button"
                           aria-describedby={rowSummaryId}
                           aria-keyshortcuts={REVIEW_MERGE_SHORTCUTS}
+                          aria-label={mergeButtonAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || !isSelected || !canRunMergeAction}
                           onClick={() =>
                             canRunMergeAction && preferredMergeTargetId
