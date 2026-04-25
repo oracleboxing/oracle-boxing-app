@@ -6026,6 +6026,8 @@ export function ReviewQueueClient({
                               if (!leadCandidate) return
                               openCandidateFromSummary(leadCandidate.id, () => toggleSourceFocus(source, leadCandidate.id))
                             }}
+                            aria-controls="review-detail-panel"
+                            aria-pressed={sourceSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                             aria-label={sourceSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(sourceSummary.leadCandidate)} for source ${source}` : undefined}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
@@ -6128,6 +6130,8 @@ export function ReviewQueueClient({
                               if (!leadCandidate) return
                               openCandidateFromSummary(leadCandidate.id, () => toggleDifficultyFocus(difficulty, leadCandidate.id))
                             }}
+                            aria-controls="review-detail-panel"
+                            aria-pressed={difficultySummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                             aria-label={difficultySummary?.leadCandidate ? `Open lead row ${getDisplayTitle(difficultySummary.leadCandidate)} for difficulty ${formatDifficultyLabel(difficulty)}` : undefined}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
@@ -6231,6 +6235,8 @@ export function ReviewQueueClient({
                               if (!leadCandidate) return
                               openCandidateFromSummary(leadCandidate.id, () => toggleCategoryFocus(category, leadCandidate.id))
                             }}
+                            aria-controls="review-detail-panel"
+                            aria-pressed={categorySummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                             aria-label={categorySummary?.leadCandidate ? `Open lead row ${getDisplayTitle(categorySummary.leadCandidate)} for category ${category === 'uncategorised' ? 'Uncategorised' : category}` : undefined}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
