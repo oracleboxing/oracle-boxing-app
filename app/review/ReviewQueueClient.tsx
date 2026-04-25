@@ -6788,10 +6788,10 @@ export function ReviewQueueClient({
                     key={candidate.id}
                     id={`candidate-${candidate.id}`}
                     role="listitem"
+                    aria-roledescription="review queue row"
                     aria-posinset={index + 1}
                     aria-setsize={sortedCandidates.length}
                     tabIndex={isSelected ? 0 : -1}
-                    aria-current={isSelected ? 'true' : undefined}
                     aria-labelledby={rowTitleId}
                     aria-describedby={rowSummaryId}
                     aria-keyshortcuts={REVIEW_QUEUE_ROW_SHORTCUTS}
