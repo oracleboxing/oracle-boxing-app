@@ -3411,6 +3411,13 @@ export function ReviewQueueClient({
           event.preventDefault()
           setActionError(null)
           setCopyFeedback(null)
+
+          const queueCandidate = selectedCandidate ?? sortedCandidates[0]
+          if (queueCandidate) {
+            window.requestAnimationFrame(() => {
+              focusCandidateRow(queueCandidate.id, { reveal: true })
+            })
+          }
           return
         }
 
