@@ -4408,7 +4408,7 @@ export function ReviewQueueClient({
                 <kbd className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-1.5 py-0.5 text-xs">?</kbd>
               </button>
             </div>
-            <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
+            <p aria-hidden="true" className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
               <span className="mr-2">Keyboard:</span>
               <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">/</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">⌘</kbd>/<kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">Ctrl</kbd> + <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">K</kbd> focus search •
               <kbd className="ml-1.5 rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">j</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">k</kbd> or <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↑</kbd> / <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-1.5 py-0.5">↓</kbd> navigate visible •
