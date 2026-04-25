@@ -2307,6 +2307,10 @@ export function ReviewQueueClient({
   }, [drills, selectedCandidate])
 
   useEffect(() => {
+    setSelectedCanonicalDrillId(null)
+  }, [selectedCandidate?.id])
+
+  useEffect(() => {
     if (!selectedCanonicalDrillId) return
 
     const stillMatchesSelectedCandidate = matchedDrills.some((drill) => drill.id === selectedCanonicalDrillId)
