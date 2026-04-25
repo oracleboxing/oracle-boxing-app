@@ -1251,13 +1251,13 @@ export function ReviewQueueClient({
   const handleSelectEscape = useCallback((event: ReactKeyboardEvent<HTMLSelectElement>) => {
     if (event.key !== 'Escape') return
 
-    const queueCandidateId = selectedCandidateId ?? sortedCandidates[0]?.id
+    const queueCandidateId = selectedCandidate?.id ?? sortedCandidates[0]?.id ?? null
     if (!queueCandidateId) return
 
     event.preventDefault()
     event.stopPropagation()
     focusCandidateRow(queueCandidateId, { reveal: true })
-  }, [focusCandidateRow, selectedCandidateId, sortedCandidates])
+  }, [focusCandidateRow, selectedCandidate, sortedCandidates])
 
   const focusPreferredMergeTargetSelect = useCallback(() => {
     if (typeof window === 'undefined') return
