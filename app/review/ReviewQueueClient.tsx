@@ -4277,11 +4277,6 @@ export function ReviewQueueClient({
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {isSubmitting ? 'Saving review action.' : null}
       </div>
-      {actionError ? (
-        <div className="sr-only" role="alert" aria-live="assertive" aria-atomic="true">
-          {actionError}
-        </div>
-      ) : null}
 
       {copyFeedback && (
         <div
