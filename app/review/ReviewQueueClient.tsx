@@ -4439,7 +4439,7 @@ export function ReviewQueueClient({
               <span id="review-search-status" className="sr-only" aria-live="polite" aria-atomic="true">
                 {searchStatusMessage}
               </span>
-              <span className="mb-1 flex items-center gap-2">
+              <span aria-hidden="true" className="mb-1 flex items-center gap-2">
                 <span>Search</span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                   Shortcut / or ⌘/Ctrl + K
