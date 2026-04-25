@@ -1377,10 +1377,19 @@ export function ReviewQueueClient({
     }
   }, [candidates, focusCandidateRow, selectedCandidateId, showShortcutHelp])
 
-  const selectCandidate = useCallback((candidateId: string, options?: { scrollIntoView?: boolean }) => {
+  const selectCandidate = useCallback((candidateId: string, options?: { scrollIntoView?: boolean; revealInQueue?: boolean }) => {
     setSelectedCandidateId(candidateId)
 
-    if (options?.scrollIntoView === false || typeof document === 'undefined') {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    if (options?.revealInQueue) {
+      document.getElementById(`candidate-${candidateId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      return
+    }
+
+    if (options?.scrollIntoView === false) {
       return
     }
 
@@ -7109,7 +7118,7 @@ export function ReviewQueueClient({
                       type="button"
                       aria-keyshortcuts={REVIEW_PREVIOUS_VISIBLE_SHORTCUTS}
                       disabled={!previousVisibleCandidate || previousVisibleCandidate.id === selectedCandidate.id}
-                      onClick={() => previousVisibleCandidate ? selectCandidate(previousVisibleCandidate.id) : null}
+                      onClick={() => previousVisibleCandidate ? selectCandidate(previousVisibleCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Previous visible
@@ -7124,7 +7133,7 @@ export function ReviewQueueClient({
                       type="button"
                       aria-keyshortcuts={REVIEW_NEXT_VISIBLE_SHORTCUTS}
                       disabled={!nextVisibleCandidate || nextVisibleCandidate.id === selectedCandidate.id}
-                      onClick={() => nextVisibleCandidate ? selectCandidate(nextVisibleCandidate.id) : null}
+                      onClick={() => nextVisibleCandidate ? selectCandidate(nextVisibleCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Next visible
@@ -7139,7 +7148,7 @@ export function ReviewQueueClient({
                       type="button"
                       aria-keyshortcuts={REVIEW_PREVIOUS_PENDING_SHORTCUTS}
                       disabled={!previousPendingCandidate || previousPendingCandidate.id === selectedCandidate.id}
-                      onClick={() => previousPendingCandidate ? selectCandidate(previousPendingCandidate.id, { scrollIntoView: false }) : null}
+                      onClick={() => previousPendingCandidate ? selectCandidate(previousPendingCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Previous pending
@@ -7154,7 +7163,7 @@ export function ReviewQueueClient({
                       type="button"
                       aria-keyshortcuts={REVIEW_NEXT_PENDING_SHORTCUTS}
                       disabled={!nextPendingCandidate || nextPendingCandidate.id === selectedCandidate.id}
-                      onClick={() => nextPendingCandidate ? selectCandidate(nextPendingCandidate.id, { scrollIntoView: false }) : null}
+                      onClick={() => nextPendingCandidate ? selectCandidate(nextPendingCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Next pending
@@ -7169,7 +7178,7 @@ export function ReviewQueueClient({
                       type="button"
                       aria-keyshortcuts={REVIEW_LEAD_VISIBLE_SHORTCUTS}
                       disabled={!leadVisibleCandidate || leadVisibleCandidate.id === selectedCandidate.id}
-                      onClick={() => leadVisibleCandidate ? selectCandidate(leadVisibleCandidate.id, { scrollIntoView: false }) : null}
+                      onClick={() => leadVisibleCandidate ? selectCandidate(leadVisibleCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Jump to lead
@@ -7237,7 +7246,7 @@ export function ReviewQueueClient({
                         type="button"
                         aria-keyshortcuts={REVIEW_PREVIOUS_FAMILY_ROW_SHORTCUTS}
                         disabled={!previousFamilyCandidate || previousFamilyCandidate.id === selectedCandidate.id}
-                        onClick={() => previousFamilyCandidate ? selectCandidate(previousFamilyCandidate.id, { scrollIntoView: false }) : null}
+                        onClick={() => previousFamilyCandidate ? selectCandidate(previousFamilyCandidate.id, { revealInQueue: true }) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         Previous family row
@@ -7252,7 +7261,7 @@ export function ReviewQueueClient({
                         type="button"
                         aria-keyshortcuts={REVIEW_NEXT_FAMILY_ROW_SHORTCUTS}
                         disabled={!nextFamilyCandidate || nextFamilyCandidate.id === selectedCandidate.id}
-                        onClick={() => nextFamilyCandidate ? selectCandidate(nextFamilyCandidate.id, { scrollIntoView: false }) : null}
+                        onClick={() => nextFamilyCandidate ? selectCandidate(nextFamilyCandidate.id, { revealInQueue: true }) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         Next family row
