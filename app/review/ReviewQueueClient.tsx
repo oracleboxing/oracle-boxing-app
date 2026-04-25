@@ -1461,7 +1461,7 @@ export function ReviewQueueClient({
       }
 
       window.requestAnimationFrame(() => {
-        focusCandidateRow(candidateId)
+        focusCandidateRow(candidateId, { reveal: true })
       })
     },
     [focusCandidateRow, selectCandidate, selectedCandidateId]
