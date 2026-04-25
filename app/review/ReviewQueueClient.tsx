@@ -5849,7 +5849,7 @@ export function ReviewQueueClient({
                           <div className="mt-4 flex flex-wrap gap-2">
                             <button
                               type="button"
-                              onClick={() => selectCandidate(decisionSummary.leadCandidate!.id, { scrollIntoView: false })}
+                              onClick={() => focusCandidateDetailPanel(decisionSummary.leadCandidate!.id)}
                               aria-controls="review-detail-panel"
                               aria-pressed={decisionSummary.leadCandidate.id === selectedCandidate?.id ? true : undefined}
                               aria-label={`Open lead row ${getDisplayTitle(decisionSummary.leadCandidate)} for the ${getDecisionLabel(decision)} lane`}
@@ -5965,7 +5965,7 @@ export function ReviewQueueClient({
                           <div className="mt-4 flex flex-wrap gap-2">
                             <button
                               type="button"
-                              onClick={() => selectCandidate(summary.leadCandidate!.id, { scrollIntoView: false })}
+                              onClick={() => focusCandidateDetailPanel(summary.leadCandidate!.id)}
                               aria-controls="review-detail-panel"
                               aria-pressed={summary.leadCandidate.id === selectedCandidate?.id ? true : undefined}
                               aria-label={`Open lead row ${getDisplayTitle(summary.leadCandidate)} for ${DUPLICATE_SHAPE_LABELS[shape]}`}
