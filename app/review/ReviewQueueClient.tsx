@@ -4316,6 +4316,7 @@ export function ReviewQueueClient({
             aria-modal="true"
             aria-labelledby="review-shortcut-help-title"
             aria-describedby="review-shortcut-help-description"
+            aria-keyshortcuts={`${REVIEW_HELP_SHORTCUTS} ${REVIEW_RETURN_TO_QUEUE_SHORTCUTS}`}
             onClick={(event) => event.stopPropagation()}
             className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-2xl"
           >
@@ -4330,7 +4331,7 @@ export function ReviewQueueClient({
               <button
                 ref={shortcutHelpCloseButtonRef}
                 type="button"
-                aria-keyshortcuts="Escape Shift+/"
+                aria-keyshortcuts={`${REVIEW_RETURN_TO_QUEUE_SHORTCUTS} ${REVIEW_HELP_SHORTCUTS}`}
                 onClick={() => setShowShortcutHelp(false)}
                 className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
               >
