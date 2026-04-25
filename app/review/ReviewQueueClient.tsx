@@ -6499,6 +6499,7 @@ export function ReviewQueueClient({
                     })
                   : setActionError(mergeTargetPrompt)
               }
+              aria-describedby={`bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}`}
               aria-keyshortcuts={REVIEW_BULK_MERGE_SHORTCUTS}
               title={canRunMergeAction ? bulkActionTitle : mergeTargetPrompt}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
@@ -6757,7 +6758,7 @@ export function ReviewQueueClient({
                       <div className="grid gap-2 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-2">
                         <button
                           type="button"
-                          aria-describedby={rowSummaryId}
+                          aria-describedby={`${rowSummaryId}${suggestedAction === 'merge' ? ` bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}` : ''}`}
                           aria-keyshortcuts={REVIEW_SUGGESTED_ACTION_SHORTCUTS}
                           aria-label={suggestedActionAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || (suggestedAction === 'merge' && (!isSelected || !canRunMergeAction))}
@@ -6872,7 +6873,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
-                          aria-describedby={rowSummaryId}
+                          aria-describedby={`${rowSummaryId} bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}`}
                           aria-keyshortcuts={REVIEW_MERGE_SHORTCUTS}
                           aria-label={mergeButtonAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || !isSelected || !canRunMergeAction}
