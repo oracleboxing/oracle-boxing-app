@@ -5452,6 +5452,7 @@ export function ReviewQueueClient({
 
                   const isFocusedDecision = aiDecisionFilter === decision
                   const decisionSummary = aiDecisionSummaries.get(decision)
+                  const decisionSummaryId = `review-ai-lane-summary-${decision}`
 
                   return (
                     <div
@@ -5498,11 +5499,22 @@ export function ReviewQueueClient({
                         </div>
                       ) : null}
 
+                      <p id={decisionSummaryId} className="sr-only">
+                        {`${getAiDecisionFilterLabel(decision)}. ${count} pending candidate${count === 1 ? '' : 's'} in this lane.${
+                          isFocusedDecision ? ' This AI recommendation lane is currently active.' : ''
+                        }${
+                          decisionSummary?.leadCandidate && decisionSummary.leadInsight && decisionSummary.leadDecision
+                            ? ` Lead row ${getDisplayTitle(decisionSummary.leadCandidate)}. Suggested action ${getDecisionLabel(decisionSummary.leadDecision)}. ${getReviewerNextMove(decisionSummary.leadCandidate, decisionSummary.leadInsight)}`
+                            : ' No lead row is available in this AI lane right now.'
+                        }`}
+                      </p>
+
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         <button
                           type="button"
                           onClick={() => toggleAiDecisionFocus(decision)}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                          aria-describedby={decisionSummaryId}
                           aria-pressed={isFocusedDecision}
                         >
                           {isFocusedDecision ? 'Current AI lane' : 'Focus this AI lane'}
@@ -5519,6 +5531,7 @@ export function ReviewQueueClient({
                             openCandidateFromSummary(decisionSummary.leadCandidate.id, () => toggleAiDecisionFocus(decision))
                           }}
                           aria-controls="review-detail-panel"
+                          aria-describedby={decisionSummaryId}
                           aria-pressed={decisionSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                           aria-label={decisionSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(decisionSummary.leadCandidate)} for AI lane ${getAiDecisionFilterLabel(decision)}` : undefined}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
