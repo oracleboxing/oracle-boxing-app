@@ -4219,6 +4219,26 @@ export function ReviewQueueClient({
     return `${scopeLabel} ${queueListDescription}`
   }, [queueListDescription, scopeRequestedCount, scopedCandidateIds, sortedCandidates.length])
 
+  const queueSliceAnnouncement = useMemo(() => {
+    const parts = [`${sortedCandidates.length} visible candidate${sortedCandidates.length === 1 ? '' : 's'} sorted by ${SORT_MODE_LABELS[sortMode]}.`]
+
+    if (leadVisibleCandidate) {
+      parts.push(`Lead row ${getDisplayTitle(leadVisibleCandidate)}.`)
+    } else {
+      parts.push('No lead row visible.')
+    }
+
+    if (familyFilter) {
+      parts.push(`Family focus ${familyFilter} is active.`)
+    }
+
+    if (hiddenSelectedCandidate) {
+      parts.push(`${getDisplayTitle(hiddenSelectedCandidate)} is still selected, but hidden by the current slice.`)
+    }
+
+    return parts.join(' ')
+  }, [familyFilter, hiddenSelectedCandidate, leadVisibleCandidate, sortMode, sortedCandidates.length])
+
   const detailPanelLabelledBy = selectedCandidate ? 'review-detail-title review-detail-selected-candidate-title' : 'review-detail-title'
 
   return (
@@ -4231,6 +4251,9 @@ export function ReviewQueueClient({
       </div>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {bulkSelectionAnnouncement}
+      </div>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {queueSliceAnnouncement}
       </div>
       <p id="review-current-view-copy-description" className="sr-only">
         {currentViewCopyDescription}
