@@ -7131,6 +7131,20 @@ export function ReviewQueueClient({
               )
             ) : (
               <div className="mt-5 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3">
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Need to get back to the queue quickly? Press Esc or use the button below.
+                  </p>
+                  <button
+                    type="button"
+                    aria-keyshortcuts={REVIEW_RETURN_TO_QUEUE_SHORTCUTS}
+                    onClick={() => focusCandidateRow(selectedCandidate.id, { reveal: true })}
+                    className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                  >
+                    Focus active queue row
+                  </button>
+                </div>
+
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
