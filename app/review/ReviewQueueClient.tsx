@@ -6846,7 +6846,6 @@ export function ReviewQueueClient({
                     aria-roledescription="review queue row"
                     aria-posinset={index + 1}
                     aria-setsize={sortedCandidates.length}
-                    aria-current={isSelected ? 'true' : undefined}
                     tabIndex={isSelected ? 0 : -1}
                     aria-labelledby={rowTitleId}
                     aria-describedby={`${rowSummaryId} ${REVIEW_QUEUE_KEYBOARD_HELP_ID}`}
