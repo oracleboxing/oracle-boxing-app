@@ -6860,6 +6860,7 @@ export function ReviewQueueClient({
                             <input
                               type="checkbox"
                               checked={isBulkSelected}
+                              aria-label={`${isBulkSelected ? 'Deselect' : 'Select'} ${getDisplayTitle(candidate)} for bulk actions`}
                               aria-describedby={rowSummaryId}
                               aria-keyshortcuts={REVIEW_SELECT_SHORTCUTS}
                               onChange={() => toggleSelected(candidate.id)}
