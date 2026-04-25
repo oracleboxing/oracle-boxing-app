@@ -4210,6 +4210,8 @@ export function ReviewQueueClient({
     return `${scopeLabel} ${queueListDescription}`
   }, [queueListDescription, scopeRequestedCount, scopedCandidateIds, sortedCandidates.length])
 
+  const detailPanelLabelledBy = selectedCandidate ? 'review-detail-title review-detail-selected-candidate-title' : 'review-detail-title'
+
   return (
     <>
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
@@ -6917,7 +6919,7 @@ export function ReviewQueueClient({
           )}
         </div>
 
-        <aside id="review-detail-panel" ref={detailPanelRef} tabIndex={-1} aria-labelledby="review-detail-title" aria-describedby="review-detail-intro review-detail-selection-context" aria-keyshortcuts={REVIEW_RETURN_TO_QUEUE_SHORTCUTS} className="xl:sticky xl:top-6 xl:self-start max-xl:order-first focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]">
+        <aside id="review-detail-panel" ref={detailPanelRef} tabIndex={-1} aria-labelledby={detailPanelLabelledBy} aria-describedby="review-detail-intro review-detail-selection-context" aria-keyshortcuts={REVIEW_RETURN_TO_QUEUE_SHORTCUTS} className="xl:sticky xl:top-6 xl:self-start max-xl:order-first focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]">
           <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
             <h2 id="review-detail-title" className="text-lg font-semibold text-[var(--text-primary)]">Review detail</h2>
             <p id="review-detail-intro" className="mt-1 text-sm text-[var(--text-secondary)]">
@@ -7375,7 +7377,7 @@ export function ReviewQueueClient({
 
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-xl font-semibold text-[var(--text-primary)]">{getDisplayTitle(selectedCandidate)}</h3>
+                          <h3 id="review-detail-selected-candidate-title" className="text-xl font-semibold text-[var(--text-primary)]">{getDisplayTitle(selectedCandidate)}</h3>
                           <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(selectedCandidate.review_status)}`}>
                             {REVIEW_STATUS_LABELS[selectedCandidate.review_status]}
                           </span>
