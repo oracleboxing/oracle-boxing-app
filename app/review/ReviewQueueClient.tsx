@@ -8074,6 +8074,9 @@ export function ReviewQueueClient({
                           <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                             <button
                               type="button"
+                              aria-controls="review-detail-panel"
+                              aria-expanded={selectedFamilyWorkspace.keepCandidate.id === selectedCandidate.id}
+                              aria-label={`Open suggested keep ${getDisplayTitle(selectedFamilyWorkspace.keepCandidate)} in the review detail panel`}
                               onClick={() => selectCandidate(selectedFamilyWorkspace.keepCandidate.id, { scrollIntoView: false })}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                             >
@@ -8083,6 +8086,9 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               disabled={!selectedFamilyWorkspace.nextMergeCandidate}
+                              aria-controls="review-detail-panel"
+                              aria-expanded={selectedFamilyWorkspace.nextMergeCandidate?.id === selectedCandidate.id}
+                              aria-label={selectedFamilyWorkspace.nextMergeCandidate ? `Open next merge row ${getDisplayTitle(selectedFamilyWorkspace.nextMergeCandidate)} in the review detail panel` : undefined}
                               onClick={() =>
                                 selectedFamilyWorkspace.nextMergeCandidate
                                   ? selectCandidate(selectedFamilyWorkspace.nextMergeCandidate.id, { scrollIntoView: false })
@@ -8098,6 +8104,9 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               disabled={!selectedFamilyWorkspace.nextRejectCandidate}
+                              aria-controls="review-detail-panel"
+                              aria-expanded={selectedFamilyWorkspace.nextRejectCandidate?.id === selectedCandidate.id}
+                              aria-label={selectedFamilyWorkspace.nextRejectCandidate ? `Open next reject row ${getDisplayTitle(selectedFamilyWorkspace.nextRejectCandidate)} in the review detail panel` : undefined}
                               onClick={() =>
                                 selectedFamilyWorkspace.nextRejectCandidate
                                   ? selectCandidate(selectedFamilyWorkspace.nextRejectCandidate.id, { scrollIntoView: false })
