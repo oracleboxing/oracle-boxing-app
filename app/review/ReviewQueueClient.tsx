@@ -1252,6 +1252,7 @@ export function ReviewQueueClient({
     if (event.key !== 'Escape' || !selectedCandidateId) return
 
     event.preventDefault()
+    event.stopPropagation()
     focusCandidateRow(selectedCandidateId, { reveal: true })
   }, [focusCandidateRow, selectedCandidateId])
 
