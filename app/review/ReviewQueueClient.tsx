@@ -4350,7 +4350,8 @@ export function ReviewQueueClient({
         </div>
       )}
 
-      <section aria-busy={isSubmitting} className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
+      <div aria-hidden={showShortcutHelp ? true : undefined}>
+        <section aria-busy={isSubmitting} className="mb-8 rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-6 shadow-sm">
         <div className="flex flex-col gap-5">
           <div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -8090,6 +8091,7 @@ export function ReviewQueueClient({
           </div>
         </aside>
       </section>
+      </div>
     </>
   )
 }
