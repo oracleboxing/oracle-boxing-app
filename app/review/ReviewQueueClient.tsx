@@ -7028,7 +7028,7 @@ export function ReviewQueueClient({
             <p id="review-detail-intro" className="mt-1 text-sm text-[var(--text-secondary)]">
               Honest prep for approve, reject, and merge, with the service-role write path finally wired instead of mocked. Press Esc to jump back to the active queue row.
             </p>
-            <p id="review-detail-selection-context" className="sr-only">
+            <p id="review-detail-selection-context" className="sr-only" role="status" aria-live="polite" aria-atomic="true">
               {selectedCandidateDetailDescription}
             </p>
 
