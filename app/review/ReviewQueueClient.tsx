@@ -7613,65 +7613,82 @@ export function ReviewQueueClient({
                           </div>
 
                           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                            {selectedCandidateRelatedSlices.map((slice) => (
-                              <div
-                                key={slice.key}
-                                className={`rounded-2xl border px-4 py-4 transition-colors ${
-                                  slice.isActive
-                                    ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)] shadow-sm'
-                                    : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
-                                } ${slice.count === 0 ? 'opacity-50' : ''}`}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{slice.label}</p>
-                                    <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">{slice.detail}</p>
+                            {selectedCandidateRelatedSlices.map((slice) => {
+                              const sliceSummaryId = `${selectedCandidate.id}-related-slice-summary-${slice.key}`
+                              const sliceLeadId = `${selectedCandidate.id}-related-slice-lead-${slice.key}`
+                              const sliceNextOtherId = `${selectedCandidate.id}-related-slice-next-other-${slice.key}`
+                              const sliceActionsId = `${selectedCandidate.id}-related-slice-actions-${slice.key}`
+                              const sliceActionDescriptionIds = `${sliceSummaryId} ${sliceLeadId} ${sliceNextOtherId} ${sliceActionsId}`
+
+                              return (
+                                <div
+                                  key={slice.key}
+                                  className={`rounded-2xl border px-4 py-4 transition-colors ${
+                                    slice.isActive
+                                      ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)] shadow-sm'
+                                      : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
+                                  } ${slice.count === 0 ? 'opacity-50' : ''}`}
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{slice.label}</p>
+                                      <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">{slice.detail}</p>
+                                    </div>
+                                    {slice.isActive ? (
+                                      <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                        Active
+                                      </span>
+                                    ) : null}
                                   </div>
-                                  {slice.isActive ? (
-                                    <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                                      Active
-                                    </span>
-                                  ) : null}
+                                  <p id={sliceSummaryId} className="mt-3 text-2xl font-bold text-[var(--text-primary)]">{slice.count}</p>
+                                  <p id={sliceActionsId} className="mt-1 text-xs text-[var(--text-tertiary)]">
+                                    pending row{slice.count === 1 ? '' : 's'} in this slice • {slice.isActive ? 'Clear, open next row, or copy handoff' : 'Focus, open lead row, open next row, or copy handoff'}
+                                  </p>
+                                  <p id={sliceLeadId} className="mt-1 truncate text-xs text-[var(--text-tertiary)]">
+                                    {slice.leadCandidate ? `Lead row: ${getDisplayTitle(slice.leadCandidate)}` : 'No pending row in this slice yet'}
+                                  </p>
+                                  <p id={sliceNextOtherId} className="mt-1 truncate text-xs text-[var(--text-tertiary)]">
+                                    {slice.nextOtherCandidate
+                                      ? `Next other row: ${getDisplayTitle(slice.nextOtherCandidate)}`
+                                      : 'No other pending row in this slice yet'}
+                                  </p>
+                                  <div className="mt-4 flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      aria-controls="review-detail-panel"
+                                      aria-pressed={slice.leadCandidate?.id === selectedCandidate.id ? true : undefined}
+                                      aria-describedby={sliceActionDescriptionIds}
+                                      aria-label={slice.leadCandidate ? `Open lead row ${getDisplayTitle(slice.leadCandidate)} for the ${slice.label.toLowerCase()}` : undefined}
+                                      disabled={slice.count === 0}
+                                      onClick={slice.openLeadRow}
+                                      className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none"
+                                    >
+                                      {slice.isActive ? 'Clear focus + open lead' : 'Focus + open lead'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      aria-controls="review-detail-panel"
+                                      aria-pressed={slice.nextOtherCandidate?.id === selectedCandidate.id ? true : undefined}
+                                      aria-describedby={sliceActionDescriptionIds}
+                                      aria-label={slice.nextOtherCandidate ? `Open next other row ${getDisplayTitle(slice.nextOtherCandidate)} for the ${slice.label.toLowerCase()}` : undefined}
+                                      disabled={!slice.nextOtherCandidate}
+                                      onClick={slice.openNextOtherRow}
+                                      className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none"
+                                    >
+                                      {slice.isActive ? 'Clear focus + open next row' : 'Focus + open next row'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      aria-describedby={sliceActionDescriptionIds}
+                                      onClick={() => void copyText(slice.handoffText, `Copied ${slice.label.toLowerCase()} handoff`)}
+                                      className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                                    >
+                                      Copy handoff
+                                    </button>
+                                  </div>
                                 </div>
-                                <p className="mt-3 text-2xl font-bold text-[var(--text-primary)]">{slice.count}</p>
-                                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                                  pending row{slice.count === 1 ? '' : 's'} in this slice • {slice.isActive ? 'Clear, open next row, or copy handoff' : 'Focus, open lead row, open next row, or copy handoff'}
-                                </p>
-                                <p className="mt-1 truncate text-xs text-[var(--text-tertiary)]">
-                                  {slice.leadCandidate ? `Lead row: ${getDisplayTitle(slice.leadCandidate)}` : 'No pending row in this slice yet'}
-                                </p>
-                                <p className="mt-1 truncate text-xs text-[var(--text-tertiary)]">
-                                  {slice.nextOtherCandidate
-                                    ? `Next other row: ${getDisplayTitle(slice.nextOtherCandidate)}`
-                                    : 'No other pending row in this slice yet'}
-                                </p>
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                  <button
-                                    type="button"
-                                    disabled={slice.count === 0}
-                                    onClick={slice.openLeadRow}
-                                    className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none"
-                                  >
-                                    {slice.isActive ? 'Clear focus + open lead' : 'Focus + open lead'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={!slice.nextOtherCandidate}
-                                    onClick={slice.openNextOtherRow}
-                                    className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none"
-                                  >
-                                    {slice.isActive ? 'Clear focus + open next row' : 'Focus + open next row'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => void copyText(slice.handoffText, `Copied ${slice.label.toLowerCase()} handoff`)}
-                                    className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
-                                  >
-                                    Copy handoff
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         </div>
                       ) : null}
