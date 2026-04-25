@@ -8159,6 +8159,8 @@ export function ReviewQueueClient({
                             <textarea
                               readOnly
                               value={selectedFamilyWorkspace.handoffText}
+                              aria-labelledby="family-handoff-title"
+                              aria-describedby="family-handoff-description"
                               className="mt-4 min-h-[300px] w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 font-mono text-xs leading-6 text-[var(--text-secondary)] outline-none"
                             />
                           </div>
