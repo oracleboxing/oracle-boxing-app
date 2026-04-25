@@ -4478,6 +4478,8 @@ export function ReviewQueueClient({
               </span>
               <input
                 ref={searchInputRef}
+                type="search"
+                enterKeyHint="search"
                 aria-describedby="review-search-help review-search-status"
                 aria-controls="review-queue-list"
                 aria-keyshortcuts={REVIEW_SEARCH_SHORTCUTS}
