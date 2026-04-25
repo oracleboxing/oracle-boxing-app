@@ -6847,20 +6847,20 @@ export function ReviewQueueClient({
                           >
                             <div className="flex flex-wrap items-center gap-2">
                               <h3 id={rowTitleId} className="text-lg font-semibold text-[var(--text-primary)]">{getDisplayTitle(candidate)}</h3>
-                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
+                              <span aria-hidden="true" className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
                                 {REVIEW_STATUS_LABELS[candidate.review_status]}
                               </span>
-                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(insight.triageLevel)}`}>
+                              <span aria-hidden="true" className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTriageTone(insight.triageLevel)}`}>
                                 {getTriageLabel(insight.triageLevel)}
                               </span>
-                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAiDecisionTone(candidate.ai_decision ?? null)}`}>
+                              <span aria-hidden="true" className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAiDecisionTone(candidate.ai_decision ?? null)}`}>
                                 {getAiDecisionLabel(candidate.ai_decision ?? null)}
                               </span>
-                              <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDecisionTone(suggestedAction)}`}>
+                              <span aria-hidden="true" className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getDecisionTone(suggestedAction)}`}>
                                 {getDecisionLabel(suggestedAction)}
                               </span>
                               {candidate.dedupe_key && (
-                                <span className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                                <span aria-hidden="true" className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
                                   Family: {candidate.dedupe_key}
                                 </span>
                               )}
