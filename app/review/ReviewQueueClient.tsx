@@ -5099,7 +5099,7 @@ export function ReviewQueueClient({
                         onClick={() => openCandidateInQueue(currentSliceSummary.leadCandidate.id)}
                         aria-controls="review-detail-panel"
                         aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
-                        aria-pressed={leadCandidateAlreadySelected ? 'true' : undefined}
+                        aria-expanded={leadCandidateAlreadySelected}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Open in detail panel
@@ -5265,7 +5265,7 @@ export function ReviewQueueClient({
                       openCandidateInQueue(route.leadCandidate.id)
                     }}
                     aria-controls="review-detail-panel"
-                    aria-pressed={route.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
+                    aria-expanded={route.leadCandidate?.id === selectedCandidate?.id}
                     aria-describedby={`${routeSummaryId} ${routeLeadId}`}
                     aria-label={route.leadCandidate ? `Open lead row ${getDisplayTitle(route.leadCandidate)} for the ${route.label} route` : undefined}
                     className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -5433,7 +5433,7 @@ export function ReviewQueueClient({
                             }}
                             aria-controls="review-detail-panel"
                             aria-describedby={gradeSummaryId}
-                            aria-pressed={gradeSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
+                            aria-expanded={gradeSummary?.leadCandidate?.id === selectedCandidate?.id}
                             aria-label={gradeSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(gradeSummary.leadCandidate)} for grade ${gradeLabel}` : undefined}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
@@ -5552,7 +5552,7 @@ export function ReviewQueueClient({
                           }}
                           aria-controls="review-detail-panel"
                           aria-describedby={decisionSummaryId}
-                          aria-pressed={decisionSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
+                          aria-expanded={decisionSummary?.leadCandidate?.id === selectedCandidate?.id}
                           aria-label={decisionSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(decisionSummary.leadCandidate)} for AI lane ${getAiDecisionFilterLabel(decision)}` : undefined}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                         >
@@ -5671,7 +5671,7 @@ export function ReviewQueueClient({
                           }}
                           aria-controls="review-detail-panel"
                           aria-describedby={triageSummaryId}
-                          aria-pressed={triageSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
+                          aria-expanded={triageSummary?.leadCandidate?.id === selectedCandidate?.id}
                           aria-label={triageSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(triageSummary.leadCandidate)} for ${getTriageLabel(level)}` : undefined}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                         >
@@ -5788,7 +5788,7 @@ export function ReviewQueueClient({
                           }}
                           aria-controls="review-detail-panel"
                           aria-describedby={completenessSummaryId}
-                          aria-pressed={completenessSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
+                          aria-expanded={completenessSummary?.leadCandidate?.id === selectedCandidate?.id}
                           aria-label={completenessSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(completenessSummary.leadCandidate)} for ${COMPLETENESS_BAND_LABELS[band]}` : undefined}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                         >
@@ -5897,7 +5897,7 @@ export function ReviewQueueClient({
                               type="button"
                               onClick={() => focusCandidateDetailPanel(decisionSummary.leadCandidate!.id)}
                               aria-controls="review-detail-panel"
-                              aria-pressed={decisionSummary.leadCandidate.id === selectedCandidate?.id ? true : undefined}
+                              aria-expanded={decisionSummary.leadCandidate.id === selectedCandidate?.id}
                               aria-label={`Open lead row ${getDisplayTitle(decisionSummary.leadCandidate)} for the ${getDecisionLabel(decision)} lane`}
                               className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                             >
@@ -6013,7 +6013,7 @@ export function ReviewQueueClient({
                               type="button"
                               onClick={() => focusCandidateDetailPanel(summary.leadCandidate!.id)}
                               aria-controls="review-detail-panel"
-                              aria-pressed={summary.leadCandidate.id === selectedCandidate?.id ? true : undefined}
+                              aria-expanded={summary.leadCandidate.id === selectedCandidate?.id}
                               aria-label={`Open lead row ${getDisplayTitle(summary.leadCandidate)} for ${DUPLICATE_SHAPE_LABELS[shape]}`}
                               className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                             >
@@ -6127,7 +6127,7 @@ export function ReviewQueueClient({
                               openCandidateFromSummary(leadCandidate.id, () => toggleSourceFocus(source, leadCandidate.id))
                             }}
                             aria-controls="review-detail-panel"
-                            aria-pressed={sourceSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
+                            aria-expanded={sourceSummary?.leadCandidate?.id === selectedCandidate?.id}
                             aria-label={sourceSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(sourceSummary.leadCandidate)} for source ${source}` : undefined}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
@@ -6231,7 +6231,7 @@ export function ReviewQueueClient({
                               openCandidateFromSummary(leadCandidate.id, () => toggleDifficultyFocus(difficulty, leadCandidate.id))
                             }}
                             aria-controls="review-detail-panel"
-                            aria-pressed={difficultySummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
+                            aria-expanded={difficultySummary?.leadCandidate?.id === selectedCandidate?.id}
                             aria-label={difficultySummary?.leadCandidate ? `Open lead row ${getDisplayTitle(difficultySummary.leadCandidate)} for difficulty ${formatDifficultyLabel(difficulty)}` : undefined}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
@@ -6336,7 +6336,7 @@ export function ReviewQueueClient({
                               openCandidateFromSummary(leadCandidate.id, () => toggleCategoryFocus(category, leadCandidate.id))
                             }}
                             aria-controls="review-detail-panel"
-                            aria-pressed={categorySummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
+                            aria-expanded={categorySummary?.leadCandidate?.id === selectedCandidate?.id}
                             aria-label={categorySummary?.leadCandidate ? `Open lead row ${getDisplayTitle(categorySummary.leadCandidate)} for category ${category === 'uncategorised' ? 'Uncategorised' : category}` : undefined}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
@@ -6450,7 +6450,7 @@ export function ReviewQueueClient({
                           openCandidateFromSummary(leadCandidate.id, () => focusFamily(family.dedupeKey, leadCandidate.id))
                         }}
                         aria-controls="review-detail-panel"
-                        aria-pressed={family.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
+                        aria-expanded={family.leadCandidate?.id === selectedCandidate?.id}
                         aria-label={family.leadCandidate ? `Open lead row ${getDisplayTitle(family.leadCandidate)} for duplicate family ${family.dedupeKey}` : undefined}
                         className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
@@ -6825,7 +6825,7 @@ export function ReviewQueueClient({
                             type="button"
                             aria-controls="review-detail-panel"
                             aria-describedby={rowSummaryId}
-                            aria-pressed={isSelected}
+                            aria-expanded={isSelected}
                             aria-label={`${isSelected ? 'Viewing' : 'Open'} details for ${getDisplayTitle(candidate)}`}
                             onClick={() => focusCandidateDetailPanel(candidate.id)}
                             className="min-w-0 flex-1 text-left"
@@ -7651,7 +7651,7 @@ export function ReviewQueueClient({
                                     <button
                                       type="button"
                                       aria-controls="review-detail-panel"
-                                      aria-pressed={slice.leadCandidate?.id === selectedCandidate.id ? true : undefined}
+                                      aria-expanded={slice.leadCandidate?.id === selectedCandidate.id}
                                       aria-describedby={sliceActionDescriptionIds}
                                       aria-label={slice.leadCandidate ? `Open lead row ${getDisplayTitle(slice.leadCandidate)} for the ${slice.label.toLowerCase()}` : undefined}
                                       disabled={slice.count === 0}
@@ -7663,7 +7663,7 @@ export function ReviewQueueClient({
                                     <button
                                       type="button"
                                       aria-controls="review-detail-panel"
-                                      aria-pressed={slice.nextOtherCandidate?.id === selectedCandidate.id ? true : undefined}
+                                      aria-expanded={slice.nextOtherCandidate?.id === selectedCandidate.id}
                                       aria-describedby={sliceActionDescriptionIds}
                                       aria-label={slice.nextOtherCandidate ? `Open next other row ${getDisplayTitle(slice.nextOtherCandidate)} for the ${slice.label.toLowerCase()}` : undefined}
                                       disabled={!slice.nextOtherCandidate}
@@ -8048,7 +8048,7 @@ export function ReviewQueueClient({
                                   type="button"
                                   aria-controls="review-detail-panel"
                                   aria-describedby={`${familyCandidateSummaryId} ${familyCandidateMetricsId}`}
-                                  aria-pressed={isSelected}
+                                  aria-expanded={isSelected}
                                   onClick={() => selectCandidate(candidate.id, { scrollIntoView: false })}
                                   className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
                                     isSelected
