@@ -7137,7 +7137,9 @@ export function ReviewQueueClient({
                   </p>
                   <button
                     type="button"
+                    aria-controls="review-queue-list"
                     aria-keyshortcuts={REVIEW_RETURN_TO_QUEUE_SHORTCUTS}
+                    aria-label={`Focus active queue row for ${getDisplayTitle(selectedCandidate)}`}
                     onClick={() => focusCandidateRow(selectedCandidate.id, { reveal: true })}
                     className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                   >
