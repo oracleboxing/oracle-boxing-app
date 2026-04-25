@@ -5299,32 +5299,40 @@ export function ReviewQueueClient({
           <div className="mt-5 grid gap-3 md:grid-cols-4">
             {statusCounts.map(({ status, count }) => {
               const isFocusedStatus = statusFilter === status
+              const statusSummaryId = `review-status-summary-${status}`
 
               return (
-                <button
-                  key={status}
-                  type="button"
-                  onClick={() => toggleStatusFocus(status)}
-                  className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
-                    isFocusedStatus
-                      ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
-                      : `${getStatusTone(status)} hover:opacity-90`
-                  }`}
-                  aria-pressed={isFocusedStatus}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-current">{REVIEW_STATUS_LABELS[status]}</p>
-                    {isFocusedStatus ? (
-                      <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                        Active
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-2 text-2xl font-bold text-current">{count}</p>
-                  <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
-                    {isFocusedStatus ? 'Click to clear this status filter' : 'Click to filter the queue to this status'}
+                <div key={status}>
+                  <p id={statusSummaryId} className="sr-only">
+                    {`${REVIEW_STATUS_LABELS[status]}. ${count} visible candidate${count === 1 ? '' : 's'} in this status.${
+                      isFocusedStatus ? ' This status filter is currently active.' : ''
+                    } ${isFocusedStatus ? 'Activate to clear this status filter.' : 'Activate to filter the queue to this status.'}`}
                   </p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleStatusFocus(status)}
+                    className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                      isFocusedStatus
+                        ? 'border-[var(--accent-primary)] bg-[var(--surface-primary)] shadow-sm'
+                        : `${getStatusTone(status)} hover:opacity-90`
+                    }`}
+                    aria-describedby={statusSummaryId}
+                    aria-pressed={isFocusedStatus}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-current">{REVIEW_STATUS_LABELS[status]}</p>
+                      {isFocusedStatus ? (
+                        <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                          Active
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-2xl font-bold text-current">{count}</p>
+                    <p className="mt-2 text-xs font-medium text-[var(--text-tertiary)]">
+                      {isFocusedStatus ? 'Click to clear this status filter' : 'Click to filter the queue to this status'}
+                    </p>
+                  </button>
+                </div>
               )
             })}
           </div>
