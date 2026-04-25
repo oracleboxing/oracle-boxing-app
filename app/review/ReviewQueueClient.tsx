@@ -6349,6 +6349,8 @@ export function ReviewQueueClient({
                           if (!leadCandidate) return
                           openCandidateFromSummary(leadCandidate.id, () => focusFamily(family.dedupeKey, leadCandidate.id))
                         }}
+                        aria-controls="review-detail-panel"
+                        aria-pressed={family.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                         aria-label={family.leadCandidate ? `Open lead row ${getDisplayTitle(family.leadCandidate)} for duplicate family ${family.dedupeKey}` : undefined}
                         className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
