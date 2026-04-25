@@ -6698,6 +6698,8 @@ export function ReviewQueueClient({
                   : canRunMergeAction
                     ? `Merge ${getDisplayTitle(candidate)} into the selected canonical target.`
                     : `Merge ${getDisplayTitle(candidate)} after choosing a canonical target.`
+                const suggestedActionDescribedBy = `${rowSummaryId}${suggestedAction === 'merge' && isSelected ? ` bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}` : ''}`
+                const mergeActionDescribedBy = `${rowSummaryId}${isSelected ? ` bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}` : ''}`
 
                 return (
                   <article
@@ -6784,7 +6786,7 @@ export function ReviewQueueClient({
                       <div className="grid gap-2 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-2">
                         <button
                           type="button"
-                          aria-describedby={`${rowSummaryId}${suggestedAction === 'merge' ? ` bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}` : ''}`}
+                          aria-describedby={suggestedActionDescribedBy}
                           aria-keyshortcuts={REVIEW_SUGGESTED_ACTION_SHORTCUTS}
                           aria-label={suggestedActionAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || (suggestedAction === 'merge' && (!isSelected || !canRunMergeAction))}
@@ -6899,7 +6901,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
-                          aria-describedby={`${rowSummaryId} bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}`}
+                          aria-describedby={mergeActionDescribedBy}
                           aria-keyshortcuts={REVIEW_MERGE_SHORTCUTS}
                           aria-label={mergeButtonAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending' || !isSelected || !canRunMergeAction}
