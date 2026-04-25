@@ -2711,11 +2711,15 @@ export function ReviewQueueClient({
 
   const selectedCandidateAnnouncement = useMemo(() => {
     if (sortedCandidates.length === 0) {
-      return 'No visible candidates in the current review slice.'
+      return hiddenSelectedCandidate
+        ? `${getDisplayTitle(hiddenSelectedCandidate)} is still selected, but there are no visible candidates in the current review slice. Reveal that row or peel back the active modifiers to get back to it.`
+        : 'No visible candidates in the current review slice.'
     }
 
     if (!selectedCandidate) {
-      return `${sortedCandidates.length} visible candidates. No candidate selected.`
+      return hiddenSelectedCandidate
+        ? `${sortedCandidates.length} visible candidate${sortedCandidates.length === 1 ? '' : 's'}. ${getDisplayTitle(hiddenSelectedCandidate)} is still selected, but hidden by the current slice. Reveal that row or peel back the active modifiers to get back to it.`
+        : `${sortedCandidates.length} visible candidate${sortedCandidates.length === 1 ? '' : 's'}. No candidate selected.`
     }
 
     const insight = candidateInsights.get(selectedCandidate.id)
@@ -2747,7 +2751,7 @@ export function ReviewQueueClient({
     }
 
     return parts.join(' ')
-  }, [candidateInsights, familyFilter, pendingCandidates.length, selectedCandidate, selectedCandidateIndex, selectedFamilyCandidates.length, selectedFamilyIndex, selectedIds.length, selectedPendingIndex, sortedCandidates.length])
+  }, [candidateInsights, familyFilter, hiddenSelectedCandidate, pendingCandidates.length, selectedCandidate, selectedCandidateIndex, selectedFamilyCandidates.length, selectedFamilyIndex, selectedIds.length, selectedPendingIndex, sortedCandidates.length])
 
   const selectedCandidateDetailDescription = useMemo(() => {
     if (hiddenSelectedCandidate) {
