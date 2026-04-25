@@ -4319,24 +4319,32 @@ export function ReviewQueueClient({
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              {REVIEW_SHORTCUT_GROUPS.map((group) => (
-                <section key={group.title} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
-                  <h4 className="text-sm font-semibold text-[var(--text-primary)]">{group.title}</h4>
-                  <div className="mt-3 space-y-3">
-                    {group.shortcuts.map((shortcut) => (
-                      <div key={`${group.title}-${shortcut.keys[0]}`} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-1 text-xs font-semibold text-[var(--text-primary)]">
-                            {shortcut.keys[0]}
-                          </kbd>
-                          <span className="text-sm font-medium text-[var(--text-primary)]">{shortcut.keys[1]}</span>
+              {REVIEW_SHORTCUT_GROUPS.map((group, groupIndex) => {
+                const groupHeadingId = `review-shortcut-group-${groupIndex}`
+
+                return (
+                  <section
+                    key={group.title}
+                    aria-labelledby={groupHeadingId}
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4"
+                  >
+                    <h4 id={groupHeadingId} className="text-sm font-semibold text-[var(--text-primary)]">{group.title}</h4>
+                    <div className="mt-3 space-y-3">
+                      {group.shortcuts.map((shortcut) => (
+                        <div key={`${group.title}-${shortcut.keys[0]}`} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <kbd className="rounded border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-1 text-xs font-semibold text-[var(--text-primary)]">
+                              {shortcut.keys[0]}
+                            </kbd>
+                            <span className="text-sm font-medium text-[var(--text-primary)]">{shortcut.keys[1]}</span>
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{shortcut.description}</p>
                         </div>
-                        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{shortcut.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
+                      ))}
+                    </div>
+                  </section>
+                )
+              })}
             </div>
           </div>
         </div>
