@@ -6753,7 +6753,7 @@ export function ReviewQueueClient({
                       if (selectedCandidateId === candidate.id) return
                       selectCandidate(candidate.id, { scrollIntoView: false })
                     }}
-                    className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] ${
+                    className={`rounded-3xl border bg-[var(--surface-elevated)] p-5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] focus-within:ring-2 focus-within:ring-[var(--accent-primary)] focus-within:ring-offset-2 focus-within:ring-offset-[var(--surface-primary)] ${
                       isSelected ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)]'
                     }`}
                   >
