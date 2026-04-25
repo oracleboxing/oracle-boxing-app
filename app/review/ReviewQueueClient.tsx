@@ -5036,6 +5036,9 @@ export function ReviewQueueClient({
               <button
                 type="button"
                 onClick={() => openCandidateInQueue(currentSliceSummary.leadCandidate!.id)}
+                aria-controls="review-detail-panel"
+                aria-expanded={selectedCandidateId === currentSliceSummary.leadCandidate.id}
+                aria-label={`${selectedCandidateId === currentSliceSummary.leadCandidate.id ? 'Viewing' : 'Open'} lead candidate ${getDisplayTitle(currentSliceSummary.leadCandidate)} in the detail panel`}
                 className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
               >
                 Open lead candidate
