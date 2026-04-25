@@ -5276,7 +5276,7 @@ export function ReviewQueueClient({
                     disabled={route.count === 0}
                     onClick={() => applyReviewRoute(route.key)}
                     aria-pressed={route.isActive}
-                    aria-current={route.isActive ? 'true' : undefined}
+                    aria-label={route.isActive ? `${route.label} route is currently active` : `Apply ${route.label} route`}
                     aria-keyshortcuts={REVIEW_ROUTE_SHORTCUTS[route.key]}
                     aria-describedby={`${routeSummaryId} ${routeLeadId}`}
                     className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
