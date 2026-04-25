@@ -7787,7 +7787,7 @@ export function ReviewQueueClient({
                         ) : (
                           <div
                             className="mt-4 space-y-3"
-                            role="radiogroup"
+                            role="group"
                             aria-labelledby={`${selectedCandidate.id}-merge-target-group-title`}
                             aria-describedby={`${selectedCandidate.id}-merge-target-group-description${matchedDrills.length > 1 ? ` ${selectedCandidate.id}-merge-target-group-shortcuts` : ''}`}
                           >
@@ -7840,8 +7840,7 @@ export function ReviewQueueClient({
                                     <div className="flex flex-wrap gap-2">
                                       <button
                                         type="button"
-                                        role="radio"
-                                        aria-checked={isSelectedMergeTarget}
+                                        aria-pressed={isSelectedMergeTarget}
                                         aria-describedby={`${drillMatchReasonId} ${drillSummaryId}`}
                                         aria-label={isSelectedMergeTarget ? `${drill.title} is the selected merge target` : `Use ${drill.title} as the merge target`}
                                         onClick={() => setSelectedCanonicalDrillId(drill.id)}
