@@ -7112,6 +7112,8 @@ export function ReviewQueueClient({
                     <button
                       type="button"
                       aria-keyshortcuts={REVIEW_PREVIOUS_VISIBLE_SHORTCUTS}
+                      aria-controls="review-detail-panel"
+                      aria-label={previousVisibleCandidate ? `Open previous visible row ${getDisplayTitle(previousVisibleCandidate)} in the review detail panel` : undefined}
                       disabled={!previousVisibleCandidate || previousVisibleCandidate.id === selectedCandidate.id}
                       onClick={() => previousVisibleCandidate ? selectCandidate(previousVisibleCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -7127,6 +7129,8 @@ export function ReviewQueueClient({
                     <button
                       type="button"
                       aria-keyshortcuts={REVIEW_NEXT_VISIBLE_SHORTCUTS}
+                      aria-controls="review-detail-panel"
+                      aria-label={nextVisibleCandidate ? `Open next visible row ${getDisplayTitle(nextVisibleCandidate)} in the review detail panel` : undefined}
                       disabled={!nextVisibleCandidate || nextVisibleCandidate.id === selectedCandidate.id}
                       onClick={() => nextVisibleCandidate ? selectCandidate(nextVisibleCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -7142,6 +7146,8 @@ export function ReviewQueueClient({
                     <button
                       type="button"
                       aria-keyshortcuts={REVIEW_PREVIOUS_PENDING_SHORTCUTS}
+                      aria-controls="review-detail-panel"
+                      aria-label={previousPendingCandidate ? `Open previous pending row ${getDisplayTitle(previousPendingCandidate)} in the review detail panel` : undefined}
                       disabled={!previousPendingCandidate || previousPendingCandidate.id === selectedCandidate.id}
                       onClick={() => previousPendingCandidate ? selectCandidate(previousPendingCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -7157,6 +7163,8 @@ export function ReviewQueueClient({
                     <button
                       type="button"
                       aria-keyshortcuts={REVIEW_NEXT_PENDING_SHORTCUTS}
+                      aria-controls="review-detail-panel"
+                      aria-label={nextPendingCandidate ? `Open next pending row ${getDisplayTitle(nextPendingCandidate)} in the review detail panel` : undefined}
                       disabled={!nextPendingCandidate || nextPendingCandidate.id === selectedCandidate.id}
                       onClick={() => nextPendingCandidate ? selectCandidate(nextPendingCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -7172,6 +7180,8 @@ export function ReviewQueueClient({
                     <button
                       type="button"
                       aria-keyshortcuts={REVIEW_LEAD_VISIBLE_SHORTCUTS}
+                      aria-controls="review-detail-panel"
+                      aria-label={leadVisibleCandidate ? `Open lead visible row ${getDisplayTitle(leadVisibleCandidate)} in the review detail panel` : undefined}
                       disabled={!leadVisibleCandidate || leadVisibleCandidate.id === selectedCandidate.id}
                       onClick={() => leadVisibleCandidate ? selectCandidate(leadVisibleCandidate.id, { revealInQueue: true }) : null}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -7210,6 +7220,8 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         aria-keyshortcuts={REVIEW_PREVIOUS_DUPLICATE_FAMILY_SHORTCUTS}
+                        aria-controls="review-detail-panel"
+                        aria-label={previousDuplicateFamily ? `Open previous duplicate family ${previousDuplicateFamily.dedupeKey} in the review detail panel` : undefined}
                         disabled={!previousDuplicateFamily || previousDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
                         onClick={() => previousDuplicateFamily ? focusFamily(previousDuplicateFamily.dedupeKey, previousDuplicateFamily.leadCandidate?.id ?? null) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -7223,6 +7235,8 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         aria-keyshortcuts={REVIEW_NEXT_DUPLICATE_FAMILY_SHORTCUTS}
+                        aria-controls="review-detail-panel"
+                        aria-label={nextDuplicateFamily ? `Open next duplicate family ${nextDuplicateFamily.dedupeKey} in the review detail panel` : undefined}
                         disabled={!nextDuplicateFamily || nextDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
                         onClick={() => nextDuplicateFamily ? focusFamily(nextDuplicateFamily.dedupeKey, nextDuplicateFamily.leadCandidate?.id ?? null) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -7240,6 +7254,8 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         aria-keyshortcuts={REVIEW_PREVIOUS_FAMILY_ROW_SHORTCUTS}
+                        aria-controls="review-detail-panel"
+                        aria-label={previousFamilyCandidate ? `Open previous family row ${getDisplayTitle(previousFamilyCandidate)} in the review detail panel` : undefined}
                         disabled={!previousFamilyCandidate || previousFamilyCandidate.id === selectedCandidate.id}
                         onClick={() => previousFamilyCandidate ? selectCandidate(previousFamilyCandidate.id, { revealInQueue: true }) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -7255,6 +7271,8 @@ export function ReviewQueueClient({
                       <button
                         type="button"
                         aria-keyshortcuts={REVIEW_NEXT_FAMILY_ROW_SHORTCUTS}
+                        aria-controls="review-detail-panel"
+                        aria-label={nextFamilyCandidate ? `Open next family row ${getDisplayTitle(nextFamilyCandidate)} in the review detail panel` : undefined}
                         disabled={!nextFamilyCandidate || nextFamilyCandidate.id === selectedCandidate.id}
                         onClick={() => nextFamilyCandidate ? selectCandidate(nextFamilyCandidate.id, { revealInQueue: true }) : null}
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
