@@ -276,6 +276,11 @@ function formatDateTime(value: string | null) {
   return `${day} ${month} ${year}, ${hours}:${minutes} UTC`
 }
 
+function getScrollBehavior(): ScrollBehavior {
+  if (typeof window === 'undefined') return 'auto'
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+}
+
 function getSourceLabel(candidate: RawDrillCandidate) {
   return candidate.source_file || candidate.source_type || 'Unknown source'
 }
@@ -1245,7 +1250,7 @@ export function ReviewQueueClient({
     if (!(row instanceof HTMLElement)) return
 
     if (options?.reveal) {
-      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      row.scrollIntoView({ behavior: getScrollBehavior(), block: 'nearest' })
     }
 
     row.focus({ preventScroll: !options?.reveal })
@@ -1274,7 +1279,7 @@ export function ReviewQueueClient({
 
     const shouldReveal = window.matchMedia('(max-width: 1279px)').matches
     if (shouldReveal) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      target.scrollIntoView({ behavior: getScrollBehavior(), block: 'nearest' })
     }
 
     window.requestAnimationFrame(() => {
@@ -1388,7 +1393,7 @@ export function ReviewQueueClient({
     }
 
     if (options?.revealInQueue) {
-      document.getElementById(`candidate-${candidateId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      document.getElementById(`candidate-${candidateId}`)?.scrollIntoView({ behavior: getScrollBehavior(), block: 'nearest' })
       return
     }
 
@@ -1396,7 +1401,7 @@ export function ReviewQueueClient({
       return
     }
 
-    document.getElementById(`candidate-${candidateId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    document.getElementById(`candidate-${candidateId}`)?.scrollIntoView({ behavior: getScrollBehavior(), block: 'nearest' })
   }, [])
 
   const focusCandidateDetailPanel = useCallback((candidateId: string) => {
@@ -1410,7 +1415,7 @@ export function ReviewQueueClient({
 
     window.requestAnimationFrame(() => {
       if (shouldScrollIntoDetailPanel) {
-        detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        detailPanelRef.current?.scrollIntoView({ behavior: getScrollBehavior(), block: 'start' })
       }
 
       window.requestAnimationFrame(() => {
@@ -2307,7 +2312,7 @@ export function ReviewQueueClient({
 
     if (shouldScrollSelectedCandidateIntoViewRef.current) {
       shouldScrollSelectedCandidateIntoViewRef.current = false
-      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      row.scrollIntoView({ behavior: getScrollBehavior(), block: 'nearest' })
     }
 
     if (shouldFocusSelectedCandidateRowRef.current) {
