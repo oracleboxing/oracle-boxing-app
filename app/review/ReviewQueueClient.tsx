@@ -7742,18 +7742,23 @@ export function ReviewQueueClient({
                       </div>
 
                       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Likely canonical targets</p>
-                        <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                        <p id={`${selectedCandidate.id}-merge-target-group-title`} className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Likely canonical targets</p>
+                        <p id={`${selectedCandidate.id}-merge-target-group-description`} className="mt-2 text-sm text-[var(--text-secondary)]">
                           These are the strongest likely canonical targets from the curated drills table, so you can merge straight from here instead of juggling IDs by hand.
                         </p>
                         {matchedDrills.length > 1 ? (
-                          <p className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use 4 to 9 to pick the top visible targets by rank, or ; and ' to cycle target selection.</p>
+                          <p id={`${selectedCandidate.id}-merge-target-group-shortcuts`} className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use 4 to 9 to pick the top visible targets by rank, or ; and ' to cycle target selection.</p>
                         ) : null}
 
                         {matchedDrills.length === 0 ? (
                           <p className="mt-4 text-sm text-[var(--text-secondary)]">No likely drill matches surfaced yet from the current library.</p>
                         ) : (
-                          <div className="mt-4 space-y-3">
+                          <div
+                            className="mt-4 space-y-3"
+                            role="radiogroup"
+                            aria-labelledby={`${selectedCandidate.id}-merge-target-group-title`}
+                            aria-describedby={`${selectedCandidate.id}-merge-target-group-description${matchedDrills.length > 1 ? ` ${selectedCandidate.id}-merge-target-group-shortcuts` : ''}`}
+                          >
                             {matchedDrills.map((drill, index) => {
                               const isSelectedMergeTarget = preferredMergeTargetId === drill.id
                               const drillMatchReasonId = `${selectedCandidate.id}-merge-target-reasons-${drill.id}`
@@ -7803,7 +7808,8 @@ export function ReviewQueueClient({
                                     <div className="flex flex-wrap gap-2">
                                       <button
                                         type="button"
-                                        aria-pressed={isSelectedMergeTarget}
+                                        role="radio"
+                                        aria-checked={isSelectedMergeTarget}
                                         aria-describedby={`${drillMatchReasonId} ${drillSummaryId}`}
                                         aria-label={isSelectedMergeTarget ? `${drill.title} is the selected merge target` : `Use ${drill.title} as the merge target`}
                                         onClick={() => setSelectedCanonicalDrillId(drill.id)}
