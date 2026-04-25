@@ -5571,6 +5571,7 @@ export function ReviewQueueClient({
 
                   const isFocusedLevel = triageFilter === level
                   const triageSummary = triageSummaries.get(level)
+                  const triageSummaryId = `review-triage-summary-${level}`
 
                   return (
                     <div
@@ -5617,11 +5618,22 @@ export function ReviewQueueClient({
                         </div>
                       ) : null}
 
+                      <p id={triageSummaryId} className="sr-only">
+                        {`${getTriageLabel(level)}. ${count} pending candidate${count === 1 ? '' : 's'} in this lane.${
+                          isFocusedLevel ? ' This triage lane is currently active.' : ''
+                        }${
+                          triageSummary?.leadCandidate && triageSummary.leadInsight && triageSummary.leadDecision
+                            ? ` Lead row ${getDisplayTitle(triageSummary.leadCandidate)}. Suggested action ${getDecisionLabel(triageSummary.leadDecision)}. ${getReviewerNextMove(triageSummary.leadCandidate, triageSummary.leadInsight)}`
+                            : ' No lead row is available in this triage lane right now.'
+                        }`}
+                      </p>
+
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         <button
                           type="button"
                           onClick={() => setTriageFilter((current) => (current === level ? 'all' : level))}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                          aria-describedby={triageSummaryId}
                           aria-pressed={isFocusedLevel}
                         >
                           {isFocusedLevel ? 'Current triage lane' : 'Focus this triage lane'}
@@ -5638,6 +5650,7 @@ export function ReviewQueueClient({
                             openCandidateFromSummary(triageSummary.leadCandidate.id, () => setTriageFilter(level))
                           }}
                           aria-controls="review-detail-panel"
+                          aria-describedby={triageSummaryId}
                           aria-pressed={triageSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                           aria-label={triageSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(triageSummary.leadCandidate)} for ${getTriageLabel(level)}` : undefined}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -5677,6 +5690,7 @@ export function ReviewQueueClient({
 
                   const isFocusedBand = completenessFilter === band
                   const completenessSummary = completenessSummaries.get(band)
+                  const completenessSummaryId = `review-completeness-summary-${band}`
 
                   return (
                     <div
@@ -5721,11 +5735,22 @@ export function ReviewQueueClient({
                         </div>
                       ) : null}
 
+                      <p id={completenessSummaryId} className="sr-only">
+                        {`${COMPLETENESS_BAND_LABELS[band]}. ${count} pending candidate${count === 1 ? '' : 's'} in this lane.${
+                          isFocusedBand ? ' This completeness lane is currently active.' : ''
+                        }${
+                          completenessSummary?.leadCandidate && completenessSummary.leadInsight && completenessSummary.leadDecision
+                            ? ` Lead row ${getDisplayTitle(completenessSummary.leadCandidate)}. Suggested action ${getDecisionLabel(completenessSummary.leadDecision)}. ${getReviewerNextMove(completenessSummary.leadCandidate, completenessSummary.leadInsight)}`
+                            : ' No lead row is available in this completeness lane right now.'
+                        }`}
+                      </p>
+
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         <button
                           type="button"
                           onClick={() => toggleCompletenessFocus(band)}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                          aria-describedby={completenessSummaryId}
                           aria-pressed={isFocusedBand}
                         >
                           {isFocusedBand ? 'Current completeness lane' : 'Focus this completeness lane'}
@@ -5742,6 +5767,7 @@ export function ReviewQueueClient({
                             openCandidateFromSummary(completenessSummary.leadCandidate.id, () => toggleCompletenessFocus(band))
                           }}
                           aria-controls="review-detail-panel"
+                          aria-describedby={completenessSummaryId}
                           aria-pressed={completenessSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
                           aria-label={completenessSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(completenessSummary.leadCandidate)} for ${COMPLETENESS_BAND_LABELS[band]}` : undefined}
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
