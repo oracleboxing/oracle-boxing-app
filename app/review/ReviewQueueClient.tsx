@@ -1249,12 +1249,15 @@ export function ReviewQueueClient({
   }, [])
 
   const handleSelectEscape = useCallback((event: ReactKeyboardEvent<HTMLSelectElement>) => {
-    if (event.key !== 'Escape' || !selectedCandidateId) return
+    if (event.key !== 'Escape') return
+
+    const queueCandidateId = selectedCandidateId ?? sortedCandidates[0]?.id
+    if (!queueCandidateId) return
 
     event.preventDefault()
     event.stopPropagation()
-    focusCandidateRow(selectedCandidateId, { reveal: true })
-  }, [focusCandidateRow, selectedCandidateId])
+    focusCandidateRow(queueCandidateId, { reveal: true })
+  }, [focusCandidateRow, selectedCandidateId, sortedCandidates])
 
   const focusPreferredMergeTargetSelect = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -7967,6 +7970,9 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               disabled={!previousDuplicateFamily || previousDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
+                              aria-keyshortcuts={REVIEW_PREVIOUS_DUPLICATE_FAMILY_SHORTCUTS}
+                              aria-controls="review-detail-panel"
+                              aria-label={previousDuplicateFamily ? `Open previous duplicate family ${previousDuplicateFamily.dedupeKey}` : undefined}
                               onClick={() => focusFamily(previousDuplicateFamily!.dedupeKey, previousDuplicateFamily!.leadCandidate?.id ?? null)}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                             >
@@ -7980,6 +7986,9 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               disabled={!nextDuplicateFamily || nextDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
+                              aria-keyshortcuts={REVIEW_NEXT_DUPLICATE_FAMILY_SHORTCUTS}
+                              aria-controls="review-detail-panel"
+                              aria-label={nextDuplicateFamily ? `Open next duplicate family ${nextDuplicateFamily.dedupeKey}` : undefined}
                               onClick={() => focusFamily(nextDuplicateFamily!.dedupeKey, nextDuplicateFamily!.leadCandidate?.id ?? null)}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                             >
