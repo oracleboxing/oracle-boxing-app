@@ -1022,6 +1022,7 @@ export function ReviewQueueClient({
   const bulkMergeTargetSelectRef = useRef<HTMLSelectElement | null>(null)
   const detailMergeTargetSelectRef = useRef<HTMLSelectElement | null>(null)
   const copyFeedbackTimeoutRef = useRef<number | null>(null)
+  const actionErrorRef = useRef<HTMLDivElement | null>(null)
   const shortcutHelpDialogRef = useRef<HTMLDivElement | null>(null)
   const shortcutHelpCloseButtonRef = useRef<HTMLButtonElement | null>(null)
   const shortcutHelpTriggerRef = useRef<HTMLElement | null>(null)
@@ -1207,6 +1208,18 @@ export function ReviewQueueClient({
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!actionError || typeof window === 'undefined') return
+
+    const frame = window.requestAnimationFrame(() => {
+      actionErrorRef.current?.focus()
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [actionError])
 
   const scheduleCopyFeedbackClear = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -4742,8 +4755,10 @@ export function ReviewQueueClient({
 
           {actionError ? (
             <div
+              ref={actionErrorRef}
               role="alert"
               aria-live="assertive"
+              tabIndex={-1}
               className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300"
             >
               {actionError}
