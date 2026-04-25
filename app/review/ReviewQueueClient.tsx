@@ -7990,7 +7990,7 @@ export function ReviewQueueClient({
                                   ? `${selectedFamilyWorkspace.pendingFamilyIds.length} pending row${selectedFamilyWorkspace.pendingFamilyIds.length === 1 ? '' : 's'} ready for bulk actions`
                                   : 'No pending family rows left'}
                               </span>
-                              <span className="mt-2 inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                              <span aria-hidden="true" className="mt-2 inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
                                 Shortcut Shift + F
                               </span>
                             </button>
