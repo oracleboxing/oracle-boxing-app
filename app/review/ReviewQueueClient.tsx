@@ -3449,6 +3449,14 @@ export function ReviewQueueClient({
           event.preventDefault()
           selectCandidate(candidateIdFromTarget, { scrollIntoView: false })
           focusCandidateRow(candidateIdFromTarget)
+          return
+        }
+
+        const escapeTargetContext = getShortcutTargetContext(event.target)
+        const queueCandidate = selectedCandidate ?? sortedCandidates[0]
+        if (escapeTargetContext !== 'none' && queueCandidate) {
+          event.preventDefault()
+          focusCandidateRow(queueCandidate.id, { reveal: true })
         }
 
         return
