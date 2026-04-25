@@ -7948,6 +7948,7 @@ export function ReviewQueueClient({
                               type="button"
                               disabled={selectedFamilyWorkspace.pendingFamilyIds.length === 0}
                               aria-keyshortcuts={REVIEW_SELECT_PENDING_FAMILY_ROWS_SHORTCUTS}
+                              aria-pressed={selectedFamilyWorkspace.pendingFamilyIds.length > 0 && selectedFamilyWorkspace.pendingFamilyIds.every((id) => visibleSelectedIds.includes(id))}
                               onClick={() => toggleSelectedBatch(selectedFamilyWorkspace.pendingFamilyIds)}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                             >
@@ -7964,6 +7965,7 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               disabled={selectedFamilyWorkspace.pendingKeepIds.length === 0}
+                              aria-pressed={selectedFamilyWorkspace.pendingKeepIds.length > 0 && selectedFamilyWorkspace.pendingKeepIds.every((id) => visibleSelectedIds.includes(id))}
                               onClick={() => toggleSelectedBatch(selectedFamilyWorkspace.pendingKeepIds)}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                             >
@@ -7977,6 +7979,7 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               disabled={selectedFamilyWorkspace.pendingMergeIds.length === 0}
+                              aria-pressed={selectedFamilyWorkspace.pendingMergeIds.length > 0 && selectedFamilyWorkspace.pendingMergeIds.every((id) => visibleSelectedIds.includes(id))}
                               onClick={() => toggleSelectedBatch(selectedFamilyWorkspace.pendingMergeIds)}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                             >
@@ -7990,6 +7993,7 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               disabled={selectedFamilyWorkspace.pendingRejectIds.length === 0}
+                              aria-pressed={selectedFamilyWorkspace.pendingRejectIds.length > 0 && selectedFamilyWorkspace.pendingRejectIds.every((id) => visibleSelectedIds.includes(id))}
                               onClick={() => toggleSelectedBatch(selectedFamilyWorkspace.pendingRejectIds)}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                             >
