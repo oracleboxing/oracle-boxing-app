@@ -5311,6 +5311,8 @@ export function ReviewQueueClient({
                   .map(([grade, count]) => {
                     const isFocusedGrade = gradeFilter === grade
                     const gradeSummary = gradeSummaries.get(grade)
+                    const gradeLabel = formatGradeLevel(grade === 'unassigned' ? null : grade)
+                    const gradeSummaryId = `review-grade-summary-${grade}`
 
                     return (
                       <div
@@ -5355,16 +5357,27 @@ export function ReviewQueueClient({
                           </div>
                         ) : null}
 
+                        <p id={gradeSummaryId} className="sr-only">
+                          {`${gradeLabel}. ${count} pending candidate${count === 1 ? '' : 's'} in this slice.${
+                            isFocusedGrade ? ' This grade slice is currently active.' : ''
+                          }${
+                            gradeSummary?.leadCandidate && gradeSummary.leadInsight && gradeSummary.leadDecision
+                              ? ` Lead row ${getDisplayTitle(gradeSummary.leadCandidate)}. Suggested action ${getDecisionLabel(gradeSummary.leadDecision)}. ${getReviewerNextMove(gradeSummary.leadCandidate, gradeSummary.leadInsight)}`
+                              : ' No lead row is available in this grade right now.'
+                          }`}
+                        </p>
+
                         <div className="mt-3 grid gap-2 sm:grid-cols-2">
                           <button
                             type="button"
                             onClick={() => toggleGradeFocus(grade)}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+                            aria-describedby={gradeSummaryId}
                             aria-pressed={isFocusedGrade}
                           >
                             {isFocusedGrade ? 'Current grade slice' : 'Focus this grade slice'}
                             <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                              Narrow the queue to {formatGradeLevel(grade === 'unassigned' ? null : grade)} rows.
+                              Narrow the queue to {gradeLabel} rows.
                             </span>
                           </button>
 
@@ -5376,8 +5389,9 @@ export function ReviewQueueClient({
                               openCandidateFromSummary(gradeSummary.leadCandidate.id, () => toggleGradeFocus(grade))
                             }}
                             aria-controls="review-detail-panel"
+                            aria-describedby={gradeSummaryId}
                             aria-pressed={gradeSummary?.leadCandidate?.id === selectedCandidate?.id ? true : undefined}
-                            aria-label={gradeSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(gradeSummary.leadCandidate)} for grade ${formatGradeLevel(grade === 'unassigned' ? null : grade)}` : undefined}
+                            aria-label={gradeSummary?.leadCandidate ? `Open lead row ${getDisplayTitle(gradeSummary.leadCandidate)} for grade ${gradeLabel}` : undefined}
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                           >
                             Open lead row
