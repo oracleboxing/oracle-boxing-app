@@ -45,6 +45,7 @@ const REVIEW_BULK_MERGE_SHORTCUTS = 'Shift+M'
 const REVIEW_COPY_CANDIDATE_HANDOFF_SHORTCUTS = 'Y'
 const REVIEW_COPY_MERGE_HANDOFF_SHORTCUTS = 'Shift+Y'
 const REVIEW_COPY_FAMILY_HANDOFF_SHORTCUTS = 'Shift+H'
+const REVIEW_SELECT_PENDING_FAMILY_ROWS_SHORTCUTS = 'Shift+F'
 const REVIEW_COPY_QUEUE_HANDOFF_SHORTCUTS = 'H'
 const REVIEW_COPY_VIEW_SHORTCUTS = 'V'
 const REVIEW_RESET_VIEW_SHORTCUTS = '0'
@@ -7926,6 +7927,7 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               disabled={selectedFamilyWorkspace.pendingFamilyIds.length === 0}
+                              aria-keyshortcuts={REVIEW_SELECT_PENDING_FAMILY_ROWS_SHORTCUTS}
                               onClick={() => toggleSelectedBatch(selectedFamilyWorkspace.pendingFamilyIds)}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                             >
