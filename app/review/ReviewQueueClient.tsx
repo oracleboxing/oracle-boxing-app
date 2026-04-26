@@ -6586,15 +6586,15 @@ export function ReviewQueueClient({
               <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                 Pending {bulkSelectionCounts.pending} • Approved {bulkSelectionCounts.approved} • Merged {bulkSelectionCounts.merged} • Rejected {bulkSelectionCounts.rejected}
               </p>
-              <p className="mt-2 text-xs text-[var(--text-secondary)]">
+              <p id="bulk-selection-ready-status" className="mt-2 text-xs text-[var(--text-secondary)]">
                 Ready right now: <span className="font-medium text-[var(--text-primary)]">{actionableSelectedLabel}</span>
               </p>
-              <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+              <p id="bulk-selection-scope-status" className="mt-2 text-xs text-[var(--text-tertiary)]">
                 Bulk actions only apply to pending rows in the current slice, so already-reviewed or hidden selections stay available for comparison but are skipped.
                 {skippedSelectedCount > 0 ? ` ${skippedSelectedCount} visible reviewed row${skippedSelectedCount === 1 ? '' : 's'} will be ignored.` : ''}
                 {hiddenSelectedCount > 0 ? ` ${hiddenSelectedCount} hidden selected row${hiddenSelectedCount === 1 ? '' : 's'} will stay untouched until visible again.` : ''}
               </p>
-              <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+              <p id="bulk-selection-shortcuts" className="mt-2 text-xs text-[var(--text-tertiary)]">
                 Shortcuts: <span className="font-medium text-[var(--text-secondary)]">Shift + X</span> selects visible pending, <span className="font-medium text-[var(--text-secondary)]">c</span> clears the full selection, then <span className="font-medium text-[var(--text-secondary)]">Shift + A / R / M</span> runs the bulk action.
               </p>
             </div>
@@ -6602,6 +6602,7 @@ export function ReviewQueueClient({
             <button
               type="button"
               onClick={toggleSelectAllVisiblePending}
+              aria-describedby="bulk-selection-ready-status bulk-selection-scope-status bulk-selection-shortcuts"
               aria-keyshortcuts={REVIEW_SELECT_ALL_VISIBLE_PENDING_SHORTCUTS}
               className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
@@ -6612,6 +6613,7 @@ export function ReviewQueueClient({
               type="button"
               disabled={selectedIds.length === 0}
               onClick={clearSelectedRows}
+              aria-describedby="bulk-selection-ready-status bulk-selection-scope-status bulk-selection-shortcuts"
               aria-keyshortcuts={REVIEW_CLEAR_SELECTION_SHORTCUTS}
               className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
             >
@@ -6631,6 +6633,7 @@ export function ReviewQueueClient({
                       : `Approved ${actionableSelectedIds.length} candidates into the drill library.`,
                 })
               }
+              aria-describedby="bulk-selection-ready-status bulk-selection-scope-status bulk-selection-shortcuts"
               aria-keyshortcuts={REVIEW_BULK_APPROVE_SHORTCUTS}
               title={bulkActionTitle}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
@@ -6649,6 +6652,7 @@ export function ReviewQueueClient({
                   successLabel: actionableSelectedIds.length === 1 ? 'Rejected candidate.' : `Rejected ${actionableSelectedIds.length} candidates.`,
                 })
               }
+              aria-describedby="bulk-selection-ready-status bulk-selection-scope-status bulk-selection-shortcuts"
               aria-keyshortcuts={REVIEW_BULK_REJECT_SHORTCUTS}
               title={bulkActionTitle}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
@@ -6707,7 +6711,7 @@ export function ReviewQueueClient({
                     })
                   : setActionError(mergeTargetPrompt)
               }
-              aria-describedby={`bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}`}
+              aria-describedby={`bulk-selection-ready-status bulk-selection-scope-status bulk-selection-shortcuts bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}`}
               aria-keyshortcuts={REVIEW_BULK_MERGE_SHORTCUTS}
               title={canRunMergeAction ? bulkActionTitle : mergeTargetPrompt}
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
