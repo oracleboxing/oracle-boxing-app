@@ -7565,13 +7565,19 @@ export function ReviewQueueClient({
                             }`}
                           >
                             Apply suggested action
-                            <span id={detailSuggestedActionHintId} className={`mt-1 block text-xs font-normal ${
-                              suggestedAction === 'keep'
-                                ? 'text-emerald-700 dark:text-emerald-400'
-                                : suggestedAction === 'merge'
-                                  ? 'text-sky-700 dark:text-sky-400'
-                                  : 'text-rose-700 dark:text-rose-400'
-                            }`}>
+                            <span id={detailSuggestedActionHintId} className="sr-only">
+                              {getSuggestedActionShortcutLabel(suggestedAction)}. {getSuggestedActionShortcutHint(suggestedAction, canRunMergeAction)}
+                            </span>
+                            <span
+                              aria-hidden="true"
+                              className={`mt-1 block text-xs font-normal ${
+                                suggestedAction === 'keep'
+                                  ? 'text-emerald-700 dark:text-emerald-400'
+                                  : suggestedAction === 'merge'
+                                    ? 'text-sky-700 dark:text-sky-400'
+                                    : 'text-rose-700 dark:text-rose-400'
+                              }`}
+                            >
                               {getSuggestedActionShortcutLabel(suggestedAction)} • {getSuggestedActionShortcutHint(suggestedAction, canRunMergeAction)}
                             </span>
                           </button>
