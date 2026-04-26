@@ -7811,7 +7811,7 @@ export function ReviewQueueClient({
                                       <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">{slice.detail}</p>
                                     </div>
                                     {slice.isActive ? (
-                                      <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                      <span aria-hidden="true" className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
                                         Active
                                       </span>
                                     ) : null}
