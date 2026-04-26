@@ -4808,7 +4808,7 @@ export function ReviewQueueClient({
                       className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                     >
                       Peel back last
-                      <span className="ml-2 text-[var(--text-tertiary)]">Backspace • {lastActiveViewModifierLabel}</span>
+                      <span aria-hidden="true" className="ml-2 text-[var(--text-tertiary)]">Backspace • {lastActiveViewModifierLabel}</span>
                     </button>
                   ) : null}
                   <button
@@ -4818,7 +4818,7 @@ export function ReviewQueueClient({
                     className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                   >
                     Reset view
-                    <span className="ml-2 text-[var(--text-tertiary)]">0</span>
+                    <span aria-hidden="true" className="ml-2 text-[var(--text-tertiary)]">0</span>
                   </button>
                 </div>
               </div>
