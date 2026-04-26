@@ -7458,7 +7458,6 @@ export function ReviewQueueClient({
                                 className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
                                 Copy candidate handoff
-                                <span className="sr-only">Shortcut Y</span>
                               </button>
                             ) : null}
                             {nextPendingCandidate && nextPendingCandidate.id !== selectedCandidate.id ? (
