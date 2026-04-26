@@ -4492,6 +4492,22 @@ export function ReviewQueueClient({
                     return
                   }
 
+                  if (event.key === 'Escape') {
+                    event.preventDefault()
+                    event.stopPropagation()
+
+                    if (query.trim()) {
+                      setQuery('')
+                      return
+                    }
+
+                    const queueCandidate = selectedCandidate ?? sortedCandidates[0]
+                    if (queueCandidate) {
+                      focusCandidateInQueue(queueCandidate.id)
+                    }
+                    return
+                  }
+
                   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
 
                   const edgeCandidate = event.key === 'ArrowDown' ? sortedCandidates[0] : sortedCandidates[sortedCandidates.length - 1]
