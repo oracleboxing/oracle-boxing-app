@@ -28,7 +28,7 @@ const REVIEW_ROUTE_SHORTCUTS: Record<ReviewRouteKey, '1' | '2' | '3'> = {
 
 const MERGE_TARGET_SHORTCUT_KEYS = ['4', '5', '6', '7', '8', '9'] as const
 
-const REVIEW_QUEUE_ROW_SHORTCUTS = 'Enter S X Space Escape J K ArrowDown ArrowUp N P L G Shift+G Home End PageDown PageUp F [ ] , .'
+const REVIEW_QUEUE_ROW_SHORTCUTS = "Enter S X Space C Escape J K ArrowDown ArrowUp N P L G Shift+G Home End PageDown PageUp F Shift+F [ ] , . ArrowLeft ArrowRight ; ' 4 5 6 7 8 9 O Shift+O B T D I E U H Shift+H Y / Backspace 0 ? A R M Shift+A Shift+R Shift+M"
 const REVIEW_RETURN_TO_QUEUE_SHORTCUTS = 'Escape'
 const REVIEW_SEARCH_SHORTCUTS = '/ Control+K Meta+K Enter ArrowDown ArrowUp Escape'
 const REVIEW_HELP_SHORTCUTS = 'Shift+/'
@@ -65,7 +65,7 @@ const REVIEW_MERGE_TARGET_HELP_ID = 'review-merge-target-help'
 const REVIEW_FILTER_SELECT_SHORTCUTS = 'Escape'
 const REVIEW_FILTER_SELECT_HELP_ID = 'review-filter-select-help'
 const REVIEW_QUEUE_KEYBOARD_HELP_ID = 'review-queue-keyboard-help'
-const REVIEW_QUEUE_NAVIGATION_SHORTCUTS = "J K ArrowDown ArrowUp N P L G Shift+G Home End PageDown PageUp Enter S X Space Escape F [ ] , . 4 5 6 7 8 9 ArrowLeft ArrowRight ; ' 1 2 3 O Shift+O Backspace 0 ?"
+const REVIEW_QUEUE_NAVIGATION_SHORTCUTS = "Enter S X Space C Escape J K ArrowDown ArrowUp N P L G Shift+G Home End PageDown PageUp F Shift+F [ ] , . ArrowLeft ArrowRight ; ' 1 2 3 4 5 6 7 8 9 O Shift+O B T D I E U H Shift+H V Y / Backspace 0 ? A R M Shift+A Shift+R Shift+M"
 
 const REVIEW_SHORTCUT_GROUPS = [
   {
