@@ -7846,7 +7846,7 @@ export function ReviewQueueClient({
                                       aria-controls="review-detail-panel"
                                       aria-expanded={slice.nextOtherCandidate?.id === selectedCandidate.id}
                                       aria-describedby={sliceActionDescriptionIds}
-                                      aria-label={slice.nextOtherCandidate ? `Open next other row ${getDisplayTitle(slice.nextOtherCandidate)} for the ${slice.label.toLowerCase()}` : undefined}
+                                      aria-label={slice.nextOtherCandidate ? `Open next other row ${getDisplayTitle(slice.nextOtherCandidate)} for the ${slice.label.toLowerCase()} in the review detail panel` : undefined}
                                       disabled={!slice.nextOtherCandidate}
                                       onClick={slice.openNextOtherRow}
                                       className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none"
