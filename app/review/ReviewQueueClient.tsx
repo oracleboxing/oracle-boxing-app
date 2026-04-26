@@ -7861,7 +7861,7 @@ export function ReviewQueueClient({
                           These are the strongest likely canonical targets from the curated drills table, so you can merge straight from here instead of juggling IDs by hand.
                         </p>
                         {matchedDrills.length > 1 ? (
-                          <p id={`${selectedCandidate.id}-merge-target-group-shortcuts`} className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use 4 to 9 to pick the top visible targets by rank, or ; and ' to cycle target selection.</p>
+                          <p aria-hidden="true" className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use 4 to 9 to pick the top visible targets by rank, or ; and ' to cycle target selection.</p>
                         ) : null}
 
                         {matchedDrills.length === 0 ? (
@@ -7871,7 +7871,7 @@ export function ReviewQueueClient({
                             className="mt-4 space-y-3"
                             role="group"
                             aria-labelledby={`${selectedCandidate.id}-merge-target-group-title`}
-                            aria-describedby={`${selectedCandidate.id}-merge-target-group-description${matchedDrills.length > 1 ? ` ${selectedCandidate.id}-merge-target-group-shortcuts` : ''}`}
+                            aria-describedby={`${selectedCandidate.id}-merge-target-group-description`}
                           >
                             {matchedDrills.map((drill, index) => {
                               const isSelectedMergeTarget = preferredMergeTargetId === drill.id
