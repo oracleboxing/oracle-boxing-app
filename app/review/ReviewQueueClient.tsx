@@ -7869,7 +7869,7 @@ export function ReviewQueueClient({
                         ) : (
                           <div
                             className="mt-4 space-y-3"
-                            role="group"
+                            role="radiogroup"
                             aria-labelledby={`${selectedCandidate.id}-merge-target-group-title`}
                             aria-describedby={`${selectedCandidate.id}-merge-target-group-description`}
                           >
@@ -7923,7 +7923,8 @@ export function ReviewQueueClient({
                                     <div className="flex flex-wrap gap-2">
                                       <button
                                         type="button"
-                                        aria-pressed={isSelectedMergeTarget}
+                                        role="radio"
+                                        aria-checked={isSelectedMergeTarget}
                                         aria-describedby={`${drillMatchReasonId} ${drillSummaryId}`}
                                         aria-keyshortcuts={mergeTargetShortcutKey ?? undefined}
                                         aria-label={isSelectedMergeTarget ? `${drill.title} is the selected merge target` : `Use ${drill.title} as the merge target`}
