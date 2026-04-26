@@ -6685,7 +6685,7 @@ export function ReviewQueueClient({
                 </span>
               ) : null}
               {matchedDrills.length > 1 ? (
-                <span id="bulk-merge-target-shortcuts" className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
+                <span id="bulk-merge-target-shortcuts" aria-hidden="true" className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
               ) : null}
             </label>
 
@@ -7593,7 +7593,7 @@ export function ReviewQueueClient({
                                 </span>
                               ) : null}
                               {matchedDrills.length > 1 ? (
-                                <span id={`${selectedCandidate.id}-merge-target-shortcuts`} className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
+                                <span id={`${selectedCandidate.id}-merge-target-shortcuts`} aria-hidden="true" className="mt-1 block text-xs leading-5 text-[var(--text-tertiary)]">Shortcuts 4 to 9 pick the top visible merge targets by rank, while ← / → or ; and ' keep cycling.</span>
                               ) : null}
                             </label>
 
@@ -7893,7 +7893,7 @@ export function ReviewQueueClient({
                                           Match {drill.matchScore}
                                         </span>
                                         {getMergeTargetShortcutKey(index) ? (
-                                          <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
+                                          <span aria-hidden="true" className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
                                             Shortcut {getMergeTargetShortcutKey(index)}
                                           </span>
                                         ) : null}
