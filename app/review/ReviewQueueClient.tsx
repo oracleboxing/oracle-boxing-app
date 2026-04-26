@@ -4737,7 +4737,8 @@ export function ReviewQueueClient({
               onClick={() => copyCurrentView(scopedCandidateIds ? 'Copied scoped review view link' : 'Copied review queue view link')}
               className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
             >
-              Copy current view (V)
+              <span>Copy current view</span>
+              <span aria-hidden="true"> (V)</span>
             </button>
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
               {sortedCandidates.length} visible
@@ -6770,7 +6771,8 @@ export function ReviewQueueClient({
                     onClick={() => copyCurrentView('Copied scoped review view link')}
                     className="inline-flex rounded-xl border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-950 transition-colors hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/20 dark:text-sky-100 dark:hover:bg-sky-900/30"
                   >
-                    Copy scope link (V)
+                    <span>Copy scope link</span>
+                    <span aria-hidden="true"> (V)</span>
                   </button>
                   <button
                     type="button"
