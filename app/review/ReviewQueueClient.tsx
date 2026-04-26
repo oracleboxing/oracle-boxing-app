@@ -6933,7 +6933,6 @@ export function ReviewQueueClient({
                               onChange={() => toggleSelected(candidate.id)}
                               className="h-4 w-4 rounded border-[var(--border)] bg-[var(--surface-primary)] text-[var(--accent-primary)]"
                             />
-                            <span className="sr-only">Select {getDisplayTitle(candidate)}</span>
                           </label>
 
                           <button
