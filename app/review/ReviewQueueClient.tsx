@@ -8169,6 +8169,7 @@ export function ReviewQueueClient({
                                   aria-controls="review-detail-panel"
                                   aria-describedby={`${familyCandidateSummaryId} ${familyCandidateMetricsId}`}
                                   aria-expanded={isSelected}
+                                  aria-label={`${isSelected ? 'Viewing' : 'Open'} ${getDisplayTitle(candidate)} in the review detail panel`}
                                   onClick={() => selectCandidate(candidate.id, { scrollIntoView: false })}
                                   className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
                                     isSelected
