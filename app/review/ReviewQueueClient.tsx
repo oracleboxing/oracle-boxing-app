@@ -7875,6 +7875,7 @@ export function ReviewQueueClient({
                               const isSelectedMergeTarget = preferredMergeTargetId === drill.id
                               const drillMatchReasonId = `${selectedCandidate.id}-merge-target-reasons-${drill.id}`
                               const drillSummaryId = `${selectedCandidate.id}-merge-target-summary-${drill.id}`
+                              const mergeTargetShortcutKey = getMergeTargetShortcutKey(index)
 
                               return (
                                 <div
@@ -7892,9 +7893,9 @@ export function ReviewQueueClient({
                                         <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
                                           Match {drill.matchScore}
                                         </span>
-                                        {getMergeTargetShortcutKey(index) ? (
+                                        {mergeTargetShortcutKey ? (
                                           <span aria-hidden="true" className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
-                                            Shortcut {getMergeTargetShortcutKey(index)}
+                                            Shortcut {mergeTargetShortcutKey}
                                           </span>
                                         ) : null}
                                         {isSelectedMergeTarget ? (
@@ -7922,6 +7923,7 @@ export function ReviewQueueClient({
                                         type="button"
                                         aria-pressed={isSelectedMergeTarget}
                                         aria-describedby={`${drillMatchReasonId} ${drillSummaryId}`}
+                                        aria-keyshortcuts={mergeTargetShortcutKey ?? undefined}
                                         aria-label={isSelectedMergeTarget ? `${drill.title} is the selected merge target` : `Use ${drill.title} as the merge target`}
                                         onClick={() => setSelectedCanonicalDrillId(drill.id)}
                                         className={`inline-flex shrink-0 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
