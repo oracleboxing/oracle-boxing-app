@@ -7545,7 +7545,8 @@ export function ReviewQueueClient({
                             className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm font-medium text-emerald-900 transition-colors hover:bg-emerald-100 disabled:pointer-events-none disabled:opacity-50 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
                           >
                             Approve candidate
-                            <span id={detailApproveActionHintId} className="mt-1 block text-xs font-normal text-emerald-700 dark:text-emerald-400">Shortcut A • Creates a drill and advances selection</span>
+                            <span id={detailApproveActionHintId} className="sr-only">Creates a drill and advances selection.</span>
+                            <span aria-hidden="true" className="mt-1 block text-xs font-normal text-emerald-700 dark:text-emerald-400">Shortcut A • Creates a drill and advances selection</span>
                           </button>
 
                           <button
@@ -7563,7 +7564,8 @@ export function ReviewQueueClient({
                             className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-left text-sm font-medium text-rose-900 transition-colors hover:bg-rose-100 disabled:pointer-events-none disabled:opacity-50 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-950/30"
                           >
                             Reject candidate
-                            <span id={detailRejectActionHintId} className="mt-1 block text-xs font-normal text-rose-700 dark:text-rose-400">Shortcut R • Marks it rejected and advances selection</span>
+                            <span id={detailRejectActionHintId} className="sr-only">Marks it rejected and advances selection.</span>
+                            <span aria-hidden="true" className="mt-1 block text-xs font-normal text-rose-700 dark:text-rose-400">Shortcut R • Marks it rejected and advances selection</span>
                           </button>
                         </div>
 
@@ -7635,7 +7637,10 @@ export function ReviewQueueClient({
                             className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left text-sm font-medium text-sky-900 transition-colors hover:bg-sky-100 disabled:pointer-events-none disabled:opacity-50 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300 dark:hover:bg-sky-950/30"
                           >
                             Merge candidate
-                            <span id={detailMergeActionHintId} className="mt-1 block text-xs font-normal text-sky-700 dark:text-sky-400">
+                            <span id={detailMergeActionHintId} className="sr-only">
+                              {canRunMergeAction ? 'Uses the selected canonical target and advances selection.' : mergeTargetPrompt}
+                            </span>
+                            <span aria-hidden="true" className="mt-1 block text-xs font-normal text-sky-700 dark:text-sky-400">
                               Shortcut M • {canRunMergeAction ? 'Uses the selected canonical target and advances selection' : mergeTargetPrompt}
                             </span>
                           </button>
