@@ -4495,7 +4495,8 @@ export function ReviewQueueClient({
                   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
 
                   const edgeCandidate = event.key === 'ArrowDown' ? sortedCandidates[0] : sortedCandidates[sortedCandidates.length - 1]
-                  const targetCandidate = selectedCandidate ?? edgeCandidate
+                  const visibleSelectedCandidate = selectedCandidate ? sortedCandidates.find((candidate) => candidate.id === selectedCandidate.id) ?? null : null
+                  const targetCandidate = visibleSelectedCandidate ?? edgeCandidate
 
                   if (!targetCandidate) return
 
