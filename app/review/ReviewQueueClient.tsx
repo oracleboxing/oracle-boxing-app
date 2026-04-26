@@ -6959,7 +6959,7 @@ export function ReviewQueueClient({
                             type="button"
                             aria-controls="review-detail-panel"
                             aria-describedby={rowSummaryId}
-                            aria-expanded={isSelected}
+                            aria-pressed={isSelected}
                             aria-label={`${isSelected ? 'Viewing' : 'Open'} ${getDisplayTitle(candidate)} in the review detail panel`}
                             onClick={() => focusCandidateDetailPanel(candidate.id)}
                             className="min-w-0 flex-1 rounded-2xl px-1 py-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]"
