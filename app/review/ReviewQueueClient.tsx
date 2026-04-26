@@ -6485,6 +6485,8 @@ export function ReviewQueueClient({
             {duplicateFamilySummary ? (
               <button
                 type="button"
+                aria-keyshortcuts={REVIEW_COPY_FAMILY_HANDOFF_SHORTCUTS}
+                aria-label={`Copy duplicate family handoff for ${duplicateFamilySummary.leadFamily.dedupeKey}`}
                 onClick={() => void copyText(duplicateFamilySummary.handoffText, 'Copied duplicate family handoff')}
                 className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-primary)]"
               >
