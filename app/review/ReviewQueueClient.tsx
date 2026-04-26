@@ -8073,28 +8073,35 @@ export function ReviewQueueClient({
 
                         {selectedCandidate.dedupe_key ? (
                           <div className="mt-4 space-y-2">
-                            {selectedFamilyCandidates.slice(0, 6).map((candidate) => (
-                              <button
-                                key={candidate.id}
-                                type="button"
-                                onClick={() => {
-                                  selectCandidate(candidate.id, { scrollIntoView: false })
-                                  if (candidate.dedupe_key) {
-                                    focusFamily(candidate.dedupe_key, candidate.id)
-                                  }
-                                }}
-                                className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-colors ${
-                                  candidate.id === selectedCandidate.id
-                                    ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)]'
-                                    : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
-                                }`}
-                              >
-                                <span className="min-w-0 pr-3 text-sm font-medium text-[var(--text-primary)]">{getDisplayTitle(candidate)}</span>
-                                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
-                                  {REVIEW_STATUS_LABELS[candidate.review_status]}
-                                </span>
-                              </button>
-                            ))}
+                            {selectedFamilyCandidates.slice(0, 6).map((candidate) => {
+                              const isSelectedFamilyCandidate = candidate.id === selectedCandidate.id
+
+                              return (
+                                <button
+                                  key={candidate.id}
+                                  type="button"
+                                  aria-controls="review-detail-panel"
+                                  aria-pressed={isSelectedFamilyCandidate}
+                                  aria-label={`${isSelectedFamilyCandidate ? 'Viewing' : 'Open'} family row ${getDisplayTitle(candidate)} in the review detail panel`}
+                                  onClick={() => {
+                                    selectCandidate(candidate.id, { scrollIntoView: false })
+                                    if (candidate.dedupe_key) {
+                                      focusFamily(candidate.dedupe_key, candidate.id)
+                                    }
+                                  }}
+                                  className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-colors ${
+                                    isSelectedFamilyCandidate
+                                      ? 'border-[var(--accent-primary)] bg-[var(--surface-elevated)]'
+                                      : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-secondary)]'
+                                  }`}
+                                >
+                                  <span className="min-w-0 pr-3 text-sm font-medium text-[var(--text-primary)]">{getDisplayTitle(candidate)}</span>
+                                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${getStatusTone(candidate.review_status)}`}>
+                                    {REVIEW_STATUS_LABELS[candidate.review_status]}
+                                  </span>
+                                </button>
+                              )
+                            })}
                           </div>
                         ) : null}
                       </div>
