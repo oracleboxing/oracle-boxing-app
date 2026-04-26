@@ -6890,8 +6890,12 @@ export function ReviewQueueClient({
                   : canRunMergeAction
                     ? `Merge ${getDisplayTitle(candidate)} into the selected canonical target.`
                     : `Merge ${getDisplayTitle(candidate)} after choosing a canonical target.`
-                const suggestedActionDescribedBy = `${rowSummaryId}${suggestedAction === 'merge' && isSelected ? ` bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}` : ''}`
-                const mergeActionDescribedBy = `${rowSummaryId}${isSelected ? ` bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}` : ''}`
+                const suggestedActionHintId = `${candidate.id}-queue-suggested-action-hint`
+                const approveActionHintId = `${candidate.id}-queue-approve-action-hint`
+                const rejectActionHintId = `${candidate.id}-queue-reject-action-hint`
+                const mergeActionHintId = `${candidate.id}-queue-merge-action-hint`
+                const suggestedActionDescribedBy = `${rowSummaryId} ${suggestedActionHintId}${suggestedAction === 'merge' && isSelected ? ` bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}` : ''}`
+                const mergeActionDescribedBy = `${rowSummaryId} ${mergeActionHintId}${isSelected ? ` bulk-merge-target-status${mergeTargetNeedsExplicitSelection ? ' bulk-merge-target-warning' : ''}` : ''}`
 
                 return (
                   <article
@@ -7039,13 +7043,25 @@ export function ReviewQueueClient({
                           }
                         >
                           Apply suggestion
-                          <span className={`mt-1 block text-xs font-normal ${
-                            suggestedAction === 'keep'
-                              ? 'text-emerald-700 dark:text-emerald-400'
-                              : suggestedAction === 'merge'
-                                ? 'text-sky-700 dark:text-sky-400'
-                                : 'text-rose-700 dark:text-rose-400'
-                          }`}>
+                          <span id={suggestedActionHintId} className="sr-only">
+                            {suggestedAction === 'merge'
+                              ? isSelected
+                                ? canRunMergeAction
+                                  ? 'Uses the queue recommendation with the selected canonical target.'
+                                  : 'Uses the queue recommendation after a canonical target is explicitly chosen.'
+                                : 'Uses the queue recommendation after this row is selected.'
+                              : `Uses the queue recommendation to ${suggestedActionLabel.toLowerCase()} this candidate.`}
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className={`mt-1 block text-xs font-normal ${
+                              suggestedAction === 'keep'
+                                ? 'text-emerald-700 dark:text-emerald-400'
+                                : suggestedAction === 'merge'
+                                  ? 'text-sky-700 dark:text-sky-400'
+                                  : 'text-rose-700 dark:text-rose-400'
+                            }`}
+                          >
                             {suggestedActionLabel} • {getSuggestedActionShortcutLabel(suggestedAction)}
                             {suggestedAction === 'merge'
                               ? isSelected
@@ -7058,7 +7074,7 @@ export function ReviewQueueClient({
                         </button>
                         <button
                           type="button"
-                          aria-describedby={rowSummaryId}
+                          aria-describedby={`${rowSummaryId} ${approveActionHintId}`}
                           aria-keyshortcuts={REVIEW_APPROVE_SHORTCUTS}
                           aria-label={approveButtonAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending'}
@@ -7072,11 +7088,12 @@ export function ReviewQueueClient({
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
                         >
                           Approve
-                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">Create drill</span>
+                          <span id={approveActionHintId} className="sr-only">Creates a drill from this candidate.</span>
+                          <span aria-hidden="true" className="ml-2 text-xs text-[var(--text-tertiary)]">Create drill</span>
                         </button>
                         <button
                           type="button"
-                          aria-describedby={rowSummaryId}
+                          aria-describedby={`${rowSummaryId} ${rejectActionHintId}`}
                           aria-keyshortcuts={REVIEW_REJECT_SHORTCUTS}
                           aria-label={rejectButtonAriaLabel}
                           disabled={isSubmitting || candidate.review_status !== 'pending'}
@@ -7090,7 +7107,8 @@ export function ReviewQueueClient({
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
                         >
                           Reject
-                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">Mark rejected</span>
+                          <span id={rejectActionHintId} className="sr-only">Marks this candidate as rejected.</span>
+                          <span aria-hidden="true" className="ml-2 text-xs text-[var(--text-tertiary)]">Mark rejected</span>
                         </button>
                         <button
                           type="button"
@@ -7112,7 +7130,14 @@ export function ReviewQueueClient({
                           title={isSelected ? (canRunMergeAction ? 'Merge this candidate into the chosen canonical target.' : mergeTargetPrompt) : 'Select this candidate first to choose a merge target.'}
                         >
                           Merge
-                          <span className="ml-2 text-xs text-[var(--text-tertiary)]">{isSelected ? (canRunMergeAction ? 'Use chosen target' : mergeTargetPrompt) : 'Select first'}</span>
+                          <span id={mergeActionHintId} className="sr-only">
+                            {isSelected
+                              ? canRunMergeAction
+                                ? 'Uses the selected canonical target.'
+                                : mergeTargetPrompt
+                              : 'Select this row first to choose a canonical target.'}
+                          </span>
+                          <span aria-hidden="true" className="ml-2 text-xs text-[var(--text-tertiary)]">{isSelected ? (canRunMergeAction ? 'Use chosen target' : mergeTargetPrompt) : 'Select first'}</span>
                         </button>
                       </div>
                     </div>
