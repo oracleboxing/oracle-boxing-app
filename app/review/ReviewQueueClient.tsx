@@ -5190,6 +5190,7 @@ export function ReviewQueueClient({
                         aria-controls="review-detail-panel"
                         aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
                         aria-expanded={leadCandidateAlreadySelected}
+                        aria-label={`${leadCandidateAlreadySelected ? 'Viewing' : 'Open'} ${getDisplayTitle(currentSliceSummary.leadCandidate)} in the review detail panel`}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Open in detail panel
