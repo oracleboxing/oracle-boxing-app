@@ -4861,44 +4861,70 @@ export function ReviewQueueClient({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setTriageFilter((current) => (current === 'act-now' ? 'all' : 'act-now'))}
-          aria-pressed={triageFilter === 'act-now'}
-          className={`min-h-[168px] rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
-            triageFilter === 'act-now' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
-          }`}
-        >
-          <p className="text-sm font-medium text-[var(--text-secondary)]">Act now</p>
-          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['act-now']}</p>
-          <p className="mt-3 text-xs text-[var(--text-tertiary)]">Pending rows with real duplicate pressure and enough structure to review cleanly.</p>
-        </button>
+        <div>
+          <p id="review-triage-act-now-summary" className="sr-only">
+            {`Act now. ${triageCounts['act-now']} visible pending candidate${triageCounts['act-now'] === 1 ? '' : 's'} need the highest-priority review pass.${
+              triageFilter === 'act-now' ? ' This triage slice is currently active.' : ' Activate to filter the queue to this triage slice.'
+            }`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setTriageFilter((current) => (current === 'act-now' ? 'all' : 'act-now'))}
+            aria-describedby="review-triage-act-now-summary"
+            aria-pressed={triageFilter === 'act-now'}
+            className={`min-h-[168px] w-full rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
+              triageFilter === 'act-now' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+            }`}
+          >
+            <p className="text-sm font-medium text-[var(--text-secondary)]">Act now</p>
+            <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['act-now']}</p>
+            <p className="mt-3 text-xs text-[var(--text-tertiary)]">Pending rows with real duplicate pressure and enough structure to review cleanly.</p>
+          </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setTriageFilter((current) => (current === 'worth-a-look' ? 'all' : 'worth-a-look'))}
-          aria-pressed={triageFilter === 'worth-a-look'}
-          className={`min-h-[168px] rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
-            triageFilter === 'worth-a-look' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
-          }`}
-        >
-          <p className="text-sm font-medium text-[var(--text-secondary)]">Worth a look</p>
-          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['worth-a-look']}</p>
-          <p className="mt-3 text-xs text-[var(--text-tertiary)]">Reasonable next passes, but not the most urgent cleanup in the queue.</p>
-        </button>
+        <div>
+          <p id="review-triage-worth-a-look-summary" className="sr-only">
+            {`Worth a look. ${triageCounts['worth-a-look']} visible pending candidate${triageCounts['worth-a-look'] === 1 ? '' : 's'} are reasonable next passes, but not the most urgent cleanup.${
+              triageFilter === 'worth-a-look'
+                ? ' This triage slice is currently active.'
+                : ' Activate to filter the queue to this triage slice.'
+            }`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setTriageFilter((current) => (current === 'worth-a-look' ? 'all' : 'worth-a-look'))}
+            aria-describedby="review-triage-worth-a-look-summary"
+            aria-pressed={triageFilter === 'worth-a-look'}
+            className={`min-h-[168px] w-full rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
+              triageFilter === 'worth-a-look' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+            }`}
+          >
+            <p className="text-sm font-medium text-[var(--text-secondary)]">Worth a look</p>
+            <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['worth-a-look']}</p>
+            <p className="mt-3 text-xs text-[var(--text-tertiary)]">Reasonable next passes, but not the most urgent cleanup in the queue.</p>
+          </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setTriageFilter((current) => (current === 'low-signal' ? 'all' : 'low-signal'))}
-          aria-pressed={triageFilter === 'low-signal'}
-          className={`min-h-[168px] rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
-            triageFilter === 'low-signal' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
-          }`}
-        >
-          <p className="text-sm font-medium text-[var(--text-secondary)]">Low signal</p>
-          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['low-signal']}</p>
-          <p className="mt-3 text-xs text-[var(--text-tertiary)]">Thin or isolated rows that should wait until better candidates are handled.</p>
-        </button>
+        <div>
+          <p id="review-triage-low-signal-summary" className="sr-only">
+            {`Low signal. ${triageCounts['low-signal']} visible pending candidate${triageCounts['low-signal'] === 1 ? '' : 's'} are thin or isolated rows that can wait until stronger candidates are handled.${
+              triageFilter === 'low-signal' ? ' This triage slice is currently active.' : ' Activate to filter the queue to this triage slice.'
+            }`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setTriageFilter((current) => (current === 'low-signal' ? 'all' : 'low-signal'))}
+            aria-describedby="review-triage-low-signal-summary"
+            aria-pressed={triageFilter === 'low-signal'}
+            className={`min-h-[168px] w-full rounded-3xl border bg-[var(--surface-elevated)] p-5 text-left transition-colors ${
+              triageFilter === 'low-signal' ? 'border-[var(--accent-primary)] shadow-sm' : 'border-[var(--border)] hover:bg-[var(--surface-primary)]'
+            }`}
+          >
+            <p className="text-sm font-medium text-[var(--text-secondary)]">Low signal</p>
+            <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{triageCounts['low-signal']}</p>
+            <p className="mt-3 text-xs text-[var(--text-tertiary)]">Thin or isolated rows that should wait until better candidates are handled.</p>
+          </button>
+        </div>
 
         <div className="min-h-[168px] rounded-3xl border border-[var(--border)] bg-[var(--surface-elevated)] p-5 shadow-sm">
           <p className="text-sm font-medium text-[var(--text-secondary)]">Duplicate families</p>
