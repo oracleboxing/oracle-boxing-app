@@ -6943,7 +6943,7 @@ export function ReviewQueueClient({
                             aria-expanded={isSelected}
                             aria-label={`${isSelected ? 'Viewing' : 'Open'} details for ${getDisplayTitle(candidate)}`}
                             onClick={() => focusCandidateDetailPanel(candidate.id)}
-                            className="min-w-0 flex-1 text-left"
+                            className="min-w-0 flex-1 rounded-2xl px-1 py-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)]"
                           >
                             <div className="flex flex-wrap items-center gap-2">
                               <h3 id={rowTitleId} className="text-lg font-semibold text-[var(--text-primary)]">{getDisplayTitle(candidate)}</h3>
@@ -7023,7 +7023,7 @@ export function ReviewQueueClient({
                               successLabel: 'Applied suggested action and merged candidate into the selected drill.',
                             })
                           }}
-                          className={`sm:col-span-2 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${
+                          className={`sm:col-span-2 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] disabled:pointer-events-none disabled:opacity-50 ${
                             suggestedAction === 'keep'
                               ? 'border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/30'
                               : suggestedAction === 'merge'
@@ -7085,7 +7085,7 @@ export function ReviewQueueClient({
                               successLabel: 'Approved candidate into the drill library.',
                             })
                           }
-                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] disabled:pointer-events-none disabled:opacity-50"
                         >
                           Approve
                           <span id={approveActionHintId} className="sr-only">Creates a drill from this candidate.</span>
@@ -7104,7 +7104,7 @@ export function ReviewQueueClient({
                               successLabel: 'Rejected candidate.',
                             })
                           }
-                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] disabled:pointer-events-none disabled:opacity-50"
                         >
                           Reject
                           <span id={rejectActionHintId} className="sr-only">Marks this candidate as rejected.</span>
@@ -7126,7 +7126,7 @@ export function ReviewQueueClient({
                                 })
                               : setActionError(mergeTargetPrompt)
                           }
-                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
+                          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] disabled:pointer-events-none disabled:opacity-50"
                           title={isSelected ? (canRunMergeAction ? 'Merge this candidate into the chosen canonical target.' : mergeTargetPrompt) : 'Select this candidate first to choose a merge target.'}
                         >
                           Merge
