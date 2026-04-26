@@ -28,7 +28,7 @@ const REVIEW_ROUTE_SHORTCUTS: Record<ReviewRouteKey, '1' | '2' | '3'> = {
 
 const MERGE_TARGET_SHORTCUT_KEYS = ['4', '5', '6', '7', '8', '9'] as const
 
-const REVIEW_QUEUE_ROW_SHORTCUTS = "Enter S X Space C Escape J K ArrowDown ArrowUp N P L G Shift+G Home End PageDown PageUp F Shift+F [ ] , . ArrowLeft ArrowRight ; ' 1 2 3 4 5 6 7 8 9 O Shift+O B T D I E U H Shift+H V Y / Backspace 0 ? A R M Shift+A Shift+R Shift+M"
+const REVIEW_QUEUE_ROW_SHORTCUTS = "Enter S X Space C Escape J K ArrowDown ArrowUp N P L G Shift+G Home End PageDown PageUp F Shift+F [ ] , . ArrowLeft ArrowRight ; ' 1 2 3 4 5 6 7 8 9 O Shift+O B T D I E U H Shift+H V Y / Control+K Meta+K Backspace 0 ? A R M Shift+A Shift+R Shift+M"
 const REVIEW_RETURN_TO_QUEUE_SHORTCUTS = 'Escape'
 const REVIEW_SEARCH_SHORTCUTS = '/ Control+K Meta+K Enter ArrowDown ArrowUp Escape'
 const REVIEW_HELP_SHORTCUTS = 'Shift+/'
@@ -65,7 +65,7 @@ const REVIEW_MERGE_TARGET_HELP_ID = 'review-merge-target-help'
 const REVIEW_FILTER_SELECT_SHORTCUTS = 'Escape'
 const REVIEW_FILTER_SELECT_HELP_ID = 'review-filter-select-help'
 const REVIEW_QUEUE_KEYBOARD_HELP_ID = 'review-queue-keyboard-help'
-const REVIEW_QUEUE_NAVIGATION_SHORTCUTS = "Enter S X Space C Escape J K ArrowDown ArrowUp N P L G Shift+G Home End PageDown PageUp F Shift+F [ ] , . ArrowLeft ArrowRight ; ' 1 2 3 4 5 6 7 8 9 O Shift+O B T D I E U H Shift+H V Y / Backspace 0 ? A R M Shift+A Shift+R Shift+M"
+const REVIEW_QUEUE_NAVIGATION_SHORTCUTS = "Enter S X Space C Escape J K ArrowDown ArrowUp N P L G Shift+G Home End PageDown PageUp F Shift+F [ ] , . ArrowLeft ArrowRight ; ' 1 2 3 4 5 6 7 8 9 O Shift+O B T D I E U H Shift+H V Y / Control+K Meta+K Backspace 0 ? A R M Shift+A Shift+R Shift+M"
 
 const REVIEW_SHORTCUT_GROUPS = [
   {
@@ -6842,7 +6842,7 @@ export function ReviewQueueClient({
                 {queueListDescription}
               </p>
               <p id={REVIEW_QUEUE_KEYBOARD_HELP_ID} className="sr-only">
-                Queue keyboard help: use J and K or the arrow keys to move between visible rows, N and P to jump between pending rows, and L to return to the lead row. Use G or Home for the first visible row, Shift plus G or End for the last visible row, and Page Up or Page Down to jump ten rows at a time. Press Enter or S to apply the suggested action for the active row, X or Space to toggle bulk selection, F to focus the active duplicate family, bracket keys and comma or period to move through families, number keys 4 to 9 or left and right arrows to change merge targets, 1 to 3 to jump routes, O to cycle sort, Backspace to peel back the view, 0 to reset the queue, question mark for full shortcut help, and Escape to return focus from row controls to the active queue row.
+                Queue keyboard help: use slash or Command or Control plus K to focus search, J and K or the arrow keys to move between visible rows, N and P to jump between pending rows, and L to return to the lead row. Use G or Home for the first visible row, Shift plus G or End for the last visible row, and Page Up or Page Down to jump ten rows at a time. Press Enter or S to apply the suggested action for the active row, X or Space to toggle bulk selection, F to focus the active duplicate family, bracket keys and comma or period to move through families, number keys 4 to 9 or left and right arrows to change merge targets, 1 to 3 to jump routes, O to cycle sort, Backspace to peel back the view, 0 to reset the queue, question mark for full shortcut help, and Escape to return focus from row controls to the active queue row.
               </p>
               <div id="review-queue-list" role="list" aria-label="Review queue candidates" aria-describedby={`review-queue-list-description ${REVIEW_QUEUE_KEYBOARD_HELP_ID}`} aria-keyshortcuts={REVIEW_QUEUE_NAVIGATION_SHORTCUTS} className="space-y-4">
                 <div aria-hidden="true" className="hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] lg:flex lg.items-center lg:justify-between">
