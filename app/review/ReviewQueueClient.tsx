@@ -7239,7 +7239,7 @@ export function ReviewQueueClient({
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Previous visible
-                      <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                      <span aria-hidden={previousVisibleCandidate ? true : undefined} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                         {previousVisibleCandidate
                           ? `${previousVisibleWraps ? 'Wrap to' : 'Shortcut K •'} ${getDisplayTitle(previousVisibleCandidate)}`
                           : 'No other visible rows in this slice'}
@@ -7257,7 +7257,7 @@ export function ReviewQueueClient({
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Next visible
-                      <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                      <span aria-hidden={nextVisibleCandidate ? true : undefined} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                         {nextVisibleCandidate
                           ? `${nextVisibleWraps ? 'Wrap to' : 'Shortcut J •'} ${getDisplayTitle(nextVisibleCandidate)}`
                           : 'No other visible rows in this slice'}
@@ -7275,7 +7275,7 @@ export function ReviewQueueClient({
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Previous pending
-                      <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                      <span aria-hidden={previousPendingCandidate ? true : undefined} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                         {previousPendingCandidate
                           ? `${previousPendingWraps ? 'Wrap to' : 'Shortcut P •'} ${getDisplayTitle(previousPendingCandidate)}`
                           : 'No pending rows in this view'}
@@ -7293,7 +7293,7 @@ export function ReviewQueueClient({
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Next pending
-                      <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                      <span aria-hidden={nextPendingCandidate ? true : undefined} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                         {nextPendingCandidate
                           ? `${nextPendingWraps ? 'Wrap to' : 'Shortcut N •'} ${getDisplayTitle(nextPendingCandidate)}`
                           : 'No pending rows in this view'}
@@ -7311,7 +7311,7 @@ export function ReviewQueueClient({
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                     >
                       Jump to lead
-                      <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                      <span aria-hidden={leadVisibleCandidate ? true : undefined} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                         {leadVisibleCandidate
                           ? leadVisibleCandidate.id === selectedCandidate.id
                             ? 'Shortcut L • Already on the lead visible candidate'
@@ -7352,7 +7352,7 @@ export function ReviewQueueClient({
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         Previous duplicate family
-                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                        <span aria-hidden={previousDuplicateFamily ? true : undefined} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                           {previousDuplicateFamily ? `Shortcut [ • ${previousDuplicateFamily.dedupeKey} • ${previousDuplicateFamily.count} rows` : 'No earlier pending family visible'}
                         </span>
                       </button>
@@ -7368,7 +7368,7 @@ export function ReviewQueueClient({
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         Next duplicate family
-                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                        <span aria-hidden={nextDuplicateFamily ? true : undefined} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                           {nextDuplicateFamily ? `Shortcut ] • ${nextDuplicateFamily.dedupeKey} • ${nextDuplicateFamily.count} rows` : 'No other pending family visible'}
                         </span>
                       </button>
@@ -7388,7 +7388,7 @@ export function ReviewQueueClient({
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         Previous family row
-                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                        <span aria-hidden={previousFamilyCandidate ? true : undefined} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                           {previousFamilyCandidate
                             ? `${previousFamilyWraps ? 'Wrap to' : 'Shortcut , •'} ${getDisplayTitle(previousFamilyCandidate)}`
                             : 'No other rows in this visible family cluster'}
@@ -7406,7 +7406,7 @@ export function ReviewQueueClient({
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                       >
                         Next family row
-                        <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                        <span aria-hidden={nextFamilyCandidate ? true : undefined} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                           {nextFamilyCandidate
                             ? `${nextFamilyWraps ? 'Wrap to' : 'Shortcut . •'} ${getDisplayTitle(nextFamilyCandidate)}`
                             : 'No other rows in this visible family cluster'}
