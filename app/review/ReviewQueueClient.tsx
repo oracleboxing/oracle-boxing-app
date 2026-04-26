@@ -5310,9 +5310,12 @@ export function ReviewQueueClient({
                     Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}
                   </span>
                   {route.isActive ? (
-                    <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                      Active
-                    </span>
+                    <>
+                      <span aria-hidden="true" className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                        Active
+                      </span>
+                      <span className="sr-only">This review route is currently active.</span>
+                    </>
                   ) : null}
                 </div>
                 <p id={routeSummaryId} className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{route.description}</p>
