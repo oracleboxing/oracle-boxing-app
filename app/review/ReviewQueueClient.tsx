@@ -7616,7 +7616,6 @@ export function ReviewQueueClient({
                                 className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-secondary)]"
                               >
                                 Copy merge handoff
-                                <span className="sr-only">Shortcut Shift Y</span>
                               </button>
                             ) : null}
                           </div>
@@ -8276,7 +8275,6 @@ export function ReviewQueueClient({
                               >
                                 Copy notes
                                 <span className="ml-2 text-xs font-normal text-[var(--text-tertiary)]" aria-hidden="true">Shift + H</span>
-                                <span className="sr-only">Shortcut Shift H</span>
                               </button>
                             </div>
                             <textarea
