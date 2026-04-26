@@ -5258,7 +5258,7 @@ export function ReviewQueueClient({
                   <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getReviewRouteTone(route.key)}`}>
                     {route.label}
                   </span>
-                  <span className="rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
+                  <span aria-hidden="true" className="rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
                     Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}
                   </span>
                   {route.isActive ? (
@@ -5291,7 +5291,7 @@ export function ReviewQueueClient({
                     className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
                   >
                     {route.isActive ? 'Current route' : 'Apply route'}
-                    <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}</span>
+                    <span aria-hidden="true" className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">Shortcut {REVIEW_ROUTE_SHORTCUTS[route.key]}</span>
                     <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                       {route.key === 'approve-ready'
                         ? 'Suggested keep + completeness ordering'
