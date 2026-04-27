@@ -15,7 +15,7 @@ What we're building and when. Each phase builds on the last - don't skip ahead.
 | Card and Button components | Sha-Lyn | Build and style using the design tokens |
 | Design system polish | Sha-Lyn | Dark mode toggle, fonts, spacing, make it feel premium |
 | Supabase schema | Jordan | Run the SQL migration, set up tables |
-| Seed drill data | Jordan | Pull techniques from Boxing Brain into the drills table |
+| Seed move data | Jordan | Pull techniques from Boxing Brain into `moves`, with combinations split into `combinations` and `combination_items` |
 | Seed workout templates | Jordan | Create 10-15 starter workouts aligned with Grade 1 |
 
 **Done when:** App loads, looks branded, nav works, database has real data.
@@ -32,7 +32,7 @@ What we're building and when. Each phase builds on the last - don't skip ahead.
 | Library browse page | Sha-Lyn | Grid of DrillCards with category filter tabs |
 | Search bar | Sha-Lyn | Filter drills by name as you type |
 | Drill detail page | Sha-Lyn | Full drill info: description, cues, common mistakes, video |
-| Drill API route | Jordan | Server route that queries Supabase drills table |
+| Move/combo API route | Jordan | Server route that queries Supabase `moves`, `combinations`, and `combination_items` |
 | Boxing Brain search | Jordan | Wire semantic search for "show me footwork drills" |
 
 **Done when:** You can browse, search, and tap into any drill with full detail.
@@ -62,9 +62,9 @@ What we're building and when. Each phase builds on the last - don't skip ahead.
 | Task | Who | Description |
 |------|-----|-------------|
 | Workout browse page | Sha-Lyn | Grid of workout cards with difficulty/grade filters |
-| Workout detail view | Sha-Lyn | Shows drill sequence, total duration, difficulty |
-| Workout runner | Sha-Lyn | Step through drills with timer, mark complete |
-| Custom workout builder | Sha-Lyn | Pick drills, set durations, save as template |
+| Workout detail view | Sha-Lyn | Shows move, combination, and exercise sequence, total duration, difficulty |
+| Workout runner | Sha-Lyn | Step through moves, combinations, and exercises with timer, mark complete |
+| Custom workout builder | Sha-Lyn | Pick moves, combinations, and exercises, set durations, save as template |
 | Workout API | Jordan | CRUD for workout templates and custom workouts |
 | Workout generator | Jordan | AI-powered workout generation using Boxing Brain |
 | Log completed workouts | Jordan | Save workout logs to Supabase on completion |

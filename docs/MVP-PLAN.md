@@ -24,17 +24,17 @@ That is enough to build fast without building blind.
 ## MVP outcome
 
 The MVP should let a member:
-- access a clean drill library
-- open a drill and understand how to perform it
+- access a clean moves and combinations library
+- open a move or combination and understand how to perform it
 - access structured boxing workouts
 - run a workout session with a timer / simple session flow
 - track basic progress or completion state
 
 And it should let the internal team:
-- ingest raw drills
-- review raw drills
-- curate canonical drills
-- use Supabase as the source of truth for the drill library
+- ingest raw drill candidates
+- review raw drill candidates
+- curate canonical moves and combinations
+- use Supabase as the source of truth for the moves, combinations, and exercises library
 
 That is the real MVP.
 
@@ -44,8 +44,8 @@ That is the real MVP.
 
 ### Member-facing
 - authentication
-- drill library
-- drill detail pages
+- moves and combinations library
+- move and combination detail pages
 - workout library
 - workout detail pages
 - workout run flow
@@ -54,12 +54,12 @@ That is the real MVP.
 
 ### Internal / content-facing
 - `raw_drill_candidates` review path
-- canonical `drills` library
+- canonical `moves` and `combinations` library
 - simple review workflow for approve / reject / merge
 - grade-tagged drill ingestion for Grade 1 and Grade 2 source content
 
 ### Product / engineering
-- stable Supabase schema for drills and workouts
+- stable Supabase schema for moves, combinations, exercises, and workouts
 - documentation inside the repo
 - GitHub-ready handoff for collaboration
 
@@ -73,14 +73,14 @@ These are explicit non-goals for now:
 - badges / XP economy complexity
 - AI coaching assistant inside the app
 - video analysis
-- broad content types beyond boxing drills/workouts
+- broad content types beyond boxing moves, combinations, exercises, and workouts
 - full S&C architecture
 - full running architecture
 - themes / templates beyond basic planning notes
 - advanced analytics
 - complex admin dashboards
 
-If it does not help drills, workouts, or the basic member training flow, it is probably out for MVP.
+If it does not help moves, combinations, exercises, workouts, or the basic member training flow, it is probably out for MVP.
 
 ---
 
@@ -88,15 +88,18 @@ If it does not help drills, workouts, or the basic member training flow, it is p
 
 ### Already established
 - `raw_drill_candidates`
-- `drills`
+- `moves`
+- `combinations`
+- `combination_items`
+- `exercises`
 
 ### Planned next
 - `workouts`
 - `workout_items`
-- `workout_item_drills`
+- `workout_item_exercises`
 
 ### Key rule
-`workout_item_drills` should reference curated drills only.
+Workout composition should reference curated moves, combinations, and exercises only.
 Never raw candidates.
 
 ---
@@ -105,22 +108,22 @@ Never raw candidates.
 
 ## Phase 1, content foundation
 Goal:
-- make the drill layer trustworthy
+- make the moves and combinations layer trustworthy
 
 Tasks:
 - finish Grade 1 / Grade 2 extraction
 - import grade-derived drill candidates into `raw_drill_candidates`
-- curate first canonical drills into `drills`
+- curate first canonical moves into `moves` and combinations into `combinations` / `combination_items`
 - settle naming, categories, difficulty, and grade tagging
 
 Exit condition:
-- there is a usable curated drill library, not just raw intake
+- there is a usable curated moves and combinations library, not just raw intake
 
 ---
 
 ## Phase 2, internal review workflow
 Goal:
-- let Jordan and Sha-Lyn review drill candidates properly
+- let Jordan and Sha-Lyn review raw drill candidates properly
 
 Tasks:
 - build a simple review page for pending `raw_drill_candidates`
@@ -134,31 +137,31 @@ Exit condition:
 
 ## Phase 3, member drill library
 Goal:
-- expose the curated drill library to users
+- expose the curated moves and combinations library to users
 
 Tasks:
-- build drill list page
-- build drill detail page
+- build moves/combinations list page
+- build move/combination detail page
 - support basic filtering
 - support category / grade / difficulty views if useful
 
 Exit condition:
-- a member can browse and understand the drill library
+- a member can browse and understand the moves and combinations library
 
 ---
 
 ## Phase 4, workouts
 Goal:
-- let curated drills become real training sessions
+- let curated moves, combinations, and exercises become real training sessions
 
 Tasks:
 - create workout schema
 - create workout list / detail pages
-- build workout session structure from `workout_items` and `workout_item_drills`
-- support multiple drills inside one workout item
+- build workout session structure from `workout_items` and `workout_item_exercises`, with forward-compatible support for moves and combinations where needed
+- support multiple curated training elements inside one workout item
 
 Exit condition:
-- workouts exist as structured content, not just a drill catalogue
+- workouts exist as structured content, not just a moves catalogue
 
 ---
 
@@ -170,7 +173,7 @@ Tasks:
 - simple session runner
 - basic timer / interval flow
 - next / previous block handling
-- clear drill instructions during a live session
+- clear move, combination, and exercise instructions during a live session
 
 Exit condition:
 - a member can open a workout and run it end to end
@@ -238,7 +241,7 @@ Exit condition:
 - roughly **2 to 4 weeks**
 
 Meaning:
-- drill layer works
+- moves and combinations layer works
 - workouts exist
 - session flow exists
 - review flow exists
@@ -278,7 +281,7 @@ They are:
 - overplanning the whole future product
 - unstable content model
 - trying to solve S&C / running too early
-- review bottlenecks on drill curation
+- review bottlenecks on moves and combinations curation
 - app store friction at the end
 
 ---
@@ -294,7 +297,7 @@ Decide whether MVP auth is:
 ### 2. Progress depth
 Decide whether MVP progress is:
 - just completed workouts
-- or completed drills and grade markers too
+- or completed moves/combinations and grade markers too
 
 ### 3. Release format
 Decide whether first shipping format is:
@@ -313,8 +316,8 @@ Do not pause to define the entire future product.
 
 Do this instead:
 - lock this MVP plan
-- finish drill extraction + review workflow
-- build the library
+- finish raw candidate extraction + review workflow
+- build the moves and combinations library
 - build workouts
 - ship the first working version
 
