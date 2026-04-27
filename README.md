@@ -127,7 +127,7 @@ Then open:
 
 ## Tech stack
 
-- Next.js 15
+- Next.js 16
 - TypeScript
 - Tailwind CSS
 - Supabase

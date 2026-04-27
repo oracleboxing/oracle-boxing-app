@@ -91,7 +91,7 @@ npm run dev
 You'll see output ending in something like:
 
 ```
-▲ Next.js 15.x.x
+▲ Next.js 16.x.x
 - Local: http://localhost:3000
 ✓ Ready
 ```
