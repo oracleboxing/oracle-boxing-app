@@ -38,7 +38,7 @@ const SUMMARY_PRESET_META: Record<SummaryPreset, { label: string; hint: string }
   },
   ready: {
     label: 'Ready-ish',
-    hint: 'Most complete drills, useful when you want the strongest rows first.',
+    hint: 'Most complete moves, useful when you want the strongest rows first.',
   },
   demo_ready: {
     label: 'Demo ready',
@@ -49,7 +49,7 @@ const SUMMARY_PRESET_META: Record<SummaryPreset, { label: string; hint: string }
     hint: 'Missing demo proof, so frontend confidence is still thin.',
   },
   thin: {
-    label: 'Thin drills',
+    label: 'Thin moves',
     hint: 'Teaching detail is still patchy and needs filling in.',
   },
   pending_review: {
@@ -730,16 +730,16 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
       <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-11">
-        <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the moves table" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
-        <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
+        <SummaryCard label="Total moves" value={String(drills.length)} hint="Rows currently in the moves table" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
+        <SummaryCard label="Active moves" value={String(summary.activeCount)} hint="Visible candidates for the real app library" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
         <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
         <SummaryCard label="Audit now" value={String(summary.auditNowCount)} hint="Weak canonical rows that need eyes first" onClick={() => applySummaryPreset('audit_now')} isActive={isSummaryPresetActive('audit_now')} />
         <SummaryCard label="Watch next" value={String(summary.watchNextCount)} hint="Not broken, but still a bit suspect" onClick={() => applySummaryPreset('watch_next')} isActive={isSummaryPresetActive('watch_next')} />
-        <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" onClick={() => applySummaryPreset('ready')} isActive={isSummaryPresetActive('ready')} />
+        <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and move structure" onClick={() => applySummaryPreset('ready')} isActive={isSummaryPresetActive('ready')} />
         <SummaryCard label="Demo ready" value={String(summary.demoReadyCount)} hint="Has demo video and coach quote, so frontend work is less guessy" onClick={() => applySummaryPreset('demo_ready')} isActive={isSummaryPresetActive('demo_ready')} />
         <SummaryCard label="Needs proof" value={String(summary.needsProofCount)} hint="Still missing a demo video, a coach quote, or both" onClick={() => applySummaryPreset('needs_proof')} isActive={isSummaryPresetActive('needs_proof')} />
-        <SummaryCard label="Thin drills" value={String(summary.thinCount)} hint="Canonical move rows still missing core teaching detail" onClick={() => applySummaryPreset('thin')} isActive={isSummaryPresetActive('thin')} />
-        <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Drills still linked to at least one pending raw review row" onClick={() => applySummaryPreset('pending_review')} isActive={isSummaryPresetActive('pending_review')} />
+        <SummaryCard label="Thin moves" value={String(summary.thinCount)} hint="Canonical move rows still missing core teaching detail" onClick={() => applySummaryPreset('thin')} isActive={isSummaryPresetActive('thin')} />
+        <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Moves still linked to at least one pending raw review row" onClick={() => applySummaryPreset('pending_review')} isActive={isSummaryPresetActive('pending_review')} />
         <SummaryCard label="No raw links" value={String(summary.unlinkedCount)} hint="Canonical rows with no raw candidate traceability yet" onClick={() => applySummaryPreset('unlinked')} isActive={isSummaryPresetActive('unlinked')} />
       </section>
 
@@ -824,7 +824,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
           </span>
           <button
             type="button"
-            onClick={() => copyCurrentView('Copied drill library view link')}
+            onClick={() => copyCurrentView('Copied moves library view link')}
             className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
           >
             Copy current view
@@ -850,7 +850,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
       {filteredDrills.length === 0 ? (
         <EmptyState
-          title="No drills match this filter"
+          title="No moves match this filter"
           body="Try widening the grade or status filters. If curated-only is on, you may simply not have promoted enough rows yet."
         />
       ) : (
@@ -996,7 +996,7 @@ function DrillDetail({
       .join(', ')
 
     const auditBrief = [
-      `Drill audit: ${drill.title}`,
+      `Move audit: ${drill.title}`,
       `Priority: ${auditPriority.label}`,
       `Completeness: ${getCompletenessLabel(completenessScore)} (${completenessScore}/10)`,
       `Proof: ${getDemoReadinessLabel(drill)}`,
