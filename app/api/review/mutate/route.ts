@@ -8,6 +8,7 @@ type ReviewAction = 'approve' | 'reject' | 'merge'
 type ReviewMutationPayload = {
   action?: ReviewAction
   candidateIds?: string[]
+  canonicalMoveId?: string
   canonicalDrillId?: string
   reviewNotes?: string | null
 }
@@ -165,7 +166,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Pick at least one raw drill candidate.' }, { status: 400 })
     }
 
-    if (action === 'merge' && (!body.canonicalDrillId || !body.canonicalDrillId.trim())) {
+    const canonicalMoveId = (body.canonicalMoveId ?? body.canonicalDrillId)?.trim() ?? null
+
+    if (action === 'merge' && !canonicalMoveId) {
       return NextResponse.json({ error: 'Merge needs a target canonical move.' }, { status: 400 })
     }
 
@@ -243,15 +246,18 @@ export async function POST(request: Request) {
       })
     }
 
-    const canonicalDrillId = body.canonicalDrillId!.trim()
+    if (!canonicalMoveId) {
+      return NextResponse.json({ error: 'Merge needs a target canonical move.' }, { status: 400 })
+    }
+
     const { data: targetDrill, error: targetError } = await supabase
       .from('moves')
       .select('*')
-      .eq('id', canonicalDrillId)
+      .eq('id', canonicalMoveId)
       .single()
 
     if (targetError || !targetDrill) {
-      throw new Error(`Could not load target canonical move: ${targetError?.message || canonicalDrillId}`)
+      throw new Error(`Could not load target canonical move: ${targetError?.message || canonicalMoveId}`)
     }
 
     const drill = targetDrill as Drill

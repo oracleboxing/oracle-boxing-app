@@ -1741,12 +1741,12 @@ export function ReviewQueueClient({
     async ({
       action,
       candidateIds,
-      canonicalDrillId,
+      canonicalMoveId,
       successLabel,
     }: {
       action: ReviewMutationAction
       candidateIds: string[]
-      canonicalDrillId?: string
+      canonicalMoveId?: string
       successLabel: string
     }) => {
       if (candidateIds.length === 0 || isSubmitting) return
@@ -1763,7 +1763,7 @@ export function ReviewQueueClient({
           body: JSON.stringify({
             action,
             candidateIds,
-            canonicalDrillId,
+            canonicalMoveId,
           }),
         })
 
@@ -3586,7 +3586,7 @@ export function ReviewQueueClient({
         runReviewAction({
           action: 'merge',
           candidateIds: actionableSelectedIds,
-          canonicalDrillId: preferredMergeTargetId,
+          canonicalMoveId: preferredMergeTargetId,
           successLabel:
             actionableSelectedIds.length === 1
               ? 'Merged candidate into the selected move.'
@@ -3885,7 +3885,7 @@ export function ReviewQueueClient({
         runReviewAction({
           action: 'merge',
           candidateIds: [selectedCandidateId],
-          canonicalDrillId: preferredMergeTargetId,
+          canonicalMoveId: preferredMergeTargetId,
           successLabel: 'Merged candidate into the selected move.',
         })
         return
@@ -3930,7 +3930,7 @@ export function ReviewQueueClient({
         runReviewAction({
           action: 'merge',
           candidateIds: [selectedCandidate.id],
-          canonicalDrillId: preferredMergeTargetId,
+          canonicalMoveId: preferredMergeTargetId,
           successLabel: 'Applied suggested action and merged candidate into the selected move.',
         })
       }
@@ -6725,7 +6725,7 @@ export function ReviewQueueClient({
                   ? runReviewAction({
                       action: 'merge',
                       candidateIds: actionableSelectedIds,
-                      canonicalDrillId: preferredMergeTargetId,
+                      canonicalMoveId: preferredMergeTargetId,
                       successLabel:
                         actionableSelectedIds.length === 1
                           ? 'Merged candidate into the selected move.'
@@ -7038,7 +7038,7 @@ export function ReviewQueueClient({
                             runReviewAction({
                               action: 'merge',
                               candidateIds: [candidate.id],
-                              canonicalDrillId: preferredMergeTargetId,
+                              canonicalMoveId: preferredMergeTargetId,
                               successLabel: 'Applied suggested action and merged candidate into the selected move.',
                             })
                           }}
@@ -7140,7 +7140,7 @@ export function ReviewQueueClient({
                               ? runReviewAction({
                                   action: 'merge',
                                   candidateIds: [candidate.id],
-                                  canonicalDrillId: preferredMergeTargetId,
+                                  canonicalMoveId: preferredMergeTargetId,
                                   successLabel: 'Merged candidate into the selected move.',
                                 })
                               : setActionError(mergeTargetPrompt)
@@ -7543,7 +7543,7 @@ export function ReviewQueueClient({
                               runReviewAction({
                                 action: 'merge',
                                 candidateIds: [selectedCandidate.id],
-                                canonicalDrillId: preferredMergeTargetId,
+                                canonicalMoveId: preferredMergeTargetId,
                                 successLabel: 'Applied suggested action and merged candidate into the selected move.',
                               })
                             }}
@@ -7671,7 +7671,7 @@ export function ReviewQueueClient({
                                 ? runReviewAction({
                                     action: 'merge',
                                     candidateIds: [selectedCandidate.id],
-                                    canonicalDrillId: preferredMergeTargetId,
+                                    canonicalMoveId: preferredMergeTargetId,
                                     successLabel: 'Merged candidate into the selected move.',
                                   })
                                 : setActionError(mergeTargetPrompt)
@@ -7997,7 +7997,7 @@ export function ReviewQueueClient({
                                           runReviewAction({
                                             action: 'merge',
                                             candidateIds: [selectedCandidate.id],
-                                            canonicalDrillId: drill.id,
+                                            canonicalMoveId: drill.id,
                                             successLabel: `Merged candidate into ${drill.title}.`,
                                           })
                                         }
