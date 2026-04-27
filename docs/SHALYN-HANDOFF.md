@@ -7,12 +7,15 @@ This file is the quick handoff for collaboration on the Oracle Boxing app rebuil
 ## Current app direction
 
 The rebuild is focused on:
-- clean drill content
+- clean boxing move content
+- structured combinations
 - Supabase structure
 - workout composition
 - simple architecture
 
 The rebuild is **not** currently focused on rebuilding all the old MVP pages.
+
+Product copy may still say “drills” where that makes sense for boxers. Database and source-of-truth docs should use `moves`, `combinations`, `combination_items`, and `exercises`.
 
 ---
 
@@ -41,22 +44,35 @@ Use this for:
 - spotting duplicates
 - deciding what should be approved / rejected / merged
 
-### Curated app layer
-- `drills`
+This exact table name is still live.
+
+### Curated boxing layer
+- `moves`
+- `combinations`
+- `combination_items`
 
 Use this for:
-- the actual drill library the app should display
-- stable reusable drill cards
+- the actual boxing library the app should display
+- stable reusable move cards
+- stable reusable combination cards
 - future workout linking
+
+### Curated non-boxing layer
+- `exercises`
+
+Use this for:
+- S&C exercises
+- running interval blocks
+- other non-boxing reusable training units
 
 ---
 
 ## Current review goal
 
-We are trying to turn raw extracted drill candidates into a clean canonical library.
+We are trying to turn raw extracted drill candidates into a clean canonical boxing library.
 
 The immediate priority is:
-- curate the first canonical drills
+- curate the first canonical moves and combinations
 - especially from strong duplicate families
 
 Examples:
@@ -77,7 +93,8 @@ Examples:
 For each raw drill candidate, decide whether it should be:
 - kept
 - rejected
-- merged into an existing canonical drill
+- merged into an existing canonical move
+- used to create or improve a canonical combination
 
 Useful fields in `raw_drill_candidates`:
 - `cleaned_title`
@@ -88,17 +105,22 @@ Useful fields in `raw_drill_candidates`:
 - `focus_points_json`
 - `common_mistakes_json`
 - `review_status`
-- `canonical_drill_id`
+- `canonical_move_id`
 
 ---
 
 ## What to build against
 
-### Build product UI against:
-- `drills`
+### Build product boxing UI against:
+- `moves`
+- `combinations`
+- `combination_items`
 
 ### Build internal review UI against:
 - `raw_drill_candidates`
+
+### Build S&C / running UI against:
+- `exercises`
 
 This separation matters.
 
@@ -108,11 +130,11 @@ This separation matters.
 
 Grade folders from Google Drive are being processed into transcripts and drill candidates.
 
-Those drills should be tagged with:
+Those source candidates should be tagged with:
 - `grade_1`
 - `grade_2`
 
-That gives a cleaner content source for building the drill library.
+That gives a cleaner content source for building the canonical move and combination library.
 
 ---
 
@@ -120,26 +142,27 @@ That gives a cleaner content source for building the drill library.
 
 Best early contribution areas:
 - review queue UI for pending raw drill candidates
-- canonical drill detail cards
-- simple drill library list/filter view
-- drill approval / rejection controls
+- canonical move detail cards
+- canonical combination detail cards
+- simple boxing library list/filter view
+- approval / rejection / merge controls
 
 ---
 
 ## What comes later
 
-After the drill layer is solid:
+After the boxing layer is solid:
 - workout builder structure
 - S&C exercise architecture
-- running exercise architecture
+- running interval architecture
 - themes / templates
 
-Not yet. That comes after the drill layer is trustworthy.
+Not yet. That comes after the boxing layer is trustworthy.
 
 ---
 
 ## Blunt version
 
 Don’t build around the mess.
-Help clean the mess into a usable library first.
+Help clean the mess into a usable canonical library first.
 Then everything after that gets easier.

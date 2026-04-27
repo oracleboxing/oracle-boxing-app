@@ -9,9 +9,11 @@ It is written for handoff and collaboration, especially for Sha-Lyn.
 ## Current rebuild principle
 
 The rebuild is centred on:
-- curated drills
+- curated boxing moves and combinations
+- reusable S&C / running exercises
 - workout composition
 - simple, reusable training blocks
+- additive schema changes instead of binning working content
 
 Not on:
 - gamification
@@ -32,29 +34,44 @@ Purpose:
 - review and dedupe them
 - avoid losing source material
 
-### Layer 2: curated app content
-Table:
-- `drills`
+Important: this table name is still exact and live. Do not rename it in docs or SQL unless a future migration actually changes it.
+
+### Layer 2: curated boxing content
+Tables:
+- `moves`
+- `combinations`
+- `combination_items`
 
 Purpose:
-- hold the approved drill library used by the app
+- hold the approved boxing move library used by the app
+- model combinations as ordered sequences of canonical moves
+- avoid turning every punch sequence into a duplicated one-off move row
 
-### Layer 3: workout composition
-Planned tables:
+### Layer 3: reusable non-boxing content
+Table:
+- `exercises`
+
+Purpose:
+- hold reusable S&C exercises and running interval blocks
+- avoid forcing squats and treadmill work into boxing-first tables
+
+### Layer 4: workout composition
+Tables:
 - `workouts`
 - `workout_items`
-- `workout_item_drills`
+- `workout_item_exercises`
 
 Purpose:
-- build reusable sessions from curated drills
+- build reusable sessions from curated moves, combinations, and exercises
+- store workout-specific prescriptions on the workout item or join row, not the reusable library item
 
 ---
 
-## Why there are two drill tables
+## Why raw candidates and canonical content are separate
 
 Because raw AI extraction and app content are not the same thing.
 
-If we dump everything directly into `drills`, we get:
+If we dump everything directly into `moves`, we get:
 - duplicates
 - weird names
 - overlapping concepts
@@ -63,26 +80,32 @@ If we dump everything directly into `drills`, we get:
 
 So:
 - `raw_drill_candidates` is the intake pile
-- `drills` is the clean library
+- `moves` is the clean canonical boxing movement library
+- `combinations` is the clean canonical sequence library
+- `exercises` is the clean non-boxing training library
 
 That separation is intentional.
 
 ---
 
-## Current migration
+## Current migrations
 
-Main migration file:
+Main historical migration file:
 - `supabase/migrations/003_drill_candidates_and_curated_drills.sql`
 
-This migration creates and/or upgrades:
-- `raw_drill_candidates`
-- `drills`
+Forward rename/source-of-truth migration:
+- `supabase/migrations/007_moves_exercises_and_combinations.sql`
 
-It also:
-- handles legacy `drills` shape issues
-- adds constraints and indexes
-- enables RLS for read access
-- expects writes through service role for now
+Migration `007` renames the canonical schema from:
+- `drills` to `moves`
+- `training_items` to `exercises`
+- `canonical_drill_id` to `canonical_move_id`
+
+It also adds:
+- `combinations`
+- `combination_items`
+
+Do not rename historical migrations just to tidy old wording. Add forward migrations instead.
 
 ---
 
@@ -95,22 +118,84 @@ Main ideas:
 - one row per extracted candidate
 - may include duplicates
 - may include noisy or partial entries
-- linked to canonical drill later if merged
+- linked to a canonical move later if merged
 
 Important review fields:
 - `review_status`
 - `review_notes`
-- `canonical_drill_id`
+- `canonical_move_id`
+- `ai_proposed_canonical_move_id`
 
-### `drills`
-Canonical reusable drill library.
+### `moves`
+Canonical reusable boxing movement library.
 
 Main ideas:
-- one row per approved reusable drill
+- one row per approved reusable move
 - stable naming
 - stable categories
 - stable difficulty
 - can cite multiple raw candidates via `raw_candidate_ids`
+
+Typical examples:
+- Jab
+- Cross
+- Box Step
+- Step Pivot
+- Slip
+- Roll
+- Feint
+
+### `combinations`
+Canonical reusable boxing sequence library.
+
+Main ideas:
+- one row per named combination
+- stores sequence-level summary, difficulty, category, and goal tags
+- does not duplicate the move instructions itself
+
+Typical examples:
+- 1-2
+- 1-2-3
+- Jab to Body, Cross to Head
+- Jab, Slip, Cross
+
+### `combination_items`
+Ordered move links inside a combination.
+
+Main ideas:
+- one row per move inside the combination
+- references `combination_id`
+- references `move_id`
+- stores `order_index`, `role`, and optional notes
+
+This lets the app know exactly which moves make up a combination and in what order.
+
+### `exercises`
+Reusable non-boxing training units.
+
+Examples:
+- Goblet Squat
+- Copenhagen Plank
+- Treadmill Build + Sprint Finisher
+
+Lean shared fields:
+- `title`
+- `slug`
+- `discipline`
+- `item_type`
+- `category`
+- `summary`
+- `description`
+- `instructions_json`
+- `coaching_cues_json`
+- `common_mistakes_json`
+- `equipment_tags`
+- `difficulty`
+- `structure_json`
+
+Important principle:
+- sport-specific detail lives in `structure_json`
+- do not build 40 columns before the app proves it needs them
 
 ---
 
@@ -129,9 +214,10 @@ Represents ordered blocks inside a workout.
 
 Examples:
 - Warm-up block
-- Technical drill block
-- Combo block
+- Technical block
+- Combination block
 - Round block
+- S&C finisher
 
 Each item should have:
 - a parent workout
@@ -139,18 +225,29 @@ Each item should have:
 - a title / label
 - optional duration / notes
 
-### `workout_item_drills`
-Represents ordered drills inside a workout item.
+### `workout_item_exercises`
+Represents ordered reusable exercises inside a workout item.
 
-This is important because:
-- one workout item can contain multiple drills
-- drills need ordering inside the item
+This table should store:
+- `workout_item_id`
+- `exercise_id`
+- `order_index`
+- `prescription_json`
+- `notes`
 
-This table should reference:
-- curated `drills` only
+Why:
+- the same exercise may be reused with different prescriptions in different workouts
+- workout-specific settings belong on the join row, not the library item
+
+### Boxing workout references
+Boxing workout composition should reference curated content only:
+- `moves`
+- `combinations`
 
 Not raw candidates.
 Ever.
+
+If the app needs a dedicated join table for moves or combinations inside workout items, add it as a forward migration rather than reusing `raw_drill_candidates`.
 
 ---
 
@@ -179,7 +276,7 @@ Ever.
 Good to include in the repo now:
 - migration SQL
 - schema docs
-- drill docs
+- boxing move docs
 - schema visual route (`/schema`)
 - starter review workflow notes
 
@@ -191,34 +288,35 @@ That gives collaborators enough context to contribute without guessing.
 
 ### Immediate next
 - continue grade video extraction
-- curate the first canonical drills
+- curate the first canonical moves and combinations
 - expose a simple review list for pending raw candidates
 
 ### Then
-- build the app-facing drill library UI on `drills`
+- build the app-facing boxing library UI on `moves`, `combinations`, and `combination_items`
 - build the review/moderation UI on `raw_drill_candidates`
 
-### After drill layer is stable
+### After the boxing layer is stable
 expand into:
-- S&C exercises
-- running exercises
+- S&C exercises via `exercises`
+- running interval blocks via `exercises`
 - themes
 - templates
 
 That is a later phase.
-The drill layer comes first.
+The boxing layer comes first, but the new path now exists in parallel so we do not have to contort future training content into boxing-first tables.
 
 ---
 
 ## Blunt version
 
-If the drill model is messy, everything built on top of it becomes messy too.
+If the source model is messy, everything built on top of it becomes messy too.
 
 So the right sequence is:
 1. raw intake
 2. curation
-3. canonical drills
-4. workouts
-5. broader training architecture
+3. canonical moves
+4. canonical combinations
+5. workouts
+6. broader training architecture
 
 That is the rebuild path.
