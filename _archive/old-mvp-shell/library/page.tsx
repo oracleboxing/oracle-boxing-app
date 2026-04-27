@@ -51,7 +51,7 @@ export default function LibraryPage() {
 
         <Card className="border-dashed">
           <p className="text-sm text-[var(--text-tertiary)] text-center py-2">
-            🏗️ Drill library — will load from Supabase &apos;drills&apos; table
+            🏗️ Drill library, will load canonical moves from Supabase
           </p>
         </Card>
 
