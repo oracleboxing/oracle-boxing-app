@@ -4473,7 +4473,7 @@ export function ReviewQueueClient({
                   E filters this row&apos;s grade, U filters this row&apos;s status
                 </span>
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-tertiary)]">
-                  ← / → cycles merge targets
+                  ← / → or ; / &apos; cycles merge targets
                 </span>
               </span>
               <input
