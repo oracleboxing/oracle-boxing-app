@@ -7912,7 +7912,7 @@ export function ReviewQueueClient({
                           These are the strongest likely canonical moves from the curated moves table, so you can merge straight from here instead of juggling IDs by hand.
                         </p>
                         {matchedDrills.length > 1 ? (
-                          <p id={`${selectedCandidate.id}-merge-target-shortcut-tip`} className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use 4 to 9 to pick the top visible targets by rank, or ; and ' to cycle target selection.</p>
+                          <p id={`${selectedCandidate.id}-merge-target-shortcut-tip`} className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use 4 to 9 to pick the top visible targets by rank, or ← / →, ;, and ' to cycle target selection.</p>
                         ) : null}
 
                         {matchedDrills.length === 0 ? (
