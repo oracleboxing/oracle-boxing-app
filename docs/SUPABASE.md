@@ -94,9 +94,9 @@ Main historical migration file:
 - `supabase/migrations/003_drill_candidates_and_curated_drills.sql`
 
 Forward rename/source-of-truth migration:
-- `supabase/migrations/007_moves_exercises_and_combinations.sql`
+- `supabase/migrations/008_moves_exercises_and_combinations.sql`
 
-Migration `007` renames the canonical schema from:
+Migration `008` renames the canonical schema from:
 - `drills` to `moves`
 - `training_items` to `exercises`
 - `canonical_drill_id` to `canonical_move_id`
