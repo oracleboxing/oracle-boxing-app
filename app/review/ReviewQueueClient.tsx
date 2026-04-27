@@ -8233,7 +8233,7 @@ export function ReviewQueueClient({
                               disabled={!previousDuplicateFamily || previousDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
                               aria-keyshortcuts={REVIEW_PREVIOUS_DUPLICATE_FAMILY_SHORTCUTS}
                               aria-controls="review-detail-panel"
-                              aria-expanded={previousDuplicateFamily?.leadCandidate?.id === selectedCandidate.id}
+                              aria-pressed={previousDuplicateFamily?.leadCandidate?.id === selectedCandidate.id}
                               aria-label={previousDuplicateFamily ? `Open previous duplicate family ${previousDuplicateFamily.dedupeKey} in the review detail panel` : undefined}
                               onClick={() => focusFamily(previousDuplicateFamily!.dedupeKey, previousDuplicateFamily!.leadCandidate?.id ?? null)}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -8250,7 +8250,7 @@ export function ReviewQueueClient({
                               disabled={!nextDuplicateFamily || nextDuplicateFamily.dedupeKey === selectedCandidate.dedupe_key}
                               aria-keyshortcuts={REVIEW_NEXT_DUPLICATE_FAMILY_SHORTCUTS}
                               aria-controls="review-detail-panel"
-                              aria-expanded={nextDuplicateFamily?.leadCandidate?.id === selectedCandidate.id}
+                              aria-pressed={nextDuplicateFamily?.leadCandidate?.id === selectedCandidate.id}
                               aria-label={nextDuplicateFamily ? `Open next duplicate family ${nextDuplicateFamily.dedupeKey} in the review detail panel` : undefined}
                               onClick={() => focusFamily(nextDuplicateFamily!.dedupeKey, nextDuplicateFamily!.leadCandidate?.id ?? null)}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:pointer-events-none disabled:opacity-50"
@@ -8277,7 +8277,7 @@ export function ReviewQueueClient({
                                   type="button"
                                   aria-controls="review-detail-panel"
                                   aria-describedby={`${familyCandidateSummaryId} ${familyCandidateMetricsId}`}
-                                  aria-expanded={isSelected}
+                                  aria-pressed={isSelected}
                                   aria-label={`${isSelected ? 'Viewing' : 'Open'} ${getDisplayTitle(candidate)} in the review detail panel`}
                                   onClick={() => selectCandidate(candidate.id, { scrollIntoView: false })}
                                   className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
