@@ -98,7 +98,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['[ / ]', 'Family hop'], description: 'Move to the previous or next pending family.' },
       { keys: [', / .', 'Family row'], description: 'Step through rows inside the current family.' },
       { keys: ['← / → or ; / \'' , 'Merge target'], description: 'Cycle the canonical merge target without leaving the keyboard.' },
-      { keys: ['4 / 5 / 6 / 7 / 8 / 9', 'Pick target'], description: 'Jump straight to the top visible merge targets by rank when multiple drill matches are surfaced.' },
+      { keys: ['4 / 5 / 6 / 7 / 8 / 9', 'Pick target'], description: 'Jump straight to the top visible merge targets by rank when multiple move matches are surfaced.' },
       { keys: ['Shift + h', 'Copy family notes'], description: 'Copy the current duplicate-family handoff scaffold without leaving the keyboard.' },
     ],
   },
@@ -118,7 +118,7 @@ const REVIEW_SHORTCUT_GROUPS = [
     shortcuts: [
       { keys: ['1 / 2 / 3', 'Route jump'], description: 'Jump into the highest-value review route.' },
       { keys: ['o / Shift + o', 'Cycle sort'], description: 'Step through queue sort modes without leaving the keyboard or opening the sort dropdown.' },
-      { keys: ['b / t / d / i / e / u', 'Focus current row context'], description: 'Toggle the selected row’s source batch, drill type, difficulty, AI recommendation, grade, or review status filter without leaving the keyboard.' },
+      { keys: ['b / t / d / i / e / u', 'Focus current row context'], description: 'Toggle the selected row’s source batch, move type, difficulty, AI recommendation, grade, or review status filter without leaving the keyboard.' },
       { keys: ['h', 'Copy queue handoff'], description: 'Copy the current review-slice handoff without leaving the keyboard.' },
       { keys: ['v', 'Copy view link'], description: 'Copy the current review queue URL, including any active filters or scoped review set.' },
       { keys: ['y / Shift + y', 'Copy handoff'], description: 'Copy the selected row or merge handoff summary.' },
@@ -450,7 +450,7 @@ function getReviewerNextMove(candidate: RawDrillCandidate, insight: CandidateIns
 
   if (decision === 'merge') {
     return candidate.canonical_drill_id
-      ? 'Already points at a canonical drill, review as supporting merge material.'
+      ? 'Already points at a canonical move, review as supporting merge material.'
       : 'Compare against the best family row or likely library match, then fold over only the useful bits.'
   }
 
@@ -852,7 +852,7 @@ function buildCandidateInsight(candidate: RawDrillCandidate, familySize: number)
 
   if (candidate.canonical_drill_id) {
     triageScore += 3
-    strengths.push('already linked to a canonical drill')
+    strengths.push('already linked to a canonical move')
   }
 
   if (completenessScore >= 5) {
@@ -2588,7 +2588,7 @@ export function ReviewQueueClient({
       {
         key: 'approve-ready',
         label: 'Approve-ready',
-        description: 'Likely canonical seeds with enough structure to turn into drills without extra queue wrangling.',
+        description: 'Likely canonical seeds with enough structure to turn into moves without extra queue wrangling.',
         countLabel: 'ready keeps',
         isActive: suggestedActionFilter === 'keep' && sortMode === 'completeness' && completenessFilter === 'all' && triageFilter === 'all' && familyShapeFilter === 'all' && !familyFilter,
         matches: (candidate, insight) => getCandidateDecisionHint(candidate, insight) === 'keep' && insight.completenessScore >= 3,
@@ -2714,7 +2714,7 @@ export function ReviewQueueClient({
       `Match reasons: ${preferredMergeTarget.matchReasons.slice(0, 3).join(' • ') || 'No reasons surfaced'}`,
       `Target summary: ${preferredMergeTarget.summary || 'No library summary yet.'}`,
       `Readiness gaps: ${readinessGaps.length > 0 ? readinessGaps.join(' • ') : 'No obvious metadata gaps surfaced'}`,
-      `Reviewer next move: ${mergeTargetNeedsExplicitSelection ? 'Pick the exact canonical drill first, then merge only if the overlap still holds up on inspection.' : 'Merge this row into the selected canonical drill if the overlap holds up on inspection.'}`,
+      `Reviewer next move: ${mergeTargetNeedsExplicitSelection ? 'Pick the exact canonical move first, then merge only if the overlap still holds up on inspection.' : 'Merge this row into the selected canonical move if the overlap holds up on inspection.'}`,
     ]
 
     return lines.join('\n')
@@ -2927,7 +2927,7 @@ export function ReviewQueueClient({
       '',
       'Review steps:',
       `1. Start with ${getDisplayTitle(keepCandidate)} as the cleanest base shape.`,
-      '2. Fold overlapping rows into that canonical drill if they add useful detail.',
+      '2. Fold overlapping rows into that canonical move if they add useful detail.',
       '3. Reject noisy duplicates that do not add anything reusable.',
       '',
       'Suggested bot payload:',
@@ -3557,8 +3557,8 @@ export function ReviewQueueClient({
           candidateIds: actionableSelectedIds,
           successLabel:
             actionableSelectedIds.length === 1
-              ? 'Approved candidate into the drill library.'
-              : `Approved ${actionableSelectedIds.length} candidates into the drill library.`,
+              ? 'Approved candidate into the moves library.'
+              : `Approved ${actionableSelectedIds.length} candidates into the moves library.`,
         })
         return
       }
@@ -3589,8 +3589,8 @@ export function ReviewQueueClient({
           canonicalDrillId: preferredMergeTargetId,
           successLabel:
             actionableSelectedIds.length === 1
-              ? 'Merged candidate into the selected drill.'
-              : `Merged ${actionableSelectedIds.length} candidates into the selected drill.`,
+              ? 'Merged candidate into the selected move.'
+              : `Merged ${actionableSelectedIds.length} candidates into the selected move.`,
         })
         return
       }
@@ -3849,7 +3849,7 @@ export function ReviewQueueClient({
         runReviewAction({
           action: 'approve',
           candidateIds: [selectedCandidateId],
-          successLabel: 'Approved candidate into the drill library.',
+          successLabel: 'Approved candidate into the moves library.',
         })
         return
       }
@@ -3886,7 +3886,7 @@ export function ReviewQueueClient({
           action: 'merge',
           candidateIds: [selectedCandidateId],
           canonicalDrillId: preferredMergeTargetId,
-          successLabel: 'Merged candidate into the selected drill.',
+          successLabel: 'Merged candidate into the selected move.',
         })
         return
       }
@@ -3908,7 +3908,7 @@ export function ReviewQueueClient({
           runReviewAction({
             action: 'approve',
             candidateIds: [selectedCandidate.id],
-            successLabel: 'Applied suggested action and approved candidate into the drill library.',
+            successLabel: 'Applied suggested action and approved candidate into the moves library.',
           })
           return
         }
@@ -3931,7 +3931,7 @@ export function ReviewQueueClient({
           action: 'merge',
           candidateIds: [selectedCandidate.id],
           canonicalDrillId: preferredMergeTargetId,
-          successLabel: 'Applied suggested action and merged candidate into the selected drill.',
+          successLabel: 'Applied suggested action and merged candidate into the selected move.',
         })
       }
     }
@@ -6372,7 +6372,7 @@ export function ReviewQueueClient({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pending by category</h2>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">Useful when you want to clear one drill type at a time instead of mixing stance, footwork, and defence rows together.</p>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Useful when you want to clear one move type at a time instead of mixing stance, footwork, and defence rows together.</p>
               </div>
               {categoryFilter !== 'all' ? (
                 <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
@@ -6411,7 +6411,7 @@ export function ReviewQueueClient({
                               ) : null}
                             </div>
                             <p className="mt-1 text-xs font-medium text-[var(--text-tertiary)]">
-                              {isFocusedCategory ? 'Click to clear this category filter' : 'Click to focus this drill type'}
+                              {isFocusedCategory ? 'Click to clear this category filter' : 'Click to focus this move type'}
                             </p>
                           </div>
                           <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
@@ -6443,7 +6443,7 @@ export function ReviewQueueClient({
                           >
                             {isFocusedCategory ? 'Current category focus' : 'Focus this category'}
                             <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                              Narrow the queue to this drill type.
+                              Narrow the queue to this move type.
                             </span>
                           </button>
 
@@ -6651,8 +6651,8 @@ export function ReviewQueueClient({
                   candidateIds: actionableSelectedIds,
                   successLabel:
                     actionableSelectedIds.length === 1
-                      ? 'Approved candidate into the drill library.'
-                      : `Approved ${actionableSelectedIds.length} candidates into the drill library.`,
+                      ? 'Approved candidate into the moves library.'
+                      : `Approved ${actionableSelectedIds.length} candidates into the moves library.`,
                 })
               }
               aria-describedby="bulk-selection-ready-status bulk-selection-scope-status bulk-selection-shortcuts"
@@ -6661,7 +6661,7 @@ export function ReviewQueueClient({
               className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] disabled:opacity-50 disabled:pointer-events-none"
             >
               <span>Approve visible pending</span>
-              <span className="text-xs text-[var(--text-tertiary)]">{actionableSelectedIds.length > 0 ? `${actionableSelectedIds.length} ready` : 'Create drills'}</span>
+              <span className="text-xs text-[var(--text-tertiary)]">{actionableSelectedIds.length > 0 ? `${actionableSelectedIds.length} ready` : 'Create moves'}</span>
             </button>
 
             <button
@@ -6728,8 +6728,8 @@ export function ReviewQueueClient({
                       canonicalDrillId: preferredMergeTargetId,
                       successLabel:
                         actionableSelectedIds.length === 1
-                          ? 'Merged candidate into the selected drill.'
-                          : `Merged ${actionableSelectedIds.length} candidates into the selected drill.`,
+                          ? 'Merged candidate into the selected move.'
+                          : `Merged ${actionableSelectedIds.length} candidates into the selected move.`,
                     })
                   : setActionError(mergeTargetPrompt)
               }
@@ -6749,7 +6749,7 @@ export function ReviewQueueClient({
         <div>
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Visible raw drill candidates</h2>
+              <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Visible raw move candidates</h2>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">
                 Filterable internal scan of the raw intake layer, ordered for curation rather than final library use.
               </p>
@@ -6762,7 +6762,7 @@ export function ReviewQueueClient({
                 <div>
                   <p className="font-semibold uppercase tracking-[0.14em]">Scoped review set</p>
                   <p className="mt-2 leading-6">
-                    Showing {sortedCandidates.length} of {scopeRequestedCount} linked raw candidate{scopeRequestedCount === 1 ? '' : 's'} passed in from the drill library.
+                    Showing {sortedCandidates.length} of {scopeRequestedCount} linked raw candidate{scopeRequestedCount === 1 ? '' : 's'} passed in from the moves library.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -6903,7 +6903,7 @@ export function ReviewQueueClient({
                           : `Suggested merge for ${getDisplayTitle(candidate)} is unavailable until a canonical target is explicitly chosen.`
                         : `Suggested merge for ${getDisplayTitle(candidate)} is unavailable until this row is selected.`
                       : `Apply suggested ${suggestedActionLabel.toLowerCase()} action for ${getDisplayTitle(candidate)}.`
-                const approveButtonAriaLabel = `Approve ${getDisplayTitle(candidate)} and create a drill.`
+                const approveButtonAriaLabel = `Approve ${getDisplayTitle(candidate)} and create a move.`
                 const rejectButtonAriaLabel = `Reject ${getDisplayTitle(candidate)}.`
                 const mergeButtonAriaLabel = !isSelected
                   ? `Merge ${getDisplayTitle(candidate)} after selecting this row and choosing a canonical target.`
@@ -7011,7 +7011,7 @@ export function ReviewQueueClient({
                               runReviewAction({
                                 action: 'approve',
                                 candidateIds: [candidate.id],
-                                successLabel: 'Applied suggested action and approved candidate into the drill library.',
+                                successLabel: 'Applied suggested action and approved candidate into the moves library.',
                               })
                               return
                             }
@@ -7039,7 +7039,7 @@ export function ReviewQueueClient({
                               action: 'merge',
                               candidateIds: [candidate.id],
                               canonicalDrillId: preferredMergeTargetId,
-                              successLabel: 'Applied suggested action and merged candidate into the selected drill.',
+                              successLabel: 'Applied suggested action and merged candidate into the selected move.',
                             })
                           }}
                           className={`sm:col-span-2 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] disabled:pointer-events-none disabled:opacity-50 ${
@@ -7101,14 +7101,14 @@ export function ReviewQueueClient({
                             runReviewAction({
                               action: 'approve',
                               candidateIds: [candidate.id],
-                              successLabel: 'Approved candidate into the drill library.',
+                              successLabel: 'Approved candidate into the moves library.',
                             })
                           }
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] disabled:pointer-events-none disabled:opacity-50"
                         >
                           Approve
-                          <span id={approveActionHintId} className="sr-only">Creates a drill from this candidate.</span>
-                          <span aria-hidden="true" className="ml-2 text-xs text-[var(--text-tertiary)]">Create drill</span>
+                          <span id={approveActionHintId} className="sr-only">Creates a move from this candidate.</span>
+                          <span aria-hidden="true" className="ml-2 text-xs text-[var(--text-tertiary)]">Create move</span>
                         </button>
                         <button
                           type="button"
@@ -7141,7 +7141,7 @@ export function ReviewQueueClient({
                                   action: 'merge',
                                   candidateIds: [candidate.id],
                                   canonicalDrillId: preferredMergeTargetId,
-                                  successLabel: 'Merged candidate into the selected drill.',
+                                  successLabel: 'Merged candidate into the selected move.',
                                 })
                               : setActionError(mergeTargetPrompt)
                           }
@@ -7521,7 +7521,7 @@ export function ReviewQueueClient({
                                 runReviewAction({
                                   action: 'approve',
                                   candidateIds: [selectedCandidate.id],
-                                  successLabel: 'Applied suggested action and approved candidate into the drill library.',
+                                  successLabel: 'Applied suggested action and approved candidate into the moves library.',
                                 })
                                 return
                               }
@@ -7544,7 +7544,7 @@ export function ReviewQueueClient({
                                 action: 'merge',
                                 candidateIds: [selectedCandidate.id],
                                 canonicalDrillId: preferredMergeTargetId,
-                                successLabel: 'Applied suggested action and merged candidate into the selected drill.',
+                                successLabel: 'Applied suggested action and merged candidate into the selected move.',
                               })
                             }}
                             className={`sm:col-span-2 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${
@@ -7582,14 +7582,14 @@ export function ReviewQueueClient({
                               runReviewAction({
                                 action: 'approve',
                                 candidateIds: [selectedCandidate.id],
-                                successLabel: 'Approved candidate into the drill library.',
+                                successLabel: 'Approved candidate into the moves library.',
                               })
                             }
                             className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm font-medium text-emerald-900 transition-colors hover:bg-emerald-100 disabled:pointer-events-none disabled:opacity-50 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
                           >
                             Approve candidate
-                            <span id={detailApproveActionHintId} className="sr-only">Creates a drill and advances selection.</span>
-                            <span aria-hidden="true" className="mt-1 block text-xs font-normal text-emerald-700 dark:text-emerald-400">Shortcut A • Creates a drill and advances selection</span>
+                            <span id={detailApproveActionHintId} className="sr-only">Creates a move and advances selection.</span>
+                            <span aria-hidden="true" className="mt-1 block text-xs font-normal text-emerald-700 dark:text-emerald-400">Shortcut A • Creates a move and advances selection</span>
                           </button>
 
                           <button
@@ -7672,7 +7672,7 @@ export function ReviewQueueClient({
                                     action: 'merge',
                                     candidateIds: [selectedCandidate.id],
                                     canonicalDrillId: preferredMergeTargetId,
-                                    successLabel: 'Merged candidate into the selected drill.',
+                                    successLabel: 'Merged candidate into the selected move.',
                                   })
                                 : setActionError(mergeTargetPrompt)
                             }
@@ -7907,16 +7907,16 @@ export function ReviewQueueClient({
                       </div>
 
                       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4">
-                        <p id={`${selectedCandidate.id}-merge-target-group-title`} className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Likely canonical targets</p>
+                        <p id={`${selectedCandidate.id}-merge-target-group-title`} className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">Likely canonical moves</p>
                         <p id={`${selectedCandidate.id}-merge-target-group-description`} className="mt-2 text-sm text-[var(--text-secondary)]">
-                          These are the strongest likely canonical targets from the curated drills table, so you can merge straight from here instead of juggling IDs by hand.
+                          These are the strongest likely canonical moves from the curated moves table, so you can merge straight from here instead of juggling IDs by hand.
                         </p>
                         {matchedDrills.length > 1 ? (
                           <p id={`${selectedCandidate.id}-merge-target-shortcut-tip`} className="mt-2 text-xs text-[var(--text-tertiary)]">Keyboard tip: use 4 to 9 to pick the top visible targets by rank, or ; and ' to cycle target selection.</p>
                         ) : null}
 
                         {matchedDrills.length === 0 ? (
-                          <p className="mt-4 text-sm text-[var(--text-secondary)]">No likely drill matches surfaced yet from the current library.</p>
+                          <p className="mt-4 text-sm text-[var(--text-secondary)]">No likely move matches surfaced yet from the current library.</p>
                         ) : (
                           <div
                             className="mt-4 space-y-3"
@@ -8008,7 +8008,7 @@ export function ReviewQueueClient({
                                       <Link
                                         href={returnToLibraryHref ? `${returnToLibraryHref}${returnToLibraryHref.includes('?') ? '&' : '?'}selected=${drill.id}` : `/drills?selected=${drill.id}`}
                                         aria-describedby={`${drillMatchReasonId} ${drillSummaryId}`}
-                                        aria-label={`Open ${drill.title} in the drill library`}
+                                        aria-label={`Open ${drill.title} in the moves library`}
                                         className="inline-flex shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                                       >
                                         Open in library
