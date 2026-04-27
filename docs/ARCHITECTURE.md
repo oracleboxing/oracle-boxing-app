@@ -3,7 +3,9 @@
 This rebuild is now intentionally simpler than the old app direction.
 
 The goal is to build the Oracle Boxing app on top of:
-- clean drills
+- clean boxing moves
+- clean combinations
+- clean exercises
 - clean workouts
 - clean data structure
 
@@ -15,12 +17,14 @@ Not on old MVP clutter.
 
 The correct order is:
 1. raw drill intake
-2. drill curation
-3. canonical drill library
-4. workout composition
-5. wider training architecture
+2. move curation
+3. canonical move library
+4. combination building
+5. exercise library
+6. workout composition
+7. wider training architecture
 
-That means the foundation right now is the drill layer.
+That means the foundation right now is the curated movement layer.
 
 ---
 
@@ -46,25 +50,29 @@ Purpose:
 - provide a review queue
 - stop raw AI extraction from polluting the real app library
 
-### Curated drill layer
-Source table:
-- `drills`
+### Curated movement layer
+Source tables:
+- `moves`
+- `combinations`
+- `combination_items`
+- `exercises`
 
 Purpose:
-- hold reusable canonical drills
+- hold reusable canonical boxing moves
+- hold ordered boxing combinations built from moves
+- hold reusable S&C and running exercises
 - provide stable app-facing content
-- act as the only drill source the real library UI should depend on
+- act as the only curated source the real library UI should depend on
 
 ### Workout layer
 Planned tables:
 - `workouts`
 - `workout_items`
-- `workout_item_drills`
 
 Purpose:
-- compose sessions from curated drills
-- support multiple drills inside a single workout block
-- preserve ordering at both block level and drill level
+- compose sessions from curated moves, combinations, and exercises
+- support mixed training blocks without stuffing every item into one generic drill table
+- preserve ordering at workout-item level
 
 ---
 
@@ -144,11 +152,13 @@ That UI should let someone:
 - inspect steps / focus points / mistakes
 - approve
 - reject
-- merge into canonical drills later
+- merge into canonical moves later
 
 ### First useful product UI
-A simple drill library that reads from:
-- `drills`
+A simple library that reads from:
+- `moves`
+- `combinations`
+- `exercises`
 
 Not `raw_drill_candidates`.
 
@@ -156,23 +166,24 @@ Not `raw_drill_candidates`.
 
 ## What comes after drills
 
-Once the drill layer is stable enough, then expand into:
-- S&C exercises
-- running exercises
+Once the movement layer is stable enough, then expand into:
+- richer S&C exercises
+- richer running exercises
 - themes
 - templates
 
 That is a later architecture phase.
-The first one is boxing drill content and workout composition.
+The first one is boxing moves, combinations, exercises, and workout composition.
 
 ---
 
 ## Blunt take
 
-If the drill layer is shaky, every other training layer gets shaky on top of it.
+If the curated movement layer is shaky, every other training layer gets shaky on top of it.
 
 So the architecture right now should stay boring and disciplined:
-- curate drills
+- curate moves
+- build combinations and exercises cleanly
 - build workouts
 - then expand
 
