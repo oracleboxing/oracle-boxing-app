@@ -58,7 +58,7 @@ const SUMMARY_PRESET_META: Record<SummaryPreset, { label: string; hint: string }
   },
   unlinked: {
     label: 'No raw links',
-    hint: 'Canonical drill lacks raw-source traceability.',
+    hint: 'Canonical move lacks raw-source traceability.',
   },
 }
 
