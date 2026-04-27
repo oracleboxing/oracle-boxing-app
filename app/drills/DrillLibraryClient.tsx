@@ -1266,7 +1266,13 @@ function SummaryCard({
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={isActive}
+        aria-label={isActive ? `${label} summary preset is currently active` : `Apply ${label} summary preset`}
+        className={className}
+      >
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{label}</p>
         <p className="mt-3 text-3xl font-semibold text-[var(--text-primary)]">{value}</p>
         <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{hint}</p>
