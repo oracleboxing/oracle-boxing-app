@@ -12,7 +12,7 @@ type ReviewMutationPayload = {
   reviewNotes?: string | null
 }
 
-type DrillSeed = Database['public']['Tables']['drills']['Insert']
+type DrillSeed = Database['public']['Tables']['moves']['Insert']
 
 function isReviewAction(value: unknown): value is ReviewAction {
   return value === 'approve' || value === 'reject' || value === 'merge'
@@ -54,7 +54,7 @@ async function ensureUniqueSlug(baseSlug: string) {
   let suffix = 2
 
   while (true) {
-    const { data, error } = await supabase.from('drills').select('id').eq('slug', candidateSlug).maybeSingle()
+    const { data, error } = await supabase.from('moves').select('id').eq('slug', candidateSlug).maybeSingle()
 
     if (error) {
       throw new Error(`Could not validate move slug uniqueness: ${error.message}`)
@@ -179,7 +179,7 @@ export async function POST(request: Request) {
         const slug = await ensureUniqueSlug(slugify(candidate.slug_candidate || getDisplayTitle(candidate)))
         const seed = seedDrillFromCandidate(candidate, slug)
 
-        const { data: insertedDrill, error: insertError } = await (supabase.from('drills') as any)
+        const { data: insertedDrill, error: insertError } = await (supabase.from('moves') as any)
           .insert(seed)
           .select('id')
           .single()
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
         const { error: updateError } = await (supabase.from('raw_drill_candidates') as any)
           .update({
             review_status: 'approved',
-            canonical_drill_id: insertedDrill.id,
+            canonical_move_id: insertedDrill.id,
             review_notes: mergeReviewNotes(candidate.review_notes, reviewNotes),
           })
           .eq('id', candidate.id)
@@ -216,7 +216,7 @@ export async function POST(request: Request) {
       const updates = candidates.map((candidate) => ({
         id: candidate.id,
         review_status: 'rejected' as const,
-        canonical_drill_id: null,
+        canonical_move_id: null,
         review_notes: mergeReviewNotes(candidate.review_notes, reviewNotes),
       }))
 
@@ -224,7 +224,7 @@ export async function POST(request: Request) {
         const { error } = await (supabase.from('raw_drill_candidates') as any)
           .update({
             review_status: update.review_status,
-            canonical_drill_id: update.canonical_drill_id,
+            canonical_move_id: update.canonical_move_id,
             review_notes: update.review_notes,
           })
           .eq('id', update.id)
@@ -245,7 +245,7 @@ export async function POST(request: Request) {
 
     const canonicalDrillId = body.canonicalDrillId!.trim()
     const { data: targetDrill, error: targetError } = await supabase
-      .from('drills')
+      .from('moves')
       .select('*')
       .eq('id', canonicalDrillId)
       .single()
@@ -283,7 +283,7 @@ export async function POST(request: Request) {
       }
     )
 
-    const { error: drillUpdateError } = await (supabase.from('drills') as any)
+    const { error: drillUpdateError } = await (supabase.from('moves') as any)
       .update({
         summary: mergedFromCandidates.summary || drill.summary,
         description: mergedFromCandidates.description,
@@ -313,7 +313,7 @@ export async function POST(request: Request) {
       const { error } = await (supabase.from('raw_drill_candidates') as any)
         .update({
           review_status: 'merged',
-          canonical_drill_id: drill.id,
+          canonical_move_id: drill.id,
           review_notes: mergeReviewNotes(candidate.review_notes, reviewNotes),
         })
         .eq('id', candidate.id)

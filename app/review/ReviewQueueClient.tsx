@@ -324,7 +324,7 @@ function getCandidateDecisionHint(candidate: RawDrillCandidate, insight: Candida
   if (candidate.review_status === 'rejected') return 'reject'
   if (candidate.review_status === 'merged') return 'merge'
   if (candidate.review_status === 'approved') return 'keep'
-  if (candidate.canonical_drill_id) return 'merge'
+  if (candidate.canonical_move_id) return 'merge'
   if (insight.familySize >= 2 && insight.completenessScore >= 4 && insight.triageScore >= 4) return 'keep'
   if (insight.familySize >= 2 && insight.completenessScore <= 2) return 'reject'
   if (insight.familySize >= 2) return 'merge'
@@ -449,7 +449,7 @@ function getReviewerNextMove(candidate: RawDrillCandidate, insight: CandidateIns
   }
 
   if (decision === 'merge') {
-    return candidate.canonical_drill_id
+    return candidate.canonical_move_id
       ? 'Already points at a canonical move, review as supporting merge material.'
       : 'Compare against the best family row or likely library match, then fold over only the useful bits.'
   }
@@ -681,7 +681,7 @@ function scoreDrillMatch(
   let matchScore = 0
   const matchReasons: string[] = []
 
-  if (candidate.canonical_drill_id && candidate.canonical_drill_id === drill.id) {
+  if (candidate.canonical_move_id && candidate.canonical_move_id === drill.id) {
     matchScore += 10
     matchReasons.push('already linked as canonical')
   }
@@ -850,7 +850,7 @@ function buildCandidateInsight(candidate: RawDrillCandidate, familySize: number)
     cautions.push('isolated row')
   }
 
-  if (candidate.canonical_drill_id) {
+  if (candidate.canonical_move_id) {
     triageScore += 3
     strengths.push('already linked to a canonical move')
   }
@@ -2365,7 +2365,7 @@ export function ReviewQueueClient({
     Boolean(preferredMergeTargetId) &&
     matchedDrills.length > 1 &&
     !selectedCanonicalDrillId &&
-    selectedCandidate?.canonical_drill_id !== preferredMergeTargetId
+    selectedCandidate?.canonical_move_id !== preferredMergeTargetId
   const canRunMergeAction = Boolean(preferredMergeTargetId) && !mergeTargetNeedsExplicitSelection
   const mergeTargetPrompt = !preferredMergeTargetId
     ? 'Pick a merge target first.'
@@ -7726,7 +7726,7 @@ export function ReviewQueueClient({
                         />
                         <InfoBlock label="Grade" value={formatGradeLevel(selectedCandidate.grade_level)} />
                         <InfoBlock label="Duration" value={selectedCandidate.estimated_duration_seconds ? `${selectedCandidate.estimated_duration_seconds}s` : 'Unknown'} />
-                        <InfoBlock label="Canonical link" value={selectedCandidate.canonical_drill_id || 'Not linked yet'} />
+                        <InfoBlock label="Canonical link" value={selectedCandidate.canonical_move_id || 'Not linked yet'} />
                         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] p-4 sm:col-span-2">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>

@@ -3,6 +3,8 @@ import path from 'node:path'
 
 export default async function SchemaPage() {
   const htmlPath = path.join(process.cwd(), '..', 'clawd', 'plans', 'oracle-boxing-app-workout-table-visual.html')
+  // Note: the embedded visual still shows the boxing-first four-table model.
+  // The live schema now also includes a parallel exercises path for S&C and running.
   const rawHtml = await fs.readFile(htmlPath, 'utf8')
 
   return (

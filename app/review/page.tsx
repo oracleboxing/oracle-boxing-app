@@ -31,7 +31,7 @@ export default async function ReviewPage() {
 
   const supabase = await createClient()
   const candidateColumns =
-    'id, cleaned_title, raw_title, dedupe_key, category, difficulty, grade_level, review_status, review_notes, source_type, source_file, summary, description, what_it_trains, when_to_assign, coach_demo_quote, estimated_duration_seconds, format_tags, skill_tags, tags, steps_json, focus_points_json, common_mistakes_json, canonical_drill_id, created_at'
+    'id, cleaned_title, raw_title, dedupe_key, category, difficulty, grade_level, review_status, review_notes, source_type, source_file, summary, description, what_it_trains, when_to_assign, coach_demo_quote, estimated_duration_seconds, format_tags, skill_tags, tags, steps_json, focus_points_json, common_mistakes_json, canonical_move_id, created_at'
 
   const { data, error } = await supabase.from('raw_drill_candidates').select(candidateColumns)
 
@@ -62,11 +62,11 @@ export default async function ReviewPage() {
   }
 
   const drillColumns = 'id, title, category, difficulty, grade_level, summary, skill_tags, tags, raw_candidate_ids, is_active, is_curated'
-  const { data: drillsData, error: drillsBaseError } = await supabase.from('drills').select(drillColumns)
+  const { data: drillsData, error: drillsBaseError } = await supabase.from('moves').select(drillColumns)
 
   const drillsError = drillsBaseError?.code === 'PGRST205'
     ? await supabase
-        .from('drills')
+        .from('moves')
         .select(drillColumns)
         .order('is_active', { ascending: false })
         .order('is_curated', { ascending: false })
