@@ -33,8 +33,10 @@ That means the foundation right now is the curated movement layer.
 ### App routes that matter right now
 - `/` = rebuild workspace landing page
 - `/schema` = visual schema mock
+- `/review` = raw drill candidate moderation workspace
+- `/drills` = current internal library route reading from the `moves` table
 
-The repo is currently being used more as a structured rebuild surface than a finished product shell.
+The member-facing app direction is a Skool training companion, not a social feed or RPG shell. Keep the route work pointed at today's training, workout execution, and progress tracking.
 
 ---
 
@@ -76,7 +78,7 @@ Purpose:
 
 ---
 
-## Why the two-layer drill model matters
+## Why the raw-to-curated model matters
 
 Because extracted content is messy.
 
@@ -99,15 +101,25 @@ It is what stops the app from becoming a duplicate graveyard.
 
 ## Current categories
 
-Current working drill categories:
+Current working move categories:
 - `stance`
 - `punching`
 - `footwork`
 - `defence`
 - `combination`
 - `warmup`
+- `feint`
 
-Keep this tight unless a real product reason appears.
+Current working combination categories:
+- `basic_attack`
+- `attack_defence`
+- `feint_entry`
+- `body_head`
+- `footwork_entry`
+- `exit`
+- `counter`
+
+Keep these tight unless a real product reason appears.
 
 ---
 
@@ -131,7 +143,7 @@ Those grade videos are useful because they are cleaner instructional sources tha
 
 ### Sha-Lyn
 - helps review raw candidates
-- helps shape curated drill content
+- helps shape curated move, combination, and exercise content
 - can build UI against the documented schema
 
 ### Agent
@@ -145,14 +157,15 @@ Those grade videos are useful because they are cleaner instructional sources tha
 ## What should be built in the app next
 
 ### First useful internal UI
-A simple review surface for pending raw drill candidates.
+A review surface for pending raw drill candidates exists at `/review`.
 
-That UI should let someone:
+That UI should keep making it easier to:
 - pull pending candidates
 - inspect steps / focus points / mistakes
 - approve
 - reject
-- merge into canonical moves later
+- merge into canonical moves
+- hand off clean review slices to Jordan or Sha-Lyn
 
 ### First useful product UI
 A simple library that reads from:
@@ -164,13 +177,14 @@ Not `raw_drill_candidates`.
 
 ---
 
-## What comes after drills
+## What comes after the curated movement layer
 
 Once the movement layer is stable enough, then expand into:
+- hand-authored combinations
 - richer S&C exercises
 - richer running exercises
-- themes
-- templates
+- workout templates for Skool companion training
+- progress tracking around completed workouts
 
 That is a later architecture phase.
 The first one is boxing moves, combinations, exercises, and workout composition.
