@@ -99,7 +99,7 @@ function Header() {
         <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">Oracle Boxing rebuild</p>
         <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)] sm:text-5xl">Curated drill library</h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--text-secondary)]">
-          App-facing browse surface for canonical drills from the drills table only, separate from the raw review queue.
+          App-facing browse surface for canonical drills from the moves table only, separate from the raw review queue.
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
