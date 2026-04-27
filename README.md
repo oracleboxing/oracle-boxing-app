@@ -5,9 +5,9 @@ This repo is currently a clean rebuild workspace for the Oracle Boxing app.
 The old MVP shell was deliberately stripped back so the app can be rebuilt on better foundations.
 
 Current focus:
-- curate a clean drill library
+- curate a clean canonical moves library, with member-facing copy still free to say “drills” where that reads naturally
 - define the Supabase structure properly
-- build workouts on top of curated drills
+- build workouts on top of curated moves, combinations, and exercises
 - make the repo easy for Jordan and Sha-Lyn to collaborate in
 
 ---
@@ -15,8 +15,8 @@ Current focus:
 ## Current rebuild direction
 
 This rebuild is centred on:
-- reusable drills
-- workout composition
+- reusable boxing moves
+- combinations and workout composition
 - simple structure
 - coach-led training content
 
@@ -36,7 +36,9 @@ Not on:
 
 ### In Supabase
 - `raw_drill_candidates` for extracted, reviewable source content
-- `drills` for curated app-facing drills
+- `moves` for curated canonical boxing movements
+- `combinations` and `combination_items` for reusable boxing sequences
+- `exercises` for non-boxing training items
 
 ### In docs
 - rebuild architecture notes
@@ -64,20 +66,26 @@ Supporting docs:
 
 ### Raw intake
 - `raw_drill_candidates`
-- holds extracted drills from transcripts and grade videos
+- holds extracted drill candidates from transcripts and grade videos
 - this is the review layer, not the final app library
 
-### Curated library
-- `drills`
-- holds approved reusable canonical drills
-- this is what the app should read from
+### Curated boxing library
+- `moves`
+- holds approved reusable canonical boxing movements
+- this is what the app should read from for canonical boxing content
 
-### Planned workout composition
+### Curated sequence library
+- `combinations`
+- `combination_items`
+- holds reusable ordered move sequences
+
+### Workout composition
 - `workouts`
 - `workout_items`
-- `workout_item_drills`
+- `workout_item_exercises`
+- these link workout blocks to curated `exercises`
 
-These will be built on top of curated drills only.
+These are built on top of curated source-of-truth rows, not raw candidates.
 
 ---
 
@@ -86,8 +94,8 @@ These will be built on top of curated drills only.
 The intended workflow is:
 1. pull pending raw drill candidates from Supabase
 2. review / approve / reject / merge them
-3. help shape the canonical drill library
-4. build UI against curated `drills`, not raw candidates
+3. help shape the canonical moves library
+4. build UI against curated `moves`, `combinations`, and `exercises`, not raw candidates
 
 This keeps the app clean while still preserving all source material.
 
@@ -132,8 +140,8 @@ The app is not being rebuilt around flashy features.
 It is being rebuilt around clean boxing content structure.
 
 That means:
-1. curate drills
-2. build workouts
+1. curate moves
+2. build combinations, exercises, and workouts
 3. then expand into broader training layers like S&C, running, themes, and templates
 
 That order matters.
