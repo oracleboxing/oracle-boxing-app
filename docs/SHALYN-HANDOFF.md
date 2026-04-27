@@ -7,10 +7,11 @@ This file is the quick handoff for collaboration on the Oracle Boxing app rebuil
 ## Current app direction
 
 The rebuild is focused on:
+- a Skool training companion for today's training
 - clean boxing move content
 - structured combinations
 - Supabase structure
-- workout composition
+- workout execution and progress tracking
 - simple architecture
 
 The rebuild is **not** currently focused on rebuilding all the old MVP pages.
@@ -69,7 +70,7 @@ Use this for:
 
 ## Current review goal
 
-We are trying to turn raw extracted drill candidates into a clean canonical boxing library.
+We are trying to turn raw extracted drill candidates into a clean Oracle-authored canonical boxing library.
 
 The immediate priority is:
 - curate the first canonical moves and combinations
@@ -142,6 +143,7 @@ That gives a cleaner content source for building the canonical move and combinat
 
 Best early contribution areas:
 - review queue UI for pending raw drill candidates
+- today's training / Start Workout surface
 - canonical move detail cards
 - canonical combination detail cards
 - simple boxing library list/filter view
@@ -152,7 +154,8 @@ Best early contribution areas:
 ## What comes later
 
 After the boxing layer is solid:
-- workout builder structure
+- workout builder and execution structure
+- basic progress tracking
 - S&C exercise architecture
 - running interval architecture
 - themes / templates

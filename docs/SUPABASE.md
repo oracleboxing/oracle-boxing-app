@@ -1,6 +1,6 @@
 # Supabase Structure
 
-This file documents the current Oracle Boxing app data structure for the rebuild.
+This file documents the current Oracle Boxing app data structure for the Skool training companion rebuild.
 
 It is written for handoff and collaboration, especially for Sha-Lyn.
 
@@ -11,7 +11,7 @@ It is written for handoff and collaboration, especially for Sha-Lyn.
 The rebuild is centred on:
 - curated boxing moves and combinations
 - reusable S&C / running exercises
-- workout composition
+- workout composition for today's training and Start Workout flows
 - simple, reusable training blocks
 - additive schema changes instead of binning working content
 
@@ -69,7 +69,7 @@ Purpose:
 
 ## Why raw candidates and canonical content are separate
 
-Because raw AI extraction and app content are not the same thing.
+Because raw AI extraction and finished Oracle-authored app content are not the same thing.
 
 If we dump everything directly into `moves`, we get:
 - duplicates
@@ -80,7 +80,7 @@ If we dump everything directly into `moves`, we get:
 
 So:
 - `raw_drill_candidates` is the intake pile
-- `moves` is the clean canonical boxing movement library
+- `moves` is the clean Oracle-authored canonical boxing movement library
 - `combinations` is the clean canonical sequence library
 - `exercises` is the clean non-boxing training library
 
@@ -127,7 +127,7 @@ Important review fields:
 - `ai_proposed_canonical_move_id`
 
 ### `moves`
-Canonical reusable boxing movement library.
+Canonical reusable boxing movement library, manually curated by Oracle.
 
 Main ideas:
 - one row per approved reusable move
@@ -256,7 +256,7 @@ If the app needs a dedicated join table for moves or combinations inside workout
 ### Agent role
 - extract raw candidates
 - prepare documentation
-- help propose canonical merges
+- help propose canonical merges and drafts
 
 ### Sha-Lyn role
 - inspect raw candidates

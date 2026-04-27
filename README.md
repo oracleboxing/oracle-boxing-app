@@ -5,7 +5,8 @@ This repo is currently a clean rebuild workspace for the Oracle Boxing app.
 The old MVP shell was deliberately stripped back so the app can be rebuilt on better foundations.
 
 Current focus:
-- curate a clean canonical moves library, with member-facing copy still free to say “drills” where that reads naturally
+- build a Skool training companion around today's training, workout execution, and progress tracking
+- curate a clean Oracle-authored canonical moves library, with member-facing copy still free to say “drills” where that reads naturally
 - define the Supabase structure properly
 - build workouts on top of curated moves, combinations, and exercises
 - make the repo easy for Jordan and Sha-Lyn to collaborate in
@@ -17,6 +18,7 @@ Current focus:
 This rebuild is centred on:
 - reusable boxing moves
 - combinations and workout composition
+- today's training as the primary member flow
 - simple structure
 - coach-led training content
 
@@ -35,7 +37,7 @@ Not on:
 - a simplified home page for working on structure
 
 ### In Supabase
-- `raw_drill_candidates` for extracted, reviewable source content
+- `raw_drill_candidates` for extracted, reviewable source content and AI-assisted draft support only
 - `moves` for curated canonical boxing movements
 - `combinations` and `combination_items` for reusable boxing sequences
 - `exercises` for non-boxing training items
@@ -71,7 +73,7 @@ Supporting docs:
 
 ### Curated boxing library
 - `moves`
-- holds approved reusable canonical boxing movements
+- holds approved reusable canonical boxing movements authored and curated by Oracle
 - this is what the app should read from for canonical boxing content
 
 ### Curated sequence library
@@ -94,7 +96,7 @@ These are built on top of curated source-of-truth rows, not raw candidates.
 The intended workflow is:
 1. pull pending raw drill candidates from Supabase
 2. review / approve / reject / merge them
-3. help shape the canonical moves library
+3. help shape the manual Oracle-authored canonical moves library
 4. build UI against curated `moves`, `combinations`, and `exercises`, not raw candidates
 
 This keeps the app clean while still preserving all source material.
@@ -108,7 +110,7 @@ Grade 1 and Grade 2 videos are being pulled from Google Drive and processed into
 - extracted drill JSON
 - grade-tagged drill candidates
 
-Those outputs are being used as cleaner source material for curation.
+Those outputs are being used as cleaner source material for manual Oracle curation, not auto-published as app content.
 
 ---
 

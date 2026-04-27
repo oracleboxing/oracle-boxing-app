@@ -24,6 +24,8 @@ That is enough to build fast without building blind.
 ## MVP outcome
 
 The MVP should let a member:
+- open the app as a Skool training companion
+- start today's training with a clear primary action
 - access a clean moves and combinations library
 - open a move or combination and understand how to perform it
 - access structured boxing workouts
@@ -33,7 +35,7 @@ The MVP should let a member:
 And it should let the internal team:
 - ingest raw drill candidates
 - review raw drill candidates
-- curate canonical moves and combinations
+- manually author and curate canonical moves and combinations
 - use Supabase as the source of truth for the moves, combinations, and exercises library
 
 That is the real MVP.
@@ -44,6 +46,7 @@ That is the real MVP.
 
 ### Member-facing
 - authentication
+- today's training / Start Workout surface
 - moves and combinations library
 - move and combination detail pages
 - workout library
@@ -72,6 +75,7 @@ These are explicit non-goals for now:
 - gamification systems
 - badges / XP economy complexity
 - AI coaching assistant inside the app
+- AI-authored canonical content without Oracle review
 - video analysis
 - broad content types beyond boxing moves, combinations, exercises, and workouts
 - full S&C architecture
@@ -135,11 +139,12 @@ Exit condition:
 
 ---
 
-## Phase 3, member drill library
+## Phase 3, member boxing library
 Goal:
 - expose the curated moves and combinations library to users
 
 Tasks:
+- build a today's training / Start Workout entry point
 - build moves/combinations list page
 - build move/combination detail page
 - support basic filtering
@@ -214,7 +219,7 @@ Exit condition:
 
 ### Jordan
 - final product decisions
-- content judgment
+- final manual content judgment
 - prioritisation
 - scope discipline
 
@@ -226,7 +231,7 @@ Exit condition:
 
 ### Agent
 - schema design
-- extraction and curation support
+- extraction and curation support, not final canonical authorship
 - docs
 - Supabase and workflow wiring
 - plan maintenance

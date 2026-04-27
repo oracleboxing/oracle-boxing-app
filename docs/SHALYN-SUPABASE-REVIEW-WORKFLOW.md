@@ -6,7 +6,7 @@ This is the simplest practical workflow for reviewing boxing source candidates i
 
 ## Goal
 
-Use Supabase as the content review layer so raw extracted drill candidates can be cleaned up before they become app-facing canonical content.
+Use Supabase as the content review layer so raw extracted drill candidates can be cleaned up before they become app-facing Oracle-authored canonical content.
 
 Product wording may still call the member-facing library “drills”. The database source of truth is:
 - `raw_drill_candidates` for intake and review
@@ -36,7 +36,7 @@ For each candidate, choose one of:
 Meaning:
 - this raw candidate is good source material
 - it should survive review
-- it may later become its own canonical move, feed an existing move, or inform a combination
+- it may later become its own manually curated canonical move, feed an existing move, or inform a combination
 
 Update:
 - `review_status = 'approved'`
@@ -161,6 +161,6 @@ Don’t bypass the review layer just because the source is cleaner.
 ## Blunt version
 
 Raw candidates are the inbox.
-Canonical moves and combinations are the finished library.
+Canonical moves and combinations are the finished Oracle-authored library.
 
 Review is the thing in the middle that stops nonsense getting into the app.

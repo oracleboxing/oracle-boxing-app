@@ -1,6 +1,6 @@
 # Boxing Move Data Guide
 
-This is the working source of truth for how boxing drill content is structured for the Oracle Boxing app rebuild.
+This is the working source of truth for how boxing drill content is structured for the Oracle Boxing app rebuild as a Skool training companion.
 
 The product may still call this area “drills” because that is natural for boxers. The database source of truth is now:
 - `raw_drill_candidates` for intake and review
@@ -10,7 +10,7 @@ The product may still call this area “drills” because that is natural for bo
 
 The current direction is deliberately simple:
 - keep raw extracted drill candidates separate from curated app content
-- curate a clean canonical move library first
+- manually curate a clean Oracle-authored canonical move library first
 - build combinations and workouts on top of curated moves, not messy source data
 
 ---
@@ -28,7 +28,7 @@ It stores:
 - duplicates
 - messy naming
 - partial overlap
-- unreviewed AI output
+- unreviewed AI-assisted output
 
 This table is for:
 - review
@@ -42,7 +42,7 @@ It is **not** the final app library.
 This is the curated app-facing boxing movement library.
 
 It stores:
-- approved canonical move rows
+- approved Oracle-authored canonical move rows
 - clean naming
 - stable categories
 - stable difficulty
@@ -180,7 +180,7 @@ The intended flow is:
 
 ### Already loaded
 - `raw_drill_candidates` contains the first 671 imported drill candidates from coaching/transcript extraction
-- curated `moves` is intentionally still mostly/entirely empty while curation happens
+- curated `moves` is intentionally still mostly/entirely empty while manual Oracle curation happens
 
 ### Grade video extraction
 We are also extracting from the Grade 1 and Grade 2 Google Drive folders.
@@ -188,7 +188,7 @@ Those extracted drills should be tagged with:
 - `grade_1`
 - `grade_2`
 
-These are useful because they are cleaner instructional source material than live transcript chaos.
+These are useful because they are cleaner instructional source material than live transcript chaos. They still need manual Oracle review before becoming canonical app content.
 
 ---
 
