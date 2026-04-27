@@ -714,7 +714,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
   if (drills.length === 0) {
     return (
       <EmptyState
-        title="No curated drills yet"
+        title="No canonical moves yet"
         body="The moves table is reachable, but it does not have any curated library rows yet. That is fine for now. The next real job is turning reviewed source candidates into canonical moves."
       />
     )

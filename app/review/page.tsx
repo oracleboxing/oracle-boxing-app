@@ -111,7 +111,7 @@ function Header() {
         <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">Oracle Boxing rebuild</p>
         <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)] sm:text-5xl">Raw drill review queue</h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--text-secondary)]">
-          A first useful internal surface for reviewing pending raw_drill_candidates before they become curated drills.
+          A first useful internal surface for reviewing pending raw_drill_candidates before they become canonical moves.
         </p>
       </div>
       <Link
