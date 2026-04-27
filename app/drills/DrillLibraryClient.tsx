@@ -30,7 +30,7 @@ const SUMMARY_PRESET_META: Record<SummaryPreset, { label: string; hint: string }
   },
   audit_now: {
     label: 'Audit now',
-    hint: 'Weakest canonical drills that need attention first.',
+    hint: 'Weakest canonical moves that need attention first.',
   },
   watch_next: {
     label: 'Watch next',
@@ -715,7 +715,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
     return (
       <EmptyState
         title="No curated drills yet"
-        body="The drills table is reachable, but it does not have any curated library rows yet. That is fine for now. The next real job is turning reviewed source candidates into canonical drills."
+        body="The moves table is reachable, but it does not have any curated library rows yet. That is fine for now. The next real job is turning reviewed source candidates into canonical moves."
       />
     )
   }
@@ -730,7 +730,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
 
       <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-11">
-        <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the drills table" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
+        <SummaryCard label="Total drills" value={String(drills.length)} hint="Rows currently in the moves table" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
         <SummaryCard label="Active drills" value={String(summary.activeCount)} hint="Visible candidates for the real app library" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
         <SummaryCard label="Marked curated" value={String(summary.curatedCount)} hint="Rows already treated as canonical" onClick={() => applySummaryPreset('all')} isActive={isSummaryPresetActive('all')} />
         <SummaryCard label="Audit now" value={String(summary.auditNowCount)} hint="Weak canonical rows that need eyes first" onClick={() => applySummaryPreset('audit_now')} isActive={isSummaryPresetActive('audit_now')} />
@@ -738,7 +738,7 @@ export function DrillLibraryClient({ drills, linkedCandidates }: { drills: Drill
         <SummaryCard label="Ready-ish" value={String(summary.readyCount)} hint="8+ completeness points across copy and drill structure" onClick={() => applySummaryPreset('ready')} isActive={isSummaryPresetActive('ready')} />
         <SummaryCard label="Demo ready" value={String(summary.demoReadyCount)} hint="Has demo video and coach quote, so frontend work is less guessy" onClick={() => applySummaryPreset('demo_ready')} isActive={isSummaryPresetActive('demo_ready')} />
         <SummaryCard label="Needs proof" value={String(summary.needsProofCount)} hint="Still missing a demo video, a coach quote, or both" onClick={() => applySummaryPreset('needs_proof')} isActive={isSummaryPresetActive('needs_proof')} />
-        <SummaryCard label="Thin drills" value={String(summary.thinCount)} hint="Canonical rows still missing core teaching detail" onClick={() => applySummaryPreset('thin')} isActive={isSummaryPresetActive('thin')} />
+        <SummaryCard label="Thin drills" value={String(summary.thinCount)} hint="Canonical move rows still missing core teaching detail" onClick={() => applySummaryPreset('thin')} isActive={isSummaryPresetActive('thin')} />
         <SummaryCard label="Pending source review" value={String(summary.withPendingRawReviewCount)} hint="Drills still linked to at least one pending raw review row" onClick={() => applySummaryPreset('pending_review')} isActive={isSummaryPresetActive('pending_review')} />
         <SummaryCard label="No raw links" value={String(summary.unlinkedCount)} hint="Canonical rows with no raw candidate traceability yet" onClick={() => applySummaryPreset('unlinked')} isActive={isSummaryPresetActive('unlinked')} />
       </section>
@@ -1102,7 +1102,7 @@ function DrillDetail({
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Audit priority</p>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-              One blunt queue for weak canonical drills, so Jordan or Sha-Lyn can hit the dodgy rows first instead of scanning the whole library like muppets.
+              One blunt queue for weak canonical moves, so Jordan or Sha-Lyn can hit the dodgy rows first instead of scanning the whole library like muppets.
             </p>
           </div>
           <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getAuditPriorityTone(auditPriority.bucket)}`}>
@@ -1153,7 +1153,7 @@ function DrillDetail({
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Linked raw candidates</p>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-              Jump straight back into the review queue for the raw rows feeding this canonical drill.
+              Jump straight back into the review queue for the raw rows feeding this canonical move.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
