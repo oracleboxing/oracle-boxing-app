@@ -7383,7 +7383,12 @@ export function ReviewQueueClient({
                         className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         {familyFilter === selectedCandidate.dedupe_key ? 'Clear family focus' : 'Focus this family'}
-                        <span id={`${selectedCandidate.id}-family-focus-status`} className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
+                        <span id={`${selectedCandidate.id}-family-focus-status`} className="sr-only">
+                          {familyFilter === selectedCandidate.dedupe_key
+                            ? `Family focus is active for ${selectedCandidate.dedupe_key}. Activate to clear the family filter.`
+                            : `Family focus is inactive for ${selectedCandidate.dedupe_key}. Activate to filter the queue to this family.`}
+                        </span>
+                        <span aria-hidden="true" className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
                           Shortcut F • {selectedCandidate.dedupe_key} • {familyFilter === selectedCandidate.dedupe_key ? 'family focus active' : 'family focus inactive'}
                         </span>
                       </button>
