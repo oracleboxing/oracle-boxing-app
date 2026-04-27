@@ -1,7 +1,7 @@
 import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Database, Drill, Json, RawDrillCandidate } from '@/lib/supabase/types'
+import type { Database, Json, Move, RawDrillCandidate } from '@/lib/supabase/types'
 
 type ReviewAction = 'approve' | 'reject' | 'merge'
 
@@ -13,7 +13,7 @@ type ReviewMutationPayload = {
   reviewNotes?: string | null
 }
 
-type DrillSeed = Database['public']['Tables']['moves']['Insert']
+type MoveSeed = Database['public']['Tables']['moves']['Insert']
 
 function isReviewAction(value: unknown): value is ReviewAction {
   return value === 'approve' || value === 'reject' || value === 'merge'
@@ -46,7 +46,7 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 80)
 
-  return slug || 'drill'
+  return slug || 'move'
 }
 
 async function ensureUniqueSlug(baseSlug: string) {
@@ -103,7 +103,7 @@ function mergeReviewNotes(existing: string | null, incoming: string | null | und
   return `${existing.trim()}\n\n${next}`
 }
 
-function seedDrillFromCandidate(candidate: RawDrillCandidate, slug: string): DrillSeed {
+function seedMoveFromCandidate(candidate: RawDrillCandidate, slug: string): MoveSeed {
   return {
     title: getDisplayTitle(candidate),
     slug,
@@ -180,21 +180,21 @@ export async function POST(request: Request) {
 
       for (const candidate of candidates) {
         const slug = await ensureUniqueSlug(slugify(candidate.slug_candidate || getDisplayTitle(candidate)))
-        const seed = seedDrillFromCandidate(candidate, slug)
+        const seed = seedMoveFromCandidate(candidate, slug)
 
-        const { data: insertedDrill, error: insertError } = await (supabase.from('moves') as any)
+        const { data: insertedMove, error: insertError } = await (supabase.from('moves') as any)
           .insert(seed)
           .select('id')
           .single()
 
-        if (insertError || !insertedDrill) {
+        if (insertError || !insertedMove) {
           throw new Error(`Could not create canonical move for ${getDisplayTitle(candidate)}: ${insertError?.message || 'unknown error'}`)
         }
 
         const { error: updateError } = await (supabase.from('raw_drill_candidates') as any)
           .update({
             review_status: 'approved',
-            canonical_move_id: insertedDrill.id,
+            canonical_move_id: insertedMove.id,
             review_notes: mergeReviewNotes(candidate.review_notes, reviewNotes),
           })
           .eq('id', candidate.id)
@@ -250,17 +250,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Merge needs a target canonical move.' }, { status: 400 })
     }
 
-    const { data: targetDrill, error: targetError } = await supabase
+    const { data: targetMove, error: targetError } = await supabase
       .from('moves')
       .select('*')
       .eq('id', canonicalMoveId)
       .single()
 
-    if (targetError || !targetDrill) {
+    if (targetError || !targetMove) {
       throw new Error(`Could not load target canonical move: ${targetError?.message || canonicalMoveId}`)
     }
 
-    const drill = targetDrill as Drill
+    const move = targetMove as Move
     const mergedFromCandidates = candidates.reduce(
       (acc, candidate) => {
         acc.summary = firstNonEmpty(acc.summary, candidate.summary, candidate.what_it_trains, candidate.description) || acc.summary
@@ -276,22 +276,22 @@ export async function POST(request: Request) {
         return acc
       },
       {
-        summary: drill.summary,
-        description: drill.description,
-        whatItTrains: drill.what_it_trains,
-        whenToAssign: drill.when_to_assign,
-        coachDemoQuote: drill.coach_demo_quote,
-        sourceFile: drill.source_file,
-        sourceType: drill.source_type,
-        category: drill.category,
-        gradeLevel: drill.grade_level,
-        difficulty: drill.difficulty,
+        summary: move.summary,
+        description: move.description,
+        whatItTrains: move.what_it_trains,
+        whenToAssign: move.when_to_assign,
+        coachDemoQuote: move.coach_demo_quote,
+        sourceFile: move.source_file,
+        sourceType: move.source_type,
+        category: move.category,
+        gradeLevel: move.grade_level,
+        difficulty: move.difficulty,
       }
     )
 
-    const { error: drillUpdateError } = await (supabase.from('moves') as any)
+    const { error: moveUpdateError } = await (supabase.from('moves') as any)
       .update({
-        summary: mergedFromCandidates.summary || drill.summary,
+        summary: mergedFromCandidates.summary || move.summary,
         description: mergedFromCandidates.description,
         what_it_trains: mergedFromCandidates.whatItTrains,
         when_to_assign: mergedFromCandidates.whenToAssign,
@@ -301,25 +301,25 @@ export async function POST(request: Request) {
         category: mergedFromCandidates.category,
         grade_level: mergedFromCandidates.gradeLevel,
         difficulty: mergedFromCandidates.difficulty,
-        raw_candidate_ids: uniqueStrings(drill.raw_candidate_ids, candidates.map((candidate) => candidate.id)),
-        format_tags: uniqueStrings(drill.format_tags, ...candidates.map((candidate) => candidate.format_tags)),
-        skill_tags: uniqueStrings(drill.skill_tags, ...candidates.map((candidate) => candidate.skill_tags)),
-        tags: uniqueStrings(drill.tags, ...candidates.map((candidate) => candidate.tags)),
-        steps_json: uniqueJsonList(drill.steps_json, ...candidates.map((candidate) => candidate.steps_json)),
-        focus_points_json: uniqueJsonList(drill.focus_points_json, ...candidates.map((candidate) => candidate.focus_points_json)),
-        common_mistakes_json: uniqueJsonList(drill.common_mistakes_json, ...candidates.map((candidate) => candidate.common_mistakes_json)),
+        raw_candidate_ids: uniqueStrings(move.raw_candidate_ids, candidates.map((candidate) => candidate.id)),
+        format_tags: uniqueStrings(move.format_tags, ...candidates.map((candidate) => candidate.format_tags)),
+        skill_tags: uniqueStrings(move.skill_tags, ...candidates.map((candidate) => candidate.skill_tags)),
+        tags: uniqueStrings(move.tags, ...candidates.map((candidate) => candidate.tags)),
+        steps_json: uniqueJsonList(move.steps_json, ...candidates.map((candidate) => candidate.steps_json)),
+        focus_points_json: uniqueJsonList(move.focus_points_json, ...candidates.map((candidate) => candidate.focus_points_json)),
+        common_mistakes_json: uniqueJsonList(move.common_mistakes_json, ...candidates.map((candidate) => candidate.common_mistakes_json)),
       })
-      .eq('id', drill.id)
+      .eq('id', move.id)
 
-    if (drillUpdateError) {
-      throw new Error(`Could not merge into canonical move ${drill.title}: ${drillUpdateError.message}`)
+    if (moveUpdateError) {
+      throw new Error(`Could not merge into canonical move ${move.title}: ${moveUpdateError.message}`)
     }
 
     for (const candidate of candidates) {
       const { error } = await (supabase.from('raw_drill_candidates') as any)
         .update({
           review_status: 'merged',
-          canonical_move_id: drill.id,
+          canonical_move_id: move.id,
           review_notes: mergeReviewNotes(candidate.review_notes, reviewNotes),
         })
         .eq('id', candidate.id)
@@ -334,7 +334,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      message: candidates.length === 1 ? `Merged candidate into ${drill.title}.` : `Merged ${candidates.length} candidates into ${drill.title}.`,
+      message: candidates.length === 1 ? `Merged candidate into ${move.title}.` : `Merged ${candidates.length} candidates into ${move.title}.`,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Review mutation failed.'
