@@ -5968,7 +5968,7 @@ export function ReviewQueueClient({
                               {getDecisionLabel(decision)}
                             </span>
                             {isFocusedDecision ? (
-                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                              <span aria-hidden="true" className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
                                 Active
                               </span>
                             ) : null}
