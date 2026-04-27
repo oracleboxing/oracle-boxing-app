@@ -6819,7 +6819,7 @@ export function ReviewQueueClient({
                           className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                         >
                           Peel back last
-                          <span className="ml-2 text-[var(--text-tertiary)]">Backspace • {lastActiveViewModifierLabel}</span>
+                          <span aria-hidden="true" className="ml-2 text-[var(--text-tertiary)]">Backspace • {lastActiveViewModifierLabel}</span>
                         </button>
                       ) : null}
                       <button
@@ -6829,7 +6829,7 @@ export function ReviewQueueClient({
                         className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
                         Reset view
-                        <span className="ml-2 text-[var(--text-tertiary)]">0</span>
+                        <span aria-hidden="true" className="ml-2 text-[var(--text-tertiary)]">0</span>
                       </button>
                     </div>
                     <div>
@@ -7849,7 +7849,7 @@ export function ReviewQueueClient({
                                     <button
                                       type="button"
                                       aria-controls="review-detail-panel"
-                                      aria-expanded={slice.leadCandidate?.id === selectedCandidate.id}
+                                      aria-pressed={slice.leadCandidate?.id === selectedCandidate.id}
                                       aria-describedby={sliceActionDescriptionIds}
                                       aria-label={slice.leadCandidate ? `Open lead row ${getDisplayTitle(slice.leadCandidate)} for the ${slice.label.toLowerCase()} in the review detail panel` : undefined}
                                       disabled={slice.count === 0}
@@ -7861,7 +7861,7 @@ export function ReviewQueueClient({
                                     <button
                                       type="button"
                                       aria-controls="review-detail-panel"
-                                      aria-expanded={slice.nextOtherCandidate?.id === selectedCandidate.id}
+                                      aria-pressed={slice.nextOtherCandidate?.id === selectedCandidate.id}
                                       aria-describedby={sliceActionDescriptionIds}
                                       aria-label={slice.nextOtherCandidate ? `Open next other row ${getDisplayTitle(slice.nextOtherCandidate)} for the ${slice.label.toLowerCase()} in the review detail panel` : undefined}
                                       disabled={!slice.nextOtherCandidate}
@@ -8184,7 +8184,7 @@ export function ReviewQueueClient({
                             <button
                               type="button"
                               aria-controls="review-detail-panel"
-                              aria-expanded={selectedFamilyWorkspace.keepCandidate.id === selectedCandidate.id}
+                              aria-pressed={selectedFamilyWorkspace.keepCandidate.id === selectedCandidate.id}
                               aria-label={`Open suggested keep ${getDisplayTitle(selectedFamilyWorkspace.keepCandidate)} in the review detail panel`}
                               onClick={() => selectCandidate(selectedFamilyWorkspace.keepCandidate.id, { scrollIntoView: false })}
                               className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
@@ -8196,7 +8196,7 @@ export function ReviewQueueClient({
                               type="button"
                               disabled={!selectedFamilyWorkspace.nextMergeCandidate}
                               aria-controls="review-detail-panel"
-                              aria-expanded={selectedFamilyWorkspace.nextMergeCandidate?.id === selectedCandidate.id}
+                              aria-pressed={selectedFamilyWorkspace.nextMergeCandidate?.id === selectedCandidate.id}
                               aria-label={selectedFamilyWorkspace.nextMergeCandidate ? `Open next merge row ${getDisplayTitle(selectedFamilyWorkspace.nextMergeCandidate)} in the review detail panel` : undefined}
                               onClick={() =>
                                 selectedFamilyWorkspace.nextMergeCandidate
@@ -8214,7 +8214,7 @@ export function ReviewQueueClient({
                               type="button"
                               disabled={!selectedFamilyWorkspace.nextRejectCandidate}
                               aria-controls="review-detail-panel"
-                              aria-expanded={selectedFamilyWorkspace.nextRejectCandidate?.id === selectedCandidate.id}
+                              aria-pressed={selectedFamilyWorkspace.nextRejectCandidate?.id === selectedCandidate.id}
                               aria-label={selectedFamilyWorkspace.nextRejectCandidate ? `Open next reject row ${getDisplayTitle(selectedFamilyWorkspace.nextRejectCandidate)} in the review detail panel` : undefined}
                               onClick={() =>
                                 selectedFamilyWorkspace.nextRejectCandidate
