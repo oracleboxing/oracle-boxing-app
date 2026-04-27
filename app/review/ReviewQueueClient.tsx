@@ -97,7 +97,7 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['Shift + f', 'Select pending family'], description: 'Add or remove every pending row in the selected family from the bulk set.' },
       { keys: ['[ / ]', 'Family hop'], description: 'Move to the previous or next pending family.' },
       { keys: [', / .', 'Family row'], description: 'Step through rows inside the current family.' },
-      { keys: ['← / → or ; / \'' , 'Merge target'], description: 'Cycle the canonical merge target without leaving the keyboard.' },
+      { keys: ['← / → or ; / \'' , 'Merge target'], description: 'Cycle the selected canonical move without leaving the keyboard.' },
       { keys: ['4 / 5 / 6 / 7 / 8 / 9', 'Pick target'], description: 'Jump straight to the top visible merge targets by rank when multiple move matches are surfaced.' },
       { keys: ['Shift + h', 'Copy family notes'], description: 'Copy the current duplicate-family handoff scaffold without leaving the keyboard.' },
     ],
@@ -2371,7 +2371,7 @@ export function ReviewQueueClient({
     ? 'Pick a merge target first.'
     : mergeTargetNeedsExplicitSelection
       ? 'Pick a merge target first. This row has multiple plausible library matches.'
-      : 'Use the selected canonical target.'
+      : 'Use the selected canonical move.'
 
   const cycleMergeTarget = useCallback(
     (direction: 'next' | 'previous') => {
@@ -6889,8 +6889,8 @@ export function ReviewQueueClient({
                     : suggestedAction === 'merge'
                       ? isSelected
                         ? canRunMergeAction
-                          ? 'Suggested merge is ready with the current canonical target.'
-                          : 'Suggested merge is blocked until a canonical target is explicitly chosen.'
+                          ? 'Suggested merge is ready with the current canonical move.'
+                          : 'Suggested merge is blocked until a canonical move is explicitly chosen.'
                         : 'Suggested merge is available after selecting this row.'
                       : `Suggested action is ${suggestedActionLabel}.`
                 const suggestedActionAriaLabel =
@@ -6899,17 +6899,17 @@ export function ReviewQueueClient({
                     : suggestedAction === 'merge'
                       ? isSelected
                         ? canRunMergeAction
-                          ? `Apply suggested merge for ${getDisplayTitle(candidate)} using the selected canonical target.`
-                          : `Suggested merge for ${getDisplayTitle(candidate)} is unavailable until a canonical target is explicitly chosen.`
+                          ? `Apply suggested merge for ${getDisplayTitle(candidate)} using the selected canonical move.`
+                          : `Suggested merge for ${getDisplayTitle(candidate)} is unavailable until a canonical move is explicitly chosen.`
                         : `Suggested merge for ${getDisplayTitle(candidate)} is unavailable until this row is selected.`
                       : `Apply suggested ${suggestedActionLabel.toLowerCase()} action for ${getDisplayTitle(candidate)}.`
                 const approveButtonAriaLabel = `Approve ${getDisplayTitle(candidate)} and create a move.`
                 const rejectButtonAriaLabel = `Reject ${getDisplayTitle(candidate)}.`
                 const mergeButtonAriaLabel = !isSelected
-                  ? `Merge ${getDisplayTitle(candidate)} after selecting this row and choosing a canonical target.`
+                  ? `Merge ${getDisplayTitle(candidate)} after selecting this row and choosing a canonical move.`
                   : canRunMergeAction
-                    ? `Merge ${getDisplayTitle(candidate)} into the selected canonical target.`
-                    : `Merge ${getDisplayTitle(candidate)} after choosing a canonical target.`
+                    ? `Merge ${getDisplayTitle(candidate)} into the selected canonical move.`
+                    : `Merge ${getDisplayTitle(candidate)} after choosing a canonical move.`
                 const suggestedActionHintId = `${candidate.id}-queue-suggested-action-hint`
                 const approveActionHintId = `${candidate.id}-queue-approve-action-hint`
                 const rejectActionHintId = `${candidate.id}-queue-reject-action-hint`
@@ -7055,7 +7055,7 @@ export function ReviewQueueClient({
                               : suggestedAction === 'merge'
                                 ? isSelected
                                   ? canRunMergeAction
-                                    ? 'Apply the suggested merge into the selected canonical target.'
+                                    ? 'Apply the suggested merge into the selected canonical move.'
                                     : mergeTargetPrompt
                                   : 'Select this candidate first to apply the suggested merge.'
                                 : 'Apply the queue recommendation for this candidate.'
@@ -7066,8 +7066,8 @@ export function ReviewQueueClient({
                             {suggestedAction === 'merge'
                               ? isSelected
                                 ? canRunMergeAction
-                                  ? 'Uses the queue recommendation with the selected canonical target.'
-                                  : 'Uses the queue recommendation after a canonical target is explicitly chosen.'
+                                  ? 'Uses the queue recommendation with the selected canonical move.'
+                                  : 'Uses the queue recommendation after a canonical move is explicitly chosen.'
                                 : 'Uses the queue recommendation after this row is selected.'
                               : `Uses the queue recommendation to ${suggestedActionLabel.toLowerCase()} this candidate.`}
                           </span>
@@ -7146,17 +7146,17 @@ export function ReviewQueueClient({
                               : setActionError(mergeTargetPrompt)
                           }
                           className="rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-primary)] disabled:pointer-events-none disabled:opacity-50"
-                          title={isSelected ? (canRunMergeAction ? 'Merge this candidate into the chosen canonical target.' : mergeTargetPrompt) : 'Select this candidate first to choose a merge target.'}
+                          title={isSelected ? (canRunMergeAction ? 'Merge this candidate into the chosen canonical move.' : mergeTargetPrompt) : 'Select this candidate first to choose a merge target.'}
                         >
                           Merge
                           <span id={mergeActionHintId} className="sr-only">
                             {isSelected
                               ? canRunMergeAction
-                                ? 'Uses the selected canonical target.'
+                                ? 'Uses the selected canonical move.'
                                 : mergeTargetPrompt
-                              : 'Select this row first to choose a canonical target.'}
+                              : 'Select this row first to choose a canonical move.'}
                           </span>
-                          <span aria-hidden="true" className="ml-2 text-xs text-[var(--text-tertiary)]">{isSelected ? (canRunMergeAction ? 'Use chosen target' : mergeTargetPrompt) : 'Select first'}</span>
+                          <span aria-hidden="true" className="ml-2 text-xs text-[var(--text-tertiary)]">{isSelected ? (canRunMergeAction ? 'Use chosen move' : mergeTargetPrompt) : 'Select first'}</span>
                         </button>
                       </div>
                     </div>
@@ -7641,7 +7641,7 @@ export function ReviewQueueClient({
                               <span id={`${selectedCandidate.id}-merge-target-status`} className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
                                 {preferredMergeTarget
                                   ? `${isUsingAutoMergeTarget ? 'Auto-selected top match' : 'Selected target'}: ${preferredMergeTarget.title} • Match ${preferredMergeTarget.matchScore}${preferredMergeTarget.matchReasons[0] ? ` • ${preferredMergeTarget.matchReasons[0]}` : ''}`
-                                  : 'No likely canonical target yet for this candidate.'}
+                                  : 'No likely canonical move yet for this candidate.'}
                               </span>
                               {mergeTargetNeedsExplicitSelection ? (
                                 <span id={`${selectedCandidate.id}-merge-target-warning`} className="mt-1 block text-xs leading-5 text-amber-700 dark:text-amber-400">
@@ -7685,10 +7685,10 @@ export function ReviewQueueClient({
                           >
                             Merge candidate
                             <span id={detailMergeActionHintId} className="sr-only">
-                              {canRunMergeAction ? 'Uses the selected canonical target and advances selection.' : mergeTargetPrompt}
+                              {canRunMergeAction ? 'Uses the selected canonical move and advances selection.' : mergeTargetPrompt}
                             </span>
                             <span aria-hidden="true" className="mt-1 block text-xs font-normal text-sky-700 dark:text-sky-400">
-                              Shortcut M • {canRunMergeAction ? 'Uses the selected canonical target and advances selection' : mergeTargetPrompt}
+                              Shortcut M • {canRunMergeAction ? 'Uses the selected canonical move and advances selection' : mergeTargetPrompt}
                             </span>
                           </button>
                         </div>
