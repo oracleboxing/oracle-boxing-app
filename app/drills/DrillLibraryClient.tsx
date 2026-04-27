@@ -1018,8 +1018,10 @@ function DrillDetail({
     if (typeof window === 'undefined') return
 
     const handoff = {
-      drill_id: drill.id,
-      drill_title: drill.title,
+      move_id: drill.id,
+      move_title: drill.title,
+      legacy_drill_id: drill.id,
+      legacy_drill_title: drill.title,
       audit_priority: auditPriority.bucket,
       suggested_next_move: getLinkedReviewNextMove(reviewSummary),
       linked_review_set_url: linkedReviewHref ? `${window.location.origin}${linkedReviewHref}` : null,
