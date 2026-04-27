@@ -57,7 +57,7 @@ async function ensureUniqueSlug(baseSlug: string) {
     const { data, error } = await supabase.from('drills').select('id').eq('slug', candidateSlug).maybeSingle()
 
     if (error) {
-      throw new Error(`Could not validate drill slug uniqueness: ${error.message}`)
+      throw new Error(`Could not validate move slug uniqueness: ${error.message}`)
     }
 
     if (!data) return candidateSlug
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'merge' && (!body.canonicalDrillId || !body.canonicalDrillId.trim())) {
-      return NextResponse.json({ error: 'Merge needs a target canonical drill.' }, { status: 400 })
+      return NextResponse.json({ error: 'Merge needs a target canonical move.' }, { status: 400 })
     }
 
     const supabase = createAdminClient()
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
           .single()
 
         if (insertError || !insertedDrill) {
-          throw new Error(`Could not create canonical drill for ${getDisplayTitle(candidate)}: ${insertError?.message || 'unknown error'}`)
+          throw new Error(`Could not create canonical move for ${getDisplayTitle(candidate)}: ${insertError?.message || 'unknown error'}`)
         }
 
         const { error: updateError } = await (supabase.from('raw_drill_candidates') as any)
@@ -208,7 +208,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         ok: true,
-        message: approvedCount === 1 ? 'Approved candidate into the drill library.' : `Approved ${approvedCount} candidates into the drill library.`,
+        message: approvedCount === 1 ? 'Approved candidate into the move library.' : `Approved ${approvedCount} candidates into the move library.`,
       })
     }
 
@@ -251,7 +251,7 @@ export async function POST(request: Request) {
       .single()
 
     if (targetError || !targetDrill) {
-      throw new Error(`Could not load target canonical drill: ${targetError?.message || canonicalDrillId}`)
+      throw new Error(`Could not load target canonical move: ${targetError?.message || canonicalDrillId}`)
     }
 
     const drill = targetDrill as Drill
@@ -306,7 +306,7 @@ export async function POST(request: Request) {
       .eq('id', drill.id)
 
     if (drillUpdateError) {
-      throw new Error(`Could not merge into canonical drill ${drill.title}: ${drillUpdateError.message}`)
+      throw new Error(`Could not merge into canonical move ${drill.title}: ${drillUpdateError.message}`)
     }
 
     for (const candidate of candidates) {
