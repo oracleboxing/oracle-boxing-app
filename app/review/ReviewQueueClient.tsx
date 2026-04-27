@@ -5123,7 +5123,7 @@ export function ReviewQueueClient({
                       onClick={() => openCandidateInQueue(currentSliceSummary.leadCandidate!.id)}
                       aria-controls="review-detail-panel"
                       aria-describedby={currentSliceActionsId}
-                      aria-expanded={selectedCandidateId === currentSliceSummary.leadCandidate.id}
+                      aria-pressed={selectedCandidateId === currentSliceSummary.leadCandidate.id}
                       aria-label={`${selectedCandidateId === currentSliceSummary.leadCandidate.id ? 'Viewing' : 'Open'} lead candidate ${getDisplayTitle(currentSliceSummary.leadCandidate)} in the detail panel`}
                       className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                     >
@@ -5207,7 +5207,7 @@ export function ReviewQueueClient({
                         onClick={() => openCandidateInQueue(currentSliceSummary.leadCandidate.id)}
                         aria-controls="review-detail-panel"
                         aria-describedby={`${leadVisibleCandidateSummaryId} ${leadVisibleCandidateActionsId}`}
-                        aria-expanded={leadCandidateAlreadySelected}
+                        aria-pressed={leadCandidateAlreadySelected}
                         aria-label={`${leadCandidateAlreadySelected ? 'Viewing' : 'Open'} ${getDisplayTitle(currentSliceSummary.leadCandidate)} in the review detail panel`}
                         className="inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                       >
