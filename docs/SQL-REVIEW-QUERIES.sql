@@ -40,7 +40,7 @@ from raw_drill_candidates
 where coalesce(grade_level, '') in ('grade_1', 'grade_2')
 order by grade_level, cleaned_title;
 
--- Canonical drill library
+-- Canonical move library
 select
   id,
   title,
@@ -51,19 +51,19 @@ select
   is_active,
   array_length(raw_candidate_ids, 1) as raw_candidate_count,
   updated_at
-from drills
+from moves
 where is_active = true
 order by title;
 
--- Raw candidates already linked to a canonical drill
+-- Raw candidates already linked to a canonical move
 select
   r.id,
   r.cleaned_title,
   r.review_status,
   r.grade_level,
-  d.title as canonical_title,
-  d.slug as canonical_slug
+  m.title as canonical_title,
+  m.slug as canonical_slug
 from raw_drill_candidates r
-left join drills d on d.id = r.canonical_drill_id
-where r.canonical_drill_id is not null
-order by d.title, r.cleaned_title;
+left join moves m on m.id = r.canonical_move_id
+where r.canonical_move_id is not null
+order by m.title, r.cleaned_title;
