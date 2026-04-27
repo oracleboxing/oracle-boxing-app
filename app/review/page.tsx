@@ -81,7 +81,7 @@ export default async function ReviewPage() {
           <Header />
           <EmptyState
             title="Review queue unavailable"
-            body={drillsError.message || 'The app could not read drills for comparison context. Check table access, RLS, and local Supabase configuration.'}
+            body={drillsError.message || 'The app could not read moves for comparison context. Check table access, RLS, and local Supabase configuration.'}
           />
         </div>
       </div>
