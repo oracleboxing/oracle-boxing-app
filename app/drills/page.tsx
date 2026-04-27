@@ -6,7 +6,7 @@ import { DrillLibraryClient } from './DrillLibraryClient'
 export const dynamic = 'force-dynamic'
 
 const EMPTY_ENV_MESSAGE =
-  'Supabase env vars are missing in this local environment, so the curated drill library cannot load yet.'
+  'Supabase env vars are missing in this local environment, so the curated move library cannot load yet.'
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
@@ -23,7 +23,7 @@ export default async function DrillsPage() {
       <div className="min-h-screen px-8 py-10">
         <div className="mx-auto max-w-7xl">
           <Header />
-          <EmptyState title="Curated drill library unavailable" body={EMPTY_ENV_MESSAGE} />
+          <EmptyState title="Curated move library unavailable" body={EMPTY_ENV_MESSAGE} />
         </div>
       </div>
     )
@@ -31,7 +31,7 @@ export default async function DrillsPage() {
 
   const supabase = await createClient()
   const { data, error } = await supabase
-    .from('drills')
+    .from('moves')
     .select(
       'id, title, slug, summary, description, category, difficulty, grade_level, format_tags, skill_tags, tags, steps_json, focus_points_json, common_mistakes_json, what_it_trains, when_to_assign, coach_demo_quote, demo_video_url, animation_key, source_type, source_file, raw_candidate_ids, is_active, is_curated, created_at, updated_at'
     )
@@ -46,8 +46,8 @@ export default async function DrillsPage() {
         <div className="mx-auto max-w-7xl">
           <Header />
           <EmptyState
-            title="Curated drill library unavailable"
-            body={error.message || 'The app could not read drills. Check table access, RLS, and local Supabase configuration.'}
+            title="Curated move library unavailable"
+            body={error.message || 'The app could not read moves. Check table access, RLS, and local Supabase configuration.'}
           />
         </div>
       </div>
@@ -71,7 +71,7 @@ export default async function DrillsPage() {
           <div className="mx-auto max-w-7xl">
             <Header />
             <EmptyState
-              title="Curated drill library unavailable"
+              title="Curated move library unavailable"
               body={rawCandidateError.message || 'The app could not read linked raw drill candidates. Check table access, RLS, and local Supabase configuration.'}
             />
           </div>
@@ -97,7 +97,7 @@ function Header() {
     <div className="mb-8 flex items-end justify-between gap-4">
       <div>
         <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">Oracle Boxing rebuild</p>
-        <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)] sm:text-5xl">Curated drill library</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)] sm:text-5xl">Curated move library</h1>
         <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--text-secondary)]">
           App-facing browse surface for curated moves from the live moves table only, separate from the raw review queue.
         </p>
