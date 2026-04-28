@@ -40,7 +40,9 @@ Not on:
 - `raw_drill_candidates` for extracted, reviewable source content and AI-assisted draft support only
 - `moves` for curated canonical boxing movements
 - `combinations` and `combination_items` for reusable boxing sequences
-- `exercises` for non-boxing training items
+- `exercises` for non-boxing training items, now seeded with a first dynamic warm-up draft
+- `workout_templates` still exists as a legacy table with 1 row
+- the clean workout tables live in migration `009`, but are not live in Supabase yet
 
 ### In docs
 - rebuild architecture notes
@@ -82,10 +84,14 @@ Supporting docs:
 - holds reusable ordered move sequences
 
 ### Workout composition
+Target clean schema in migration `009`:
 - `workouts`
 - `workout_items`
 - `workout_item_exercises`
-- these link workout blocks to curated `exercises`
+- `workout_item_moves`
+- `workout_item_combinations`
+
+Live Supabase has not applied that layer yet. Do not build new UI on the old `workout_templates` table unless explicitly doing legacy support.
 
 These are built on top of curated source-of-truth rows, not raw candidates.
 

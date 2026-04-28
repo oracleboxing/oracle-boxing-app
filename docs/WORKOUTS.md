@@ -1,6 +1,27 @@
 # Workouts Architecture & Execution Plan
 
-This document outlines how the Oracle Boxing App composes, delivers, and executes workouts using the newly established canonical movement library (`moves`, `combinations`, `exercises`).
+This document outlines how the Oracle Boxing App composes, delivers, and executes workouts using the canonical movement library (`moves`, `combinations`, `exercises`).
+
+## 0. Live database status
+
+As of 2026-04-28, live Supabase has the curated content layer but not the clean workout-composition layer yet.
+
+Live now:
+- `raw_drill_candidates`: 738 rows
+- `moves`: 74 rows
+- `combinations`: 30 rows
+- `combination_items`: 94 rows
+- `exercises`: 6 rows, first dynamic warm-up draft seeded
+- `workout_templates`: 1 legacy row
+
+In repo, not live yet:
+- `workouts`
+- `workout_items`
+- `workout_item_exercises`
+- `workout_item_moves`
+- `workout_item_combinations`
+
+So the builder and runner should be designed against the clean `009` schema, but not assume those tables exist in production until that migration is applied. Nasty little footgun, now labelled.
 
 ## 1. The Core Schema
 
@@ -39,3 +60,25 @@ A prototype timer exists at `/workout/run`. The next phase is wiring this protot
 To be built after the execution layer is stable:
 - `workout_sessions` (or `workout_logs`) to track completion state.
 - Skool companion integration to push completion data or celebrate streaks.
+
+
+## 5. First dynamic warm-up draft
+
+Seeded as reusable `exercises` with category `dynamic_warmup`:
+- Light Bounce
+- Alternating Knee Raises
+- Step Over The Gate
+- Standing Torso Twists
+- Squat And Open
+- Alternating Forward Lunges
+
+These are intentionally draft-quality, not final Oracle naming. They exist to unblock workout-building and demo planning.
+
+Each row includes:
+- simple instructions
+- coaching cues
+- common mistakes
+- `structure_json.demo_style = "action_man_loop"`
+- an `animation_prompt` for the future little action-man demo system
+
+Jordan still needs to refine exact names, ranges, and demonstration details later. For now, this is good enough to start building workouts instead of disappearing into taxonomy hell. Sensible.

@@ -6,6 +6,28 @@ It is written for handoff and collaboration, especially for Sha-Lyn.
 
 ---
 
+
+## Live Supabase audit - 2026-04-28
+
+Checked against the live Supabase REST schema and row counts.
+
+Live now:
+- `raw_drill_candidates` - 738 rows. Intake/review pile.
+- `moves` - 74 rows. Canonical boxing moves.
+- `combinations` - 30 rows. Canonical reusable sequences.
+- `combination_items` - 94 rows. Ordered move links inside combinations.
+- `exercises` - 6 rows. First dynamic warm-up draft.
+- `workout_templates` - 1 legacy row still exists from the older MVP path.
+
+Not live yet:
+- `workouts`
+- `workout_items`
+- `workout_item_exercises`
+- `workout_item_moves`
+- `workout_item_combinations`
+
+Those clean workout-composition tables exist in repo migration `009_workouts_schema.sql`, but the live database has not applied that migration yet. Until it is applied, UI work should treat `workout_templates` as legacy and avoid building new product flows directly on it.
+
 ## Current rebuild principle
 
 The rebuild is centred on:
@@ -56,10 +78,16 @@ Purpose:
 - avoid forcing squats and treadmill work into boxing-first tables
 
 ### Layer 4: workout composition
-Tables:
+Target tables from migration `009_workouts_schema.sql`:
 - `workouts`
 - `workout_items`
 - `workout_item_exercises`
+- `workout_item_moves`
+- `workout_item_combinations`
+
+Live caveat:
+- these clean workout tables are not applied to the live Supabase project yet
+- live Supabase still has the old `workout_templates` table with 1 row
 
 Purpose:
 - build reusable sessions from curated moves, combinations, and exercises
@@ -95,6 +123,12 @@ Main historical migration file:
 
 Forward rename/source-of-truth migration:
 - `supabase/migrations/008_moves_exercises_and_combinations.sql`
+
+Workout target migration, not live yet:
+- `supabase/migrations/009_workouts_schema.sql`
+
+First dynamic warm-up seed draft:
+- `supabase/migrations/010_seed_dynamic_warmups.sql`
 
 Migration `008` renames the canonical schema from:
 - `drills` to `moves`
@@ -295,15 +329,19 @@ That gives collaborators enough context to contribute without guessing.
 - build the app-facing boxing library UI on `moves`, `combinations`, and `combination_items`
 - build the review/moderation UI on `raw_drill_candidates`
 
+### Now
+- use `exercises` for the first simple dynamic warm-up draft
+- keep these draft warm-ups marked as not fully curated until Jordan tightens exact names and demos
+- use the `structure_json.animation_prompt` field as the first bridge toward an action-man demo system
+
 ### After the boxing layer is stable
 expand into:
-- S&C exercises via `exercises`
+- richer S&C exercises via `exercises`
 - running interval blocks via `exercises`
 - themes
 - templates
 
-That is a later phase.
-The boxing layer comes first, but the new path now exists in parallel so we do not have to contort future training content into boxing-first tables.
+The boxing layer still comes first, but warm-ups are simple enough to start now because they unblock workout building and UI/UX work.
 
 ---
 
