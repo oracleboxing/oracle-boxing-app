@@ -53,7 +53,9 @@ A prototype timer exists at `/workout/run`. The next phase is wiring this protot
 3. **Instruction:** The screen displays the linked `moves` and `combinations` for the current block. For example, "Round 2: Focus on Jab - Cross - Lead Hook".
 4. **Transition:** When the timer hits 0, it auto-advances to the next `workout_item` (e.g., Rest), giving an audio cue (bell).
 
-*Next Step:* Wire `TimerPrototype.tsx` to read from the live Supabase schema instead of `MOCK_WORKOUT`.
+**Current bridge:** `/workout/run` now loads a server-side runner contract from `src/features/workouts/runner.ts`. It tries the clean `workouts` / `workout_items` schema when available, but falls back to a local prototype workout with a visible notice while migration `009` is not live.
+
+*Next Step:* Once migration `009` is applied live, seed the first hand-authored workout and extend the runner to display linked moves, combinations, and exercises inside each block.
 
 ## 4. Progress Tracking (Future)
 
