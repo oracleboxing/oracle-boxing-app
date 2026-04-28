@@ -28,11 +28,11 @@ const REVIEW_ROUTE_SHORTCUTS: Record<ReviewRouteKey, '1' | '2' | '3'> = {
 
 const MERGE_TARGET_SHORTCUT_KEYS = ['4', '5', '6', '7', '8', '9'] as const
 
-const REVIEW_QUEUE_ROW_SHORTCUTS = "Enter S X Space C Escape J K ArrowDown ArrowUp N P L G Shift+G Home End PageDown PageUp F Shift+F [ ] , . ArrowLeft ArrowRight ; ' 1 2 3 4 5 6 7 8 9 O Shift+O B T D I E U H Shift+H V Y / Control+K Meta+K Backspace 0 ? A R M Shift+A Shift+R Shift+M"
+const REVIEW_QUEUE_ROW_SHORTCUTS = "Enter S X Space A R M F"
 const REVIEW_RETURN_TO_QUEUE_SHORTCUTS = 'Escape'
 const REVIEW_SEARCH_SHORTCUTS = '/ Control+K Meta+K Enter ArrowDown ArrowUp Escape'
 const REVIEW_HELP_SHORTCUTS = 'Shift+/'
-const REVIEW_SUGGESTED_ACTION_SHORTCUTS = 'Enter S'
+const REVIEW_SUGGESTED_ACTION_SHORTCUTS = 'S'
 const REVIEW_SELECT_SHORTCUTS = 'X Space'
 const REVIEW_SELECT_ALL_VISIBLE_PENDING_SHORTCUTS = 'Shift+X'
 const REVIEW_CLEAR_SELECTION_SHORTCUTS = 'C'
@@ -108,7 +108,8 @@ const REVIEW_SHORTCUT_GROUPS = [
       { keys: ['x / Space', 'Toggle select'], description: 'Add or remove the selected row from the bulk set.' },
       { keys: ['c', 'Clear selection'], description: 'Clear the full bulk selection, including rows hidden by the current slice.' },
       { keys: ['a / r / m', 'Approve, reject, merge'], description: 'Run the primary action on the selected pending row.' },
-      { keys: ['Enter / s', 'Suggested action'], description: 'Apply the queue recommendation for the selected row without leaving the keyboard.' },
+      { keys: ['s', 'Suggested action'], description: 'Apply the queue recommendation for the selected row without leaving the keyboard.' },
+      { keys: ['Enter', 'Focus detail panel'], description: 'Jump from the active queue row into its detail panel.' },
       { keys: ['Shift + x', 'Select visible pending'], description: 'Select every visible pending row at once.' },
       { keys: ['Shift + a / r / m', 'Bulk act'], description: 'Approve, reject, or merge the bulk selection.' },
     ],
@@ -3891,7 +3892,14 @@ export function ReviewQueueClient({
         return
       }
 
-      if (event.key === 'Enter' || key === 's') {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        if (!selectedCandidate) return
+        focusCandidateDetailPanel(selectedCandidate.id)
+        return
+      }
+
+      if (key === 's') {
         event.preventDefault()
         if (!selectedCandidate) return
         if (selectedCandidate.review_status !== 'pending') {
@@ -4250,7 +4258,7 @@ export function ReviewQueueClient({
       `${sortedCandidates.length} visible candidate${sortedCandidates.length === 1 ? '' : 's'} sorted by ${SORT_MODE_LABELS[sortMode]}.`,
       'Tab lands on the active queue row first, so you can start keyboard navigation before moving into row controls.',
       'Use J and K or the arrow keys to move between visible rows, N and P to jump through pending rows, and L to return to the lead row.',
-      'Press Enter or S to apply the suggested action for the active row, X or Space to toggle bulk selection, and Escape to return focus from row controls to the active queue row.',
+      'Press S to apply the suggested action for the active row, Enter to focus its detail panel, X or Space to toggle bulk selection, and Escape to return focus from row controls to the active queue row.',
       'Use 1, 2, and 3 to jump into the main review routes, B, T, D, I, E, and U to pivot into the selected row context, and O or Shift plus O to cycle sort without leaving the keyboard.',
       'Use Backspace to clear bulk selection first, then peel back the most recent active view modifier, and 0 to reset the queue to the default pending triage view.',
     ]
@@ -5776,9 +5784,9 @@ export function ReviewQueueClient({
                           aria-describedby={triageSummaryId}
                           aria-pressed={isFocusedLevel}
                         >
-                          {isFocusedLevel ? 'Current triage lane' : 'Focus this triage lane'}
+                          {isFocusedLevel ? 'Clear triage lane focus' : 'Focus this triage lane'}
                           <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                            Narrow the queue to {getTriageLabel(level).toLowerCase()} rows.
+                            {isFocusedLevel ? 'Remove this filter to see the wider queue.' : `Narrow the queue to ${getTriageLabel(level).toLowerCase()} rows.`}
                           </span>
                         </button>
 
@@ -5893,9 +5901,9 @@ export function ReviewQueueClient({
                           aria-describedby={completenessSummaryId}
                           aria-pressed={isFocusedBand}
                         >
-                          {isFocusedBand ? 'Current completeness lane' : 'Focus this completeness lane'}
+                          {isFocusedBand ? 'Clear completeness focus' : 'Focus this completeness lane'}
                           <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                            Narrow the queue to {COMPLETENESS_BAND_LABELS[band].toLowerCase()} rows.
+                            {isFocusedBand ? 'Remove this filter to see the wider queue.' : `Narrow the queue to ${COMPLETENESS_BAND_LABELS[band].toLowerCase()} rows.`}
                           </span>
                         </button>
 
@@ -6232,9 +6240,9 @@ export function ReviewQueueClient({
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                             aria-pressed={isFocusedSource}
                           >
-                            {isFocusedSource ? 'Current source focus' : 'Focus this source'}
+                            {isFocusedSource ? 'Clear source focus' : 'Focus this source'}
                             <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                              Narrow the queue to this source batch.
+                              {isFocusedSource ? 'Remove this filter to see the wider queue.' : 'Narrow the queue to this source batch.'}
                             </span>
                           </button>
 
@@ -6336,9 +6344,9 @@ export function ReviewQueueClient({
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                             aria-pressed={isFocusedDifficulty}
                           >
-                            {isFocusedDifficulty ? 'Current difficulty focus' : 'Focus this difficulty'}
+                            {isFocusedDifficulty ? 'Clear difficulty focus' : 'Focus this difficulty'}
                             <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                              Narrow the queue to this effort band.
+                              {isFocusedDifficulty ? 'Remove this filter to see the wider queue.' : 'Narrow the queue to this effort band.'}
                             </span>
                           </button>
 
@@ -6441,9 +6449,9 @@ export function ReviewQueueClient({
                             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
                             aria-pressed={isFocusedCategory}
                           >
-                            {isFocusedCategory ? 'Current category focus' : 'Focus this category'}
+                            {isFocusedCategory ? 'Clear category focus' : 'Focus this category'}
                             <span className="mt-1 block text-xs font-normal text-[var(--text-tertiary)]">
-                              Narrow the queue to this move type.
+                              {isFocusedCategory ? 'Remove this filter to see the wider queue.' : 'Narrow the queue to this move type.'}
                             </span>
                           </button>
 
@@ -6696,11 +6704,14 @@ export function ReviewQueueClient({
                 className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
               >
                 <option value="">No target selected</option>
-                {matchedDrills.map((drill) => (
-                  <option key={drill.id} value={drill.id}>
-                    {drill.title} · Match {drill.matchScore}
-                  </option>
-                ))}
+                {matchedDrills.map((drill, index) => {
+                  const shortcutKey = getMergeTargetShortcutKey(index)
+                  return (
+                    <option key={drill.id} value={drill.id}>
+                      {drill.title} · Match {drill.matchScore}{shortcutKey ? ` (Shortcut ${shortcutKey})` : ''}
+                    </option>
+                  )
+                })}
               </select>
               <span id="bulk-merge-target-status" className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
                 {preferredMergeTarget
@@ -6862,7 +6873,7 @@ export function ReviewQueueClient({
                 {queueListDescription}
               </p>
               <p id={REVIEW_QUEUE_KEYBOARD_HELP_ID} className="sr-only">
-                Queue keyboard help: use slash or Command or Control plus K to focus search, J and K or the arrow keys to move between visible rows, N and P to jump between pending rows, and L to return to the lead row. Use G or Home for the first visible row, Shift plus G or End for the last visible row, and Page Up or Page Down to jump ten rows at a time. Press Enter or S to apply the suggested action for the active row, X or Space to toggle bulk selection, F to focus the active duplicate family, bracket keys and comma or period to move through families, number keys 4 to 9 or left and right arrows or semicolon and apostrophe to change merge targets, 1 to 3 to jump routes, O to cycle sort, Backspace to peel back the view, 0 to reset the queue, question mark for full shortcut help, and Escape to return focus from row controls to the active queue row.
+                Queue keyboard help: use slash or Command or Control plus K to focus search, J and K or the arrow keys to move between visible rows, N and P to jump between pending rows, and L to return to the lead row. Use G or Home for the first visible row, Shift plus G or End for the last visible row, and Page Up or Page Down to jump ten rows at a time. Press S to apply the suggested action for the active row, Enter to focus its detail panel, X or Space to toggle bulk selection, F to focus the active duplicate family, bracket keys and comma or period to move through families, number keys 4 to 9 or left and right arrows or semicolon and apostrophe to change merge targets, 1 to 3 to jump routes, O to cycle sort, Backspace to peel back the view, 0 to reset the queue, question mark for full shortcut help, and Escape to return focus from row controls to the active queue row.
               </p>
               <div id="review-queue-list" role="list" aria-label="Review queue candidates" aria-describedby={`review-queue-list-description ${REVIEW_QUEUE_KEYBOARD_HELP_ID}`} aria-keyshortcuts={REVIEW_QUEUE_NAVIGATION_SHORTCUTS} className="space-y-4">
                 <div aria-hidden="true" className="hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] lg:flex lg.items-center lg:justify-between">
@@ -6938,7 +6949,7 @@ export function ReviewQueueClient({
                     }`}
                   >
                     <p id={rowSummaryId} className="sr-only">
-                      {`${isSelected ? 'Current queue row.' : 'Queue row.'} ${rowPositionSummary} Status ${REVIEW_STATUS_LABELS[candidate.review_status]}. ${getTriageLabel(insight.triageLevel)}. ${rowLeadSummary} ${rowBulkSelectionSummary} ${rowSuggestedActionSummary}${candidate.dedupe_key ? ` Family ${candidate.dedupe_key}.` : ''} Press Enter or S to apply the suggested action, X or Space to toggle bulk selection, and Escape to return focus to this row from its controls.`}
+                      {`${isSelected ? 'Current queue row.' : 'Queue row.'} ${rowPositionSummary} Status ${REVIEW_STATUS_LABELS[candidate.review_status]}. ${getTriageLabel(insight.triageLevel)}. ${rowLeadSummary} ${rowBulkSelectionSummary} ${rowSuggestedActionSummary}${candidate.dedupe_key ? ` Family ${candidate.dedupe_key}.` : ''} Press S to apply the suggested action, Enter to focus its detail panel, X or Space to toggle bulk selection, and Escape to return focus to this row from its controls.`}
                     </p>
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 flex-1">
@@ -7632,11 +7643,14 @@ export function ReviewQueueClient({
                                 className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-primary)]"
                               >
                                 <option value="">No target selected</option>
-                                {matchedDrills.map((drill) => (
-                                  <option key={drill.id} value={drill.id}>
-                                    {drill.title} · Match {drill.matchScore}
-                                  </option>
-                                ))}
+                                {matchedDrills.map((drill, index) => {
+                                  const shortcutKey = getMergeTargetShortcutKey(index)
+                                  return (
+                                    <option key={drill.id} value={drill.id}>
+                                      {drill.title} · Match {drill.matchScore}{shortcutKey ? ` (Shortcut ${shortcutKey})` : ''}
+                                    </option>
+                                  )
+                                })}
                               </select>
                               <span id={`${selectedCandidate.id}-merge-target-status`} className="mt-2 block text-xs leading-5 text-[var(--text-tertiary)]">
                                 {preferredMergeTarget
