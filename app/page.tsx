@@ -35,6 +35,12 @@ export default function HomePage() {
             >
               Review raw candidate queue
             </Link>
+            <Link
+              href="/workout/run"
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-secondary)]"
+            >
+              Workout Run Prototype
+            </Link>
           </div>
         </div>
       </div>
