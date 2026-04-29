@@ -60,6 +60,7 @@ Read these first:
 
 Supporting docs:
 - [docs/SETUP.md](docs/SETUP.md)
+- [docs/IOS.md](docs/IOS.md)
 - [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 - [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md)
 - [docs/ROADMAP.md](docs/ROADMAP.md)
@@ -94,6 +95,16 @@ Target clean schema in migration `009`:
 Live Supabase has not applied that layer yet. Do not build new UI on the old `workout_templates` table unless explicitly doing legacy support.
 
 These are built on top of curated source-of-truth rows, not raw candidates.
+
+---
+
+## iOS / Xcode
+
+The repo now includes a Capacitor iOS wrapper at `ios/App/App.xcodeproj`.
+
+Use it to run the existing Next.js app inside an iOS shell while keeping one shared codebase for GitHub, Codex, OpenClaw, and Xcode.
+
+See [docs/IOS.md](docs/IOS.md) for the local Mac workflow, App Store path, and caveats around dynamic Next.js pages.
 
 ---
 
